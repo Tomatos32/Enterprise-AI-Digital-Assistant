@@ -1,0 +1,3 @@
+# Ignore runtime evidence runs in git except .gitignore
+*
+!.gitignore
