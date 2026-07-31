@@ -1,8 +1,9 @@
-"""FastAPI Knowledge Base Document Management & File Upload Endpoints."""
+"""FastAPI Knowledge Base Document Management, Upload & Hybrid Search Endpoints."""
 
 import shutil
 from pathlib import Path
 from typing import List, Optional
+from pydantic import BaseModel, Field
 from fastapi import APIRouter, File, UploadFile, Form, Depends, Query
 from langchain_core.documents import Document
 from backend.core.exceptions import StandardResponse, AppException
@@ -13,11 +14,27 @@ from backend.rag.loader import (
     load_excel_document,
     extract_metadata_from_filename,
 )
-from backend.rag.vector_store import upsert_documents, search_similar_documents
+from backend.rag.vector_store import upsert_documents
+from backend.rag.retriever import HybridRetriever
 
 router = APIRouter()
 
 DATA_DIR = Path("backend/data")
+_hybrid_retriever: Optional[HybridRetriever] = None
+
+
+def get_hybrid_retriever() -> HybridRetriever:
+    """Singleton getter for HybridRetriever engine."""
+    global _hybrid_retriever
+    if _hybrid_retriever is None:
+        _hybrid_retriever = HybridRetriever()
+    return _hybrid_retriever
+
+
+class SearchRequest(BaseModel):
+    query: str = Field(..., description="Query search string")
+    top_k: int = Field(5, ge=1, le=20, description="Top K documents to return")
+    category_filter: Optional[str] = Field(None, description="Optional category filter (e.g. HR, PROCUREMENT)")
 
 
 def parse_and_load_file(file_path: Path) -> List[Document]:
@@ -35,7 +52,6 @@ def parse_and_load_file(file_path: Path) -> List[Document]:
         meta["title"] = file_path.stem
         return [Document(page_content=text, metadata=meta)]
     else:
-        # Generic text fallback
         text = file_path.read_text(encoding="utf-8", errors="ignore")
         meta = extract_metadata_from_filename(file_path)
         return [Document(page_content=text, metadata=meta)]
@@ -70,6 +86,11 @@ async def upload_knowledge_file(
             doc.metadata["category"] = category
 
     indexed_count = upsert_documents(docs)
+    
+    # Refresh BM25 index on new uploads
+    retriever = get_hybrid_retriever()
+    retriever.sample_docs.extend(docs)
+    retriever.bm25_retriever.build_index(retriever.sample_docs)
 
     return StandardResponse(
         code=200,
@@ -84,16 +105,22 @@ async def upload_knowledge_file(
     )
 
 
-@router.get("/search", response_model=StandardResponse)
-async def search_knowledge(
-    query: str = Query(..., description="Search query string"),
-    top_k: int = Query(5, ge=1, le=20),
+@router.post("/search", response_model=StandardResponse)
+async def post_search_knowledge(
+    req: SearchRequest,
     current_user: UserPayload = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.EMPLOYEE]))
 ):
     """
-    Searches similar documents in Qdrant by query string.
+    Performs Hybrid Retrieval (BM25 + Qdrant Dense Vector + RRF + Reranker)
+    filtered by optional category.
     """
-    results = search_similar_documents(query=query, top_k=top_k)
+    retriever = get_hybrid_retriever()
+    results = retriever.retrieve(
+        query=req.query,
+        top_k=req.top_k,
+        category_filter=req.category_filter
+    )
+    
     data = [
         {
             "content": doc.page_content,
@@ -104,6 +131,37 @@ async def search_knowledge(
 
     return StandardResponse(
         code=200,
-        message="Similarity search completed",
+        message="Hybrid retrieval completed",
+        data={"query": req.query, "count": len(data), "results": data}
+    )
+
+
+@router.get("/search", response_model=StandardResponse)
+async def get_search_knowledge(
+    query: str = Query(..., description="Search query string"),
+    top_k: int = Query(5, ge=1, le=20),
+    category_filter: Optional[str] = Query(None),
+    current_user: UserPayload = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.EMPLOYEE]))
+):
+    """
+    GET shortcut for Hybrid Retrieval.
+    """
+    retriever = get_hybrid_retriever()
+    results = retriever.retrieve(
+        query=query,
+        top_k=top_k,
+        category_filter=category_filter
+    )
+    data = [
+        {
+            "content": doc.page_content,
+            "metadata": doc.metadata
+        }
+        for doc in results
+    ]
+
+    return StandardResponse(
+        code=200,
+        message="Hybrid retrieval completed",
         data={"query": query, "count": len(data), "results": data}
     )
