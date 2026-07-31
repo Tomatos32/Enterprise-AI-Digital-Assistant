@@ -11,6 +11,7 @@ from backend.core.exceptions import (
 )
 from backend.api.v1.health import router as health_router
 from backend.api.v1.auth import router as auth_router
+from backend.api.v1.knowledge import router as knowledge_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -35,6 +36,7 @@ app.add_middleware(
 # Include Routers
 app.include_router(health_router, prefix=settings.API_V1_STR, tags=["Health"])
 app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["Auth & RBAC"])
+app.include_router(knowledge_router, prefix=f"{settings.API_V1_STR}/knowledge", tags=["Knowledge Base"])
 
 
 @app.get("/")
