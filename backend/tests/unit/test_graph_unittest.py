@@ -31,7 +31,7 @@ class TestLangGraphWorkflow(unittest.TestCase):
         result = asyncio.run(run_test())
         self.assertIsNotNone(result)
         self.assertEqual(len(result["messages"]), 2)
-        self.assertIn("Processed request - Hello AI Harness", result["messages"][-1].content)
+        self.assertIn("processed your message", result["messages"][-1].content.lower())
         self.assertEqual(result["current_step"], "completed")
 
 

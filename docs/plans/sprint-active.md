@@ -1,22 +1,25 @@
-# Active Sprint Execution Plan (Sprint 3 Milestone)
+# Active Sprint Execution Plan (Sprint 4 Milestone)
 > Enterprise AI Digital Assistant - Active Task Checkpoint Board
 
 ---
 
-## Active Issue: Issue-0008 (Sprint 3 Hybrid Retrieval & Reranker Engine)
+## Active Issue: Issue-0011 (LangGraph Complete Node Topology & Intent Routing Engine)
 
 ### Task Checkpoints:
-- [x] Checkpoint 1: 锁存需求至 `.harness/runs/Issue-0008/issue.md`
-- [x] Checkpoint 2: 创建 `backend/rag/retriever.py`，实现 `tokenize_text`, `BM25Retriever`, `reciprocal_rank_fusion`, `Reranker` 及 `HybridRetriever`
-- [x] Checkpoint 3: 更新 `backend/api/v1/knowledge.py`，升级 `POST /api/v1/knowledge/search` 接口支持 JSON 请求体 (`query`, `top_k`, `category_filter`)
-- [x] Checkpoint 4: 编写 `backend/tests/unit/test_retrieval.py` 验证 BM25、RRF、Reranker 及 60000 元审批规则高召回率测试
-- [x] Checkpoint 5: 运行 `ruff check backend/ --fix` 与 `pytest backend/tests/` 确保 100% 零报错通过
-- [x] Checkpoint 6: 生成 `.harness/runs/Issue-0008/` 下全套 9 大只读证据包，提交 Git 并推送至 GitHub
+- [x] Checkpoint 1: 锁存需求至 `.harness/runs/Issue-0011/issue.md`
+- [x] Checkpoint 2: 生成 `.harness/runs/Issue-0011/plan.md` 并同步更新 `docs/plans/sprint-active.md`
+- [x] Checkpoint 3: 扩展 `backend/graph/state.py` 中的 `AgentState` 结构
+- [x] Checkpoint 4: 实现 `backend/graph/nodes/` 下四节点 (`router_node`, `retrieve_node`, `tool_node`, `generate_node`)
+- [x] Checkpoint 5: 在 `backend/graph/workflow.py` 构建 `add_conditional_edges` 条件分支拓扑
+- [x] Checkpoint 6: 编写 `backend/tests/unit/test_graph_topology.py` 并运行 `ruff check` 与 `pytest` 测试 (32 passed)
+- [x] Checkpoint 7: 完成 ReviewerAgent 11 维质量审查，生成 `review.md` (Score: 99 / APPROVED)
+- [x] Checkpoint 8: 生成 `documentation.md` 与 `verification.md`
+- [x] Checkpoint 9: 刷盘 `.harness/runs/Issue-0011/` 8 大证据包，关单归档
 
 ---
 
 ## Sprint Overall Status
 - Mode: `BOOTSTRAP MODE`
-- Active Issue: `Issue-0008`
+- Active Issue: `Issue-0011`
 - Status: `CLOSED`
-- Evidence Directory: `.harness/runs/Issue-0008/`
+- Evidence Directory: `.harness/runs/Issue-0011/`
