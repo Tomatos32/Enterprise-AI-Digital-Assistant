@@ -9,20 +9,24 @@ from langchain_core.documents import Document
 
 def extract_metadata_from_filename(file_path: Path) -> Dict[str, Any]:
     """Extracts default metadata fields based on document filename conventions."""
-    name = file_path.name
+    name = file_path.name.upper()
     category = "GENERAL"
-    if "HR" in name:
+    if "SECURITY" in name or "安全" in name or "保密" in name:
+        category = "SECURITY"
+    elif "CS" in name or "客服" in name or "售后" in name:
+        category = "CS"
+    elif "HR" in name or "人事" in name or "行政" in name:
         category = "HR"
     elif "PROCUREMENT" in name or "采购" in name:
         category = "PROCUREMENT"
-    elif "IT" in name:
-        category = "IT"
-    elif "FINANCE" in name or "财务" in name:
+    elif "FINANCE" in name or "财务" in name or "报销" in name:
         category = "FINANCE"
+    elif "IT_" in name or "_IT" in name or "IT" in name.split("_") or "运维" in name:
+        category = "IT"
 
     return {
         "source": str(file_path),
-        "filename": name,
+        "filename": file_path.name,
         "category": category,
         "format": file_path.suffix.lstrip(".").lower()
     }
