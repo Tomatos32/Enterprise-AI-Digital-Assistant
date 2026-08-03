@@ -12,6 +12,7 @@ from backend.core.exceptions import (
 from backend.api.v1.health import router as health_router
 from backend.api.v1.auth import router as auth_router
 from backend.api.v1.knowledge import router as knowledge_router
+from backend.api.v1.mock import hr_router, erp_router, oa_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -37,6 +38,11 @@ app.add_middleware(
 app.include_router(health_router, prefix=settings.API_V1_STR, tags=["Health"])
 app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["Auth & RBAC"])
 app.include_router(knowledge_router, prefix=f"{settings.API_V1_STR}/knowledge", tags=["Knowledge Base"])
+
+# Enterprise Mock System Routers
+app.include_router(hr_router, prefix=f"{settings.API_V1_STR}/mock/hr", tags=["HR Mock System"])
+app.include_router(erp_router, prefix=f"{settings.API_V1_STR}/mock/erp", tags=["ERP Mock System"])
+app.include_router(oa_router, prefix=f"{settings.API_V1_STR}/mock/oa", tags=["OA Mock System"])
 
 
 @app.get("/")

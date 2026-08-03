@@ -1,9 +1,11 @@
-"""Employee Query Tool Implementation."""
+"""Employee Query Tool Implementation with Database ORM Integration."""
 
 from typing import Optional, Dict, Any
 from backend.tools.registry import register_tool
+from backend.db.session import SessionLocal
+from backend.models.user import User
+from backend.db.seed import seed_initial_data
 
-# Realistic mock corporate employee directory
 MOCK_EMPLOYEES = [
     {
         "employee_id": "EMP-1001",
@@ -71,7 +73,36 @@ MOCK_EMPLOYEES = [
     }
 )
 def query_employee(name: str, department: Optional[str] = None) -> Dict[str, Any]:
-    """Queries corporate employee records by name and department."""
+    """Queries employee records via DB ORM with fallback to memory directory."""
+    try:
+        with SessionLocal() as db:
+            seed_initial_data(db)
+            query = db.query(User).filter(User.name.like(f"%{name}%"))
+            if department:
+                query = query.filter(User.department.like(f"%{department}%"))
+            users = query.all()
+            if users:
+                return {
+                    "status": "SUCCESS",
+                    "count": len(users),
+                    "data": [
+                        {
+                            "employee_id": u.employee_id,
+                            "name": u.name,
+                            "department": u.department,
+                            "title": u.title,
+                            "rank": u.rank,
+                            "email": u.email,
+                            "status": u.status,
+                            "join_date": u.join_date
+                        }
+                        for u in users
+                    ]
+                }
+    except Exception:
+        pass
+
+    # Fallback to local array
     matched = []
     for emp in MOCK_EMPLOYEES:
         if name in emp["name"]:
