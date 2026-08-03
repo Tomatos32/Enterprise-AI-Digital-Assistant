@@ -22,22 +22,30 @@ async def router_node(state: AgentState) -> dict:
             "current_step": "routed"
         }
 
-    # 2. Extract last user query message
+    # 2. Extract last message and check for tool_calls attribute on AIMessage
     messages = state.get("messages", [])
-    query = ""
     if messages:
         last_msg = messages[-1]
+        tool_calls = getattr(last_msg, "tool_calls", None)
+        if tool_calls:
+            return {
+                "intent": "tool",
+                "current_step": "routed"
+            }
         query = str(getattr(last_msg, "content", "")).lower()
+    else:
+        query = ""
 
     # 3. Intent Classification Rules
+    tool_keywords = [
+        "创建工单", "发邮件", "创建采购单", "调用工具", "提交申请",
+        "ticket", "email", "purchase", "create_ticket", "send_email",
+        "申请设备", "报修"
+    ]
     retrieve_keywords = [
         "采购", "报销", "sop", "规章", "制度", "sla", "考勤",
         "年假", "规定", "检索", "查询", "标准", "差旅", "福利",
-        "政策", "流程", "发票", "IT", "病假", "退款"
-    ]
-    tool_keywords = [
-        "创建工单", "发邮件", "创建采购单", "调用工具", "提交申请",
-        "ticket", "email", "purchase", "create_ticket", "send_email"
+        "政策", "流程", "发票", "it", "病假", "退款"
     ]
 
     intent = "chat"
