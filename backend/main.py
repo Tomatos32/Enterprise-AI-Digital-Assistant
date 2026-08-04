@@ -13,6 +13,8 @@ from backend.api.v1.health import router as health_router
 from backend.api.v1.auth import router as auth_router
 from backend.api.v1.knowledge import router as knowledge_router
 from backend.api.v1.mock import hr_router, erp_router, oa_router
+from backend.api.v1.approval import router as approval_router
+from backend.api.v1.chat import router as chat_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -43,6 +45,10 @@ app.include_router(knowledge_router, prefix=f"{settings.API_V1_STR}/knowledge", 
 app.include_router(hr_router, prefix=f"{settings.API_V1_STR}/mock/hr", tags=["HR Mock System"])
 app.include_router(erp_router, prefix=f"{settings.API_V1_STR}/mock/erp", tags=["ERP Mock System"])
 app.include_router(oa_router, prefix=f"{settings.API_V1_STR}/mock/oa", tags=["OA Mock System"])
+
+# Human-in-the-loop & Abort Control Routers
+app.include_router(approval_router, prefix=f"{settings.API_V1_STR}/approval", tags=["Human-in-the-Loop Approval"])
+app.include_router(chat_router, prefix=f"{settings.API_V1_STR}/chat", tags=["Chat Control & Abort"])
 
 
 @app.get("/")

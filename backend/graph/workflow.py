@@ -8,6 +8,7 @@ from backend.graph.nodes import (
     router_node,
     retrieve_node,
     tool_node,
+    approval_node,
     generate_node,
 )
 
@@ -15,13 +16,15 @@ from backend.graph.nodes import (
 def route_intent(state: AgentState) -> str:
     """
     Conditional routing edge function that inspects state['intent']
-    and returns the target node name: 'retrieve', 'tool', or 'generate'.
+    and returns the target node name: 'retrieve', 'tool', 'approval', or 'generate'.
     """
     intent = state.get("intent", "chat")
     if intent == "retrieve":
         return "retrieve"
     elif intent == "tool":
         return "tool"
+    elif intent == "approval":
+        return "approval"
     else:
         return "generate"
 
@@ -29,7 +32,7 @@ def route_intent(state: AgentState) -> str:
 def build_graph():
     """
     Constructs and compiles the StateGraph for Enterprise AI Agent.
-    Topology: START -> router -> (retrieve / tool / generate) -> generate -> END
+    Topology: START -> router -> (retrieve / tool / approval / generate) -> generate -> END
     """
     builder = StateGraph(AgentState)
 
@@ -37,6 +40,7 @@ def build_graph():
     builder.add_node("router", router_node)
     builder.add_node("retrieve", retrieve_node)
     builder.add_node("tool", tool_node)
+    builder.add_node("approval", approval_node)
     builder.add_node("generate", generate_node)
 
     # 2. Set Entry Point and Conditional Edges
@@ -48,6 +52,7 @@ def build_graph():
         {
             "retrieve": "retrieve",
             "tool": "tool",
+            "approval": "approval",
             "generate": "generate",
         },
     )
@@ -55,6 +60,7 @@ def build_graph():
     # 3. Direct Edges
     builder.add_edge("retrieve", "generate")
     builder.add_edge("tool", "generate")
+    builder.add_edge("approval", "generate")
     builder.add_edge("generate", END)
 
     # 4. Add Checkpointer for Human-In-The-Loop & Memory Thread Persistence

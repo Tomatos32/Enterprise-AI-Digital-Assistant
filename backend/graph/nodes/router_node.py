@@ -6,7 +6,7 @@ from backend.graph.state import AgentState
 async def router_node(state: AgentState) -> dict:
     """
     Intent Router Node that analyzes user queries and determines routing target.
-    Routes execution to 'retrieve', 'tool', or 'chat' branch.
+    Routes execution to 'retrieve', 'tool', 'approval', or 'chat' branch.
     """
     # 1. Check if intent is explicitly set in state or metadata (Override)
     if state.get("intent"):
@@ -37,20 +37,27 @@ async def router_node(state: AgentState) -> dict:
         query = ""
 
     # 3. Intent Classification Rules
+    retrieve_keywords = [
+        "sop", "图文版", "规定", "文档", "政策", "手册", "规章",
+        "报销", "sla", "考勤", "年假", "检索", "查询", "标准", "差旅", "福利", "流程"
+    ]
+    approval_keywords = ["发起审批", "人机协同", "大额采购", "批准", "会签", "需主管审批"]
     tool_keywords = [
         "创建工单", "发邮件", "创建采购单", "调用工具", "提交申请",
         "ticket", "email", "purchase", "create_ticket", "send_email",
         "申请设备", "报修"
     ]
-    retrieve_keywords = [
-        "采购", "报销", "sop", "规章", "制度", "sla", "考勤",
-        "年假", "规定", "检索", "查询", "标准", "差旅", "福利",
-        "政策", "流程", "发票", "it", "病假", "退款"
-    ]
 
     intent = "chat"
-    if any(kw in query for kw in tool_keywords):
-        intent = "tool"
+    if any(kw in query for kw in retrieve_keywords) and not any(action in query for action in ["提交", "发起", "申请采购", "执行"]):
+        intent = "retrieve"
+    elif any(kw in query for kw in approval_keywords):
+        intent = "approval"
+    elif any(kw in query for kw in tool_keywords):
+        if "采购" in query and ("6000" in query or "10000" in query or "大额" in query or "审批" in query):
+            intent = "approval"
+        else:
+            intent = "tool"
     elif any(kw in query for kw in retrieve_keywords):
         intent = "retrieve"
 

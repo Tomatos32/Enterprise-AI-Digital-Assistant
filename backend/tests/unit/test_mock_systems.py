@@ -24,17 +24,6 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-@pytest.fixture(autouse=True)
-def setup_test_database():
-    """Creates database tables and seeds initial data before each test."""
-    Base.metadata.create_all(bind=engine)
-    db = TestingSessionLocal()
-    seed_initial_data(db)
-    yield db
-    db.close()
-    Base.metadata.drop_all(bind=engine)
-
-
 def override_get_db():
     """Dependency override for test DB session."""
     db = TestingSessionLocal()
@@ -44,7 +33,18 @@ def override_get_db():
         db.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
+@pytest.fixture(autouse=True)
+def setup_test_database():
+    """Creates database tables and seeds initial data before each test."""
+    Base.metadata.create_all(bind=engine)
+    app.dependency_overrides[get_db] = override_get_db
+    db = TestingSessionLocal()
+    seed_initial_data(db)
+    yield db
+    db.close()
+    Base.metadata.drop_all(bind=engine)
+
+
 client = TestClient(app)
 
 
