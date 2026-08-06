@@ -16,6 +16,7 @@ from backend.rag.loader import (
 )
 from backend.rag.vector_store import upsert_documents
 from backend.rag.retriever import HybridRetriever
+from backend.tasks.ingestion_tasks import async_ingest_document
 
 router = APIRouter()
 
@@ -61,11 +62,13 @@ def parse_and_load_file(file_path: Path) -> List[Document]:
 async def upload_knowledge_file(
     file: UploadFile = File(...),
     category: Optional[str] = Form(None),
+    is_async: bool = Form(False),
     current_user: UserPayload = Depends(require_role([RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.EMPLOYEE]))
 ):
     """
-    Receives an uploaded knowledge document, stores it in backend/data/,
-    parses chunks, and indexes vectors into Qdrant.
+    Receives an uploaded knowledge document, stores it in backend/data/.
+    If is_async=True, dispatches Celery background ingestion task and returns task_id immediately.
+    Otherwise parses chunks and indexes vectors into Qdrant synchronously.
     """
     if not file.filename:
         raise AppException(message="No file provided", status_code=400)
@@ -78,9 +81,25 @@ async def upload_knowledge_file(
 
     file_size = target_path.stat().st_size
 
-    # Load and parse document
+    # Async Ingestion Task Mode
+    if is_async:
+        task = async_ingest_document.delay(str(target_path), category)
+        return StandardResponse(
+            code=200,
+            message="Async document ingestion task submitted",
+            data={
+                "filename": file.filename,
+                "filepath": str(target_path),
+                "size_bytes": file_size,
+                "task_id": task.id,
+                "status": "SUBMITTED",
+                "is_async": True,
+                "uploader": getattr(current_user, "username", "unknown")
+            }
+        )
+
+    # Synchronous Mode
     docs = parse_and_load_file(target_path)
-    
     if category:
         for doc in docs:
             doc.metadata["category"] = category
@@ -100,6 +119,7 @@ async def upload_knowledge_file(
             "filepath": str(target_path),
             "size_bytes": file_size,
             "chunks_indexed": indexed_count,
+            "is_async": False,
             "uploader": getattr(current_user, "username", "unknown")
         }
     )

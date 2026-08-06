@@ -28,23 +28,8 @@ wheels/
 .venv/
 venv/
 ENV/
-env/
-backend/.venv/
-backend/venv/
 
-# IDE / Editor Configs
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Environment Variables
-.env
-.env.local
-
-# Logs & Caches
-*.log
-logs/
-.ruff_cache/
-.pytest_cache/
-backend/.pytest_cache/
+# Local Data Directories
+backend/data/
+node_modules/
+dist/
