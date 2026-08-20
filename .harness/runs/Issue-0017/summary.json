@@ -1,0 +1,23 @@
+{
+  "run_id": "run_issue_0017_20260820",
+  "issue_id": "Issue-0017",
+  "title": "实现 Sprint 10 AI Infra 基础设施：Prompt Cache、Token Monitor 与 Fallback",
+  "mode": "BOOTSTRAP MODE",
+  "status": "CLOSED",
+  "start_time": "2026-08-20T18:16:52+08:00",
+  "end_time": "2026-08-20T18:20:00+08:00",
+  "python_env": "backend/.venv/Scripts/python.exe",
+  "review_score": 99,
+  "tests_passed": 63,
+  "artifacts": {
+    "issue": ".harness/runs/Issue-0017/issue.md",
+    "plan": ".harness/runs/Issue-0017/plan.md",
+    "developer_report": ".harness/runs/Issue-0017/developer.md",
+    "review_report": ".harness/runs/Issue-0017/review.md",
+    "documentation_report": ".harness/runs/Issue-0017/documentation.md",
+    "verification_report": ".harness/runs/Issue-0017/verification.md",
+    "summary": ".harness/runs/Issue-0017/summary.json",
+    "timeline": ".harness/runs/Issue-0017/timeline.md",
+    "runtime_log": ".harness/runs/Issue-0017/runtime.log"
+  }
+}
