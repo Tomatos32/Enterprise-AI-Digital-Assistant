@@ -1,0 +1,23 @@
+{
+  "run_id": "run_issue_0018_20260824",
+  "issue_id": "Issue-0018",
+  "title": "实现 Sprint 11 RAGAS 自动化质量评估与回归测试套件",
+  "mode": "BOOTSTRAP MODE",
+  "status": "CLOSED",
+  "start_time": "2026-08-24T00:00:00Z",
+  "end_time": "2026-08-24T18:53:00Z",
+  "python_env": "backend/.venv/Scripts/python.exe",
+  "review_score": 98,
+  "tests_passed": 67,
+  "artifacts": {
+    "issue": ".harness/runs/Issue-0018/issue.md",
+    "plan": ".harness/runs/Issue-0018/plan.md",
+    "developer_report": ".harness/runs/Issue-0018/developer.md",
+    "review_report": ".harness/runs/Issue-0018/review.md",
+    "documentation_report": ".harness/runs/Issue-0018/documentation.md",
+    "verification_report": ".harness/runs/Issue-0018/verification.md",
+    "summary": ".harness/runs/Issue-0018/summary.json",
+    "timeline": ".harness/runs/Issue-0018/timeline.md",
+    "runtime_log": ".harness/runs/Issue-0018/runtime.log"
+  }
+}

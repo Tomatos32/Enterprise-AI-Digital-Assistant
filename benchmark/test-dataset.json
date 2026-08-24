@@ -1,0 +1,306 @@
+{
+  "dataset_version": "1.0.0",
+  "description": "Enterprise AI Assistant RAG Evaluation Standard Benchmark Dataset (30 samples)",
+  "samples": [
+    {
+      "id": "sample_001",
+      "category": "HR",
+      "question": "公司员工年假计算标准与申请流程是什么？",
+      "ground_truth": "入职满1年不满10年享受年假5天，满10年不满20年8天，满20年15天。需在OA系统提前3个工作日提交带薪年假申请并经部门主管审批。",
+      "contexts": [
+        "IT与HR规章制度：员工入职满1年享受5天带薪年假，满10年享受8天，满20年享受15天。所有年假申请需提前3个工作日于OA审批流提交。"
+      ],
+      "answer": "根据公司制度，入职满1年享受5天年假，满10年8天，满20年15天。请提前3个工作日在OA系统发起申请并获主管审批。"
+    },
+    {
+      "id": "sample_002",
+      "category": "HR",
+      "question": "员工加班餐补与交通补贴的报销额度是多少？",
+      "ground_truth": "工作日加班超过20:00可申请餐补35元/餐；加班超过21:30可报销打车费，上限100元/单。",
+      "contexts": [
+        "财务与福利制度：工作日加班至20点后享受35元餐补；加班至21:30后可凭发票报销打车费，单程上限100元。"
+      ],
+      "answer": "加班至20:00后餐补35元，21:30后打车费报销上限100元。"
+    },
+    {
+      "id": "sample_003",
+      "category": "HR",
+      "question": "新员工试用期转正考核流程如何发起？",
+      "ground_truth": "试用期结束前15天由HRBP在系统发起转正流程，员工填写自评报告，直接主管及部门负责人完成考评面谈并签署意见。",
+      "contexts": [
+        "人力资源管理规定：试用期结束前15个工作日，HR系统自动提醒HRBP发起转正单，员工完成自评后由主管进行绩效评估。"
+      ],
+      "answer": "试用期结束前15天HRBP发起转正单，员工完成自评，主管及部门负责人评估面谈后签署意见。"
+    },
+    {
+      "id": "sample_004",
+      "category": "HR",
+      "question": "员工病假报销及扣薪标准是怎样的？",
+      "ground_truth": "连续病假需提供三甲医院开具的诊断证明及假条，病假期间发放基本工资的80%。",
+      "contexts": [
+        "考勤制度：请病假需上传三甲医院诊断证明及休假建议书，病假工资按当地最低工资或基本工资的80%计发。"
+      ],
+      "answer": "病假需提交三甲医院诊断证明，休假期间发放基本工资的80%。"
+    },
+    {
+      "id": "sample_005",
+      "category": "HR",
+      "question": "公司绩效考核周期及绩效奖金发放规则是什么？",
+      "ground_truth": "绩效考核按季度进行，Q1-Q4分为S/A/B/C/D五级，季度绩效奖金与S/A/B系数挂钩，在次季度首月随工资发放。",
+      "contexts": [
+        "绩效管理办法：季度考核分为S(1.5)、A(1.2)、B(1.0)、C(0.8)、D(0)。奖金随次月工资发放。"
+      ],
+      "answer": "绩效考核按季度评定S/A/B/C/D五级，奖金乘以相应绩效系数后在次季度首月发放。"
+    },
+    {
+      "id": "sample_006",
+      "category": "Procurement",
+      "question": "单笔超过10万元的IT设备采购需要哪些审批节点？",
+      "ground_truth": "单笔金额>10万元采购需经过：IT部门负责人审批 -> 财务经理审核 -> 采购委员会复核 -> 分管VP终审。",
+      "contexts": [
+        "采购管理制度：单笔采购额突破10万元需经过部门负责人、财务经理、采购委员会以及分管VP的逐级审批。"
+      ],
+      "answer": "采购额超过10万元需依次经由IT部门负责人、财务经理、采购委员会及分管VP审批。"
+    },
+    {
+      "id": "sample_007",
+      "category": "Procurement",
+      "question": "紧急物资采购的绿色通道触发条件是什么？",
+      "ground_truth": "遭遇突发机房故障、重大线上P0事故或安全隐患时，可由运维负责人申请开启紧急采购绿色通道，事后24小时内补办手续。",
+      "contexts": [
+        "紧急采购特例条款：针对P0级线上事故或安全隐患应急所需硬件，支持预先采购，24小时内补充完备审批流。"
+      ],
+      "answer": "在发生P0级故障或严重安全隐患时可开启紧急绿色通道，事后24小时内补齐采购单据。"
+    },
+    {
+      "id": "sample_008",
+      "category": "Procurement",
+      "question": "供应商入库资质审查需要提交哪些材料？",
+      "ground_truth": "需提交三证合一营业执照、ISO9001认证证书、近两年财务审计报告及同类项目3个以上成功案例合同。",
+      "contexts": [
+        "供应商资质管理：初次入库需上传营业执照、质量体系认证、财务审计报告及至少3份同类项目实施合同样例。"
+      ],
+      "answer": "供应商入库需提交营业执照、ISO9001证书、近两年审计报告及3份同类案例合同。"
+    },
+    {
+      "id": "sample_009",
+      "category": "Procurement",
+      "question": "采购框架协议签定的有效期及续签流程如何规定？",
+      "ground_truth": "采购框架协议有效期通常为1年，期满前30天由采购部发起年度考核，综合评分高于85分可直接续签1年。",
+      "contexts": [
+        "框架协议规定：协议有效期12个月。到期前30天进行供应商绩效评估，总分≥85分支持一键续约1年。"
+      ],
+      "answer": "协议有效期1年，到期前30天进行考核，评估分85分以上可续签1年。"
+    },
+    {
+      "id": "sample_010",
+      "category": "Procurement",
+      "question": "付款流程中预付款与尾款的比例限制是多少？",
+      "ground_truth": "标准合同预付款比例不超过30%，验收合格后支付至90%，剩余10%作为质保金在质保期满（通常1年）后付清。",
+      "contexts": [
+        "财务付款管理：合同预付款上限30%，终验合格付至90%，10%质保金于质保期届满1年后结清。"
+      ],
+      "answer": "预付款不超过30%，终验付至90%，10%质保金在质保期满1年后支付。"
+    },
+    {
+      "id": "sample_011",
+      "category": "IT_Ops",
+      "question": "VPN远程办公访问失败常见的排查步骤有哪些？",
+      "ground_truth": "1. 检查网络连接与双因子Authenticator验证码；2. 确认客户端版本为v3.2以上；3. 检查本地防火墙端口443通畅性；4. 提交IT工单重置秘钥。",
+      "contexts": [
+        "IT运维指南：VPN排查先核对MFA验证码及网络通畅，确认客户端为v3.2及以上版本，必要时联系IT桌面运维。"
+      ],
+      "answer": "先确认网络与双因子验证码，检查客户端是否升至v3.2+，确认443端口通畅，若仍异常联系IT重置秘钥。"
+    },
+    {
+      "id": "sample_012",
+      "category": "IT_Ops",
+      "question": "公司生产环境数据库变更的安全禁令与窗口时间是什么？",
+      "ground_truth": "生产数据库变更禁令：严禁在工作日9:00-18:00执行高危DDL；变更窗口统一为每周二/周四深夜23:00-02:00，须双人复核。",
+      "contexts": [
+        "生产运维防线：生产环境数据库DDL变更窗口为周二、周四 23:00-02:00，禁止白天气峰期变更，必须双人同行操作。"
+      ],
+      "answer": "变更窗口为周二/周四深夜23:00-02:00，白天严禁变更，且必须由双人协同复核操作。"
+    },
+    {
+      "id": "sample_013",
+      "category": "IT_Ops",
+      "question": "应用服务发生内存泄漏 (OOM) 事故的应急响应 SOP 流程？",
+      "ground_truth": "1. 立即挂载金丝雀隔离流量；2. 保留JVM Heap Dump快照；3. 执行容器自动重启恢复业务；4. 提交P1事故Post-Mortem报告。",
+      "contexts": [
+        "P1事故SOP：发生OOM时第一步隔离事故节点，导出Heap Dump日志以供分析，随后重启POD，24小时内提交Post-Mortem。"
+      ],
+      "answer": "隔离节点流量，导出Heap Dump快照，重启容器恢复业务，并在24小时内提交Post-Mortem总结。"
+    },
+    {
+      "id": "sample_014",
+      "category": "IT_Ops",
+      "question": "开发人员申请生产环境只读权限的审批流程？",
+      "ground_truth": "提交堡垒机只读权限申请，需经直属技术经理审批及安全团队审计备案，权限有效期最长7天，到期自动收回。",
+      "contexts": [
+        "安全权限管理：生产堡垒机只读权限需技术经理与安全BP双重审批，单次授权有效期上限为7天。"
+      ],
+      "answer": "通过堡垒机提交申请，经技术经理与安全团队审批，最高赋予7天只读权限。"
+    },
+    {
+      "id": "sample_015",
+      "category": "IT_Ops",
+      "question": "K8s集群微服务高可用副本数与Pod拓扑分布约束要求？",
+      "ground_truth": "生产环境核心服务最小副本数不少于3个，且须配置 podAntiAffinity 实现跨可用区 (AZ) 物理节点分布。",
+      "contexts": [
+        "云原生架构规范：核心微服务最小副本数为3，必须配置反亲和性规则保证Pod分散在不同Availability Zone。"
+      ],
+      "answer": "核心微服务最小保持3副本，配置Pod反亲和性以实现跨可用区物理分布。"
+    },
+    {
+      "id": "sample_016",
+      "category": "Inventory",
+      "question": "服务器资产盘点与报废处置的执行规范？",
+      "ground_truth": "每半年进行一次物理资产盘点；使用年限满5年或严重损坏机器可申请报废，经资产管理员与财务核销后由指定机构回收。",
+      "contexts": [
+        "固定资产管理：每半年全面盘点。服务器折旧年限5年，报废需经资产管理部与财务部双重核销。"
+      ],
+      "answer": "每半年盘点一次。使用满5年或损坏可申请报废，经资产与财务部门核销后回收处理。"
+    },
+    {
+      "id": "sample_017",
+      "category": "Inventory",
+      "question": "领用测试用移动终端设备的归还期限规定？",
+      "ground_truth": "测试终端借用期限最长为15个工作日，到期需办理续借或归还；未按期归还者暂停后续领用资格。",
+      "contexts": [
+        "设备领用制度：测试机借用周期上限15个工作日，超期未归还系统将自动冻结该员工资产领用权限。"
+      ],
+      "answer": "借用上限15个工作日，到期归还或续借，超期将暂停领用资格。"
+    },
+    {
+      "id": "sample_018",
+      "category": "Inventory",
+      "question": "数据中心备品备件安全库存警告线的触发逻辑？",
+      "ground_truth": "当易损备件（如硬盘、光模块）库存低于最低安全水准（初始配置的20%）时，系统自动触发采购预警并抄送运维主管。",
+      "contexts": [
+        "备件管理说明：硬盘与光模块设置20%阈值预警线，低于该数量系统自动提醒发起补充采购。"
+      ],
+      "answer": "备件库存低于20%安全线时自动触发预警并提醒发起补充采购。"
+    },
+    {
+      "id": "sample_019",
+      "category": "Inventory",
+      "question": "异地分公司调拨IT硬件资产的过户流转手续？",
+      "ground_truth": "调出方发起资产调拨单 -> 调入方接收确认 -> 资产管理组在ERP更新资产归属及成本中心。",
+      "contexts": [
+        "跨区域资产转移：由调出方发起ERP调拨流，调入方点验无误后确认，资产组同步变更Cost Center。"
+      ],
+      "answer": "调出方发起ERP调拨单，调入方确认接收，资产组更新 Cost Center。"
+    },
+    {
+      "id": "sample_020",
+      "category": "Inventory",
+      "question": "员工离职时办公设备退还与数据清退安全检查？",
+      "ground_truth": "离职当日交还笔记本及配件，IT运维人员使用专专用工具完成磁盘全盘擦除与数据安全清退并签署移交单。",
+      "contexts": [
+        "离职交接规范：离职员工须归还电脑，IT做物理全盘格式化与脱敏检查，确认后在离职单盖章。"
+      ],
+      "answer": "离职当日退还设备，IT完成全盘数据擦除与安全清退后签署移交单。"
+    },
+    {
+      "id": "sample_021",
+      "category": "General",
+      "question": "企业 AI 数字员工平台系统架构的核心设计原则？",
+      "ground_truth": "采用 Harness Engineering 强约束架构，实现需求拆解、增量编码、审查门禁、文档同步及RAGAS评估自闭环循环。",
+      "contexts": [
+        "Master Architecture: 采用 Harness Engineering 架构，Repo 为唯一真理源，支持Self-Developing loop."
+      ],
+      "answer": "基于 Harness Engineering 架构，以代码库为唯一真理源，实现全生命周期的自闭环循环。"
+    },
+    {
+      "id": "sample_022",
+      "category": "General",
+      "question": "BOOTSTRAP MODE 与 DEVELOPMENT MODE 的核心区别？",
+      "ground_truth": "BOOTSTRAP MODE 专注于基础设施与脚手架骨架搭建，禁止开发上层业务流程；满足 Exit Criteria 后升级至 DEVELOPMENT MODE。",
+      "contexts": [
+        "BOOTSTRAP.md: BOOTSTRAP 模式建立底座与骨架，禁开发复杂业务，满足Exit Criteria后升级为Development Mode。"
+      ],
+      "answer": "BOOTSTRAP MODE 聚焦脚手架与基础设施搭建，退出条件全部满足后升级至 DEVELOPMENT MODE。"
+    },
+    {
+      "id": "sample_023",
+      "category": "General",
+      "question": "Harness 8 大只读证据包的存储路径与文件清单？",
+      "ground_truth": "物理存储在 `.harness/runs/Issue-XXXX/`，包含 issue.md, plan.md, developer.md, review.md, documentation.md, verification.md, summary.json, timeline.md。",
+      "contexts": [
+        "Runtime.md: 证据包落盘于 .harness/runs/Issue-XXXX/，包含 issue.md, plan.md, developer.md, review.md 等 8 大文件。"
+      ],
+      "answer": "存储在 `.harness/runs/Issue-XXXX/`，包含 issue.md, plan.md, developer.md, review.md 等8大证据文件。"
+    },
+    {
+      "id": "sample_024",
+      "category": "General",
+      "question": "Reviewer Agent 审查代码时的通过分数线是多少？",
+      "ground_truth": "Reviewer Agent 从 11 个工程维度进行审查，计算 ReviewScore，只有得分 ≥ 90 且输出 APPROVED 状态方可通过。",
+      "contexts": [
+        "AGENTS.md DoD: Reviewer Agent 输出 APPROVED 且 ReviewScore >= 90 写入 review.md。"
+      ],
+      "answer": "必须满足 ReviewScore ≥ 90 且审查结论为 APPROVED 方可通过。"
+    },
+    {
+      "id": "sample_025",
+      "category": "General",
+      "question": "Prompt Hash Cache 的原理及 Redis Key 设计？",
+      "ground_truth": "基于 SHA-256 计算 prompt+model 哈希 Key，Redis 存储 `prompt_cache:{hash}`，重复请求直接返回缓存内容。",
+      "contexts": [
+        "llm_infra.py: SHA-256 计算 prompt_cache:{hash}，命中的请求直接返回并标记 cached=True。"
+      ],
+      "answer": "计算 Prompt 和模型名称的 SHA-256 哈希，Key 为 `prompt_cache:{hash}`，命中后直接返回缓存。"
+    },
+    {
+      "id": "sample_026",
+      "category": "General",
+      "question": "LLMGateway 的模型降级 Fallback 触发条件是什么？",
+      "ground_truth": "当主模型出现网络超时 (asyncio.TimeoutError) 或 API 调用报错时，自动捕捉异常并无缝切换至备用模型 (vLLM-backup)。",
+      "contexts": [
+        "llm_infra.py: 主模型超时或抛出异常时，Try-Catch 自动触发 fallback_func 并设置 fallback_triggered=True。"
+      ],
+      "answer": "主模型响应超时或调用抛出异常时，自动触发 Try-Catch 降级至备用模型。"
+    },
+    {
+      "id": "sample_027",
+      "category": "General",
+      "question": "Celery 异步任务队列处理文档摄取的路由接口？",
+      "ground_truth": "接口为 `POST /api/v1/knowledge/upload`，传入 `is_async=true` 可提交异步摄取任务并获得 `task_id`。",
+      "contexts": [
+        "Issue-0016: 改造 POST /api/v1/knowledge/upload 支持 is_async=true 提交 Celery 任务。"
+      ],
+      "answer": "`POST /api/v1/knowledge/upload` 带有 `is_async=true` 参数时触发 Celery 异步摄取。"
+    },
+    {
+      "id": "sample_028",
+      "category": "General",
+      "question": "WebSocket 双工实时对话通道支持的事件类型有哪些？",
+      "ground_truth": "支持 start, node_start, token, tool_log, approval_required, error, complete 等实时推送事件。",
+      "contexts": [
+        "chat_ws.py: WebSocket 支持节点切换(node_start)、Token流式(token)、工具日志(tool_log)等事件。"
+      ],
+      "answer": "包含 start, node_start, token, tool_log, approval_required 等事件类型。"
+    },
+    {
+      "id": "sample_029",
+      "category": "General",
+      "question": "Qdrant 向量数据库中使用的默认 Vector Collection 名称？",
+      "ground_truth": "默认 Vector Collection 名称为 `enterprise_knowledge`，向量维度适配 BGE-M3 (1024维)。",
+      "contexts": [
+        "config.py: QDRANT_COLLECTION = 'enterprise_knowledge'。"
+      ],
+      "answer": "默认 Collection 名称为 `enterprise_knowledge`。"
+    },
+    {
+      "id": "sample_030",
+      "category": "General",
+      "question": "RAGAS 评估中 Faithfulness 指标低于 0.90 的处理动作？",
+      "ground_truth": "Faithfulness < 0.90 表示回答存在严重的幻觉或与检索上下文不符，系统自动触发错误告警并使用 sys.exit(1) 阻断 CI 流水线。",
+      "contexts": [
+        "Issue-0018: 当 Faithfulness < 0.90 时自动触发错误告警并阻止流水线发布。"
+      ],
+      "answer": "触发错误告警日志并执行 sys.exit(1) 阻断 CI/CD 流水线发布。"
+    }
+  ]
+}
