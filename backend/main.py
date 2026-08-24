@@ -17,6 +17,7 @@ from backend.api.v1.approval import router as approval_router
 from backend.api.v1.chat import router as chat_router
 from backend.api.v1.chat_ws import router as chat_ws_router
 from backend.api.v1.tasks import router as tasks_router
+from backend.api.v1.workflow import router as workflow_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -53,6 +54,7 @@ app.include_router(approval_router, prefix=f"{settings.API_V1_STR}/approval", ta
 app.include_router(chat_router, prefix=f"{settings.API_V1_STR}/chat", tags=["Chat Control & Abort"])
 app.include_router(chat_ws_router, prefix=settings.API_V1_STR, tags=["WebSocket Chat"])
 app.include_router(tasks_router, prefix=f"{settings.API_V1_STR}/tasks", tags=["Async Tasks"])
+app.include_router(workflow_router, prefix=f"{settings.API_V1_STR}/webhook", tags=["Webhook & Workflows"])
 
 
 @app.get("/")

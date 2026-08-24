@@ -1,6 +1,5 @@
 """Unit Tests for Celery Asynchronous Task Queue & Task Status Endpoints."""
 
-import pytest
 from pathlib import Path
 from fastapi.testclient import TestClient
 
