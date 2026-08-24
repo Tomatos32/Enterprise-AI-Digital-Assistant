@@ -1,5 +1,6 @@
 """Application Configuration Center powered by Pydantic BaseSettings."""
 
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,29 +8,51 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Enterprise AI Digital Assistant"
     API_V1_STR: str = "/api/v1"
     VERSION: str = "0.1.0"
-    
+    ENVIRONMENT: str = "development"
+
+    # Global Mock Switch (True in Dev/Test, set False in Production)
+    USE_MOCK_SYSTEMS: bool = True
+
     # MySQL Database Config
     MYSQL_SERVER: str = "localhost"
     MYSQL_PORT: int = 3306
     MYSQL_USER: str = "root"
     MYSQL_PASSWORD: str = "rootpassword"
     MYSQL_DB: str = "enterprise_ai"
-    
+
     # Redis Config
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
-    
+
     # Qdrant Vector Config
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
     QDRANT_COLLECTION: str = "enterprise_knowledge"
-    
+
     # JWT Security Config
     SECRET_KEY: str = "super_secret_jwt_key_enterprise_ai_2026_harness"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
-    
+
+    # Production Enterprise Systems OpenAPI Endpoints (Used when USE_MOCK_SYSTEMS=False)
+    HR_BASE_URL: Optional[str] = None
+    HR_API_TOKEN: Optional[str] = None
+
+    ERP_BASE_URL: Optional[str] = None
+    ERP_API_TOKEN: Optional[str] = None
+
+    OA_BASE_URL: Optional[str] = None
+    OA_API_TOKEN: Optional[str] = None
+
+    # Enterprise WeChat (WeCom) Production Bot Webhook URL
+    WECOM_WEBHOOK_URL: Optional[str] = None
+
+    # External Workflow Automation Integrations (n8n / Dify)
+    DIFY_API_BASE: Optional[str] = None
+    DIFY_API_KEY: Optional[str] = None
+    N8N_WEBHOOK_URL: Optional[str] = None
+
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_SERVER}:{self.MYSQL_PORT}/{self.MYSQL_DB}"

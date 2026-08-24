@@ -1,8 +1,9 @@
 """Main FastAPI Application Entry Point."""
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from backend.core.config import settings
+from backend.core.metrics import get_metrics_payload, CONTENT_TYPE_LATEST
 from backend.core.exceptions import (
     AppException,
     app_exception_handler,
@@ -55,6 +56,15 @@ app.include_router(chat_router, prefix=f"{settings.API_V1_STR}/chat", tags=["Cha
 app.include_router(chat_ws_router, prefix=settings.API_V1_STR, tags=["WebSocket Chat"])
 app.include_router(tasks_router, prefix=f"{settings.API_V1_STR}/tasks", tags=["Async Tasks"])
 app.include_router(workflow_router, prefix=f"{settings.API_V1_STR}/webhook", tags=["Webhook & Workflows"])
+
+
+@app.get("/metrics", tags=["Monitoring & Telemetry"])
+async def metrics() -> Response:
+    """Prometheus Scrape Endpoint exposing production system & LLM metrics."""
+    return Response(
+        content=get_metrics_payload(),
+        media_type=CONTENT_TYPE_LATEST,
+    )
 
 
 @app.get("/")

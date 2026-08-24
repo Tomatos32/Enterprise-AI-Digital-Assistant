@@ -4,37 +4,44 @@ Demonstrates full closed-loop:
 User Query -> Intent Router -> RAG Retrieval -> Approval Generation & Interrupt -> Supervisor Approval -> ERP Workflow -> WeCom Bot Notification.
 """
 
-import sys
-import os
 import asyncio
-import time
 from datetime import datetime
+import os
+import sys
+import time
 
 # Ensure stdout handles UTF-8 on Windows
 if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
 
 # Ensure project root is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-# Setup DB fallback for standalone E2E demo execution
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-import backend.db.session as db_session_module
-import backend.graph.nodes.approval_node as approval_node_module
-import backend.api.v1.approval as approval_api_module
-import backend.tools.impl.purchase_tools as purchase_tools_module
-from backend.db.session import Base, get_db
+from fastapi.testclient import TestClient  # noqa: E402
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
+from sqlalchemy.pool import StaticPool  # noqa: E402
 
+import backend.api.v1.approval as approval_api_module  # noqa: E402
+from backend.api.v1.workflow import EVENT_HISTORY, MOCK_WECOM_MESSAGES  # noqa: E402
+import backend.db.session as db_session_module  # noqa: E402
+from backend.db.session import Base, get_db  # noqa: E402
+import backend.graph.nodes.approval_node as approval_node_module  # noqa: E402
+from backend.graph.state import AgentState  # noqa: E402
+from backend.graph.workflow import graph  # noqa: E402
+from backend.main import app  # noqa: E402
+from backend.models.approval import Approval  # noqa: E402
+import backend.tools.impl.purchase_tools as purchase_tools_module  # noqa: E402
+
+# Setup DB fallback for standalone E2E demo execution
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False},
-    poolclass=StaticPool
+    poolclass=StaticPool,
 )
 DemoSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base.metadata.create_all(bind=engine)
@@ -42,16 +49,8 @@ db_session_module.SessionLocal = DemoSessionLocal
 approval_node_module.SessionLocal = DemoSessionLocal
 approval_api_module.SessionLocal = DemoSessionLocal
 purchase_tools_module.SessionLocal = DemoSessionLocal
-from fastapi.testclient import TestClient
-from backend.main import app
-from backend.graph.workflow import graph
-from backend.graph.state import AgentState
-from backend.models.approval import Approval
-from backend.api.v1.workflow import MOCK_WECOM_MESSAGES, EVENT_HISTORY
 
 app.dependency_overrides[get_db] = lambda: DemoSessionLocal()
-from backend.models.approval import Approval
-from backend.api.v1.workflow import MOCK_WECOM_MESSAGES, EVENT_HISTORY
 
 
 def print_step(title: str, content: str = ""):
@@ -64,7 +63,10 @@ def print_step(title: str, content: str = ""):
 
 
 async def run_e2e_demo():
-    print_step("Sprint 12 数字化转型 Demo 与 n8n / Dify Webhook 全流程端到端闭环联调", f"启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print_step(
+        "Sprint 12 数字化转型 Demo 与 n8n / Dify Webhook 全流程端到端闭环联调",
+        f"启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+    )
     client = TestClient(app)
 
     # -------------------------------------------------------------
@@ -74,7 +76,10 @@ async def run_e2e_demo():
     thread_id = f"demo_thread_{int(time.time())}"
     config = {"configurable": {"thread_id": thread_id}}
 
-    print_step("Step 1 & 2: 用户自然语言提问 & Intent Router 意图路由分发", f"用户提问: {user_query}\n会话 Thread ID: {thread_id}")
+    print_step(
+        "Step 1 & 2: 用户自然语言提问 & Intent Router 意图路由分发",
+        f"用户提问: {user_query}\n会话 Thread ID: {thread_id}",
+    )
 
     # Invoke graph first turn with metadata
     initial_state = AgentState(
@@ -91,9 +96,9 @@ async def run_e2e_demo():
                 "quantity": 5,
                 "unit_price": 16000.0,
                 "department": "研发部",
-                "reason": "研发部门人员扩招设备采购"
-            }
-        }
+                "reason": "研发部门人员扩招设备采购",
+            },
+        },
     )
 
     print("\n[LangGraph Engine] 执行状态机初始流转...")
@@ -113,7 +118,7 @@ async def run_e2e_demo():
         f"数量: {pending_approval.quantity if pending_approval else 5} 台\n"
         f"总金额: ¥{pending_approval.total_price if pending_approval else 80000.0:,.2f}\n"
         f"单据状态: {pending_approval.status if pending_approval else 'PENDING'}\n"
-        f"LangGraph 当前状态: ⏸️ 已中断挂起，等待主管决策 (Human-in-the-Loop)"
+        f"LangGraph 当前状态: ⏸️ 已中断挂起，等待主管决策 (Human-in-the-Loop)",
     )
 
     # -------------------------------------------------------------
@@ -124,7 +129,7 @@ async def run_e2e_demo():
         f"调用端点: POST /api/v1/approval/action\n"
         f"审批单号: {approval_id}\n"
         f"决策: approve\n"
-        f"批注: 研发扩招急需生产力工具，同意采购！"
+        f"批注: 研发扩招急需生产力工具，同意采购！",
     )
 
     approval_resp = client.post(
@@ -132,8 +137,8 @@ async def run_e2e_demo():
         json={
             "approval_id": approval_id,
             "action": "approve",
-            "comment": "研发扩招急需生产力工具，同意采购！"
-        }
+            "comment": "研发扩招急需生产力工具，同意采购！",
+        },
     )
     print(f"API 响应状态码: {approval_resp.status_code}")
     print(f"API 响应结果: {approval_resp.json()}")
@@ -145,7 +150,7 @@ async def run_e2e_demo():
         "Step 6 & 7: LangGraph 状态机恢复执行 -> 触发 Webhook 调度 -> 企微 Bot Markdown 卡片推送",
         f"状态机恢复输出: {approval_resp.json().get('graph_output')}\n"
         f"Webhook 事件池已录入事件: {len(EVENT_HISTORY)} 条\n"
-        f"企业微信机器人已接收消息: {len(MOCK_WECOM_MESSAGES)} 条"
+        f"企业微信机器人已接收消息: {len(MOCK_WECOM_MESSAGES)} 条",
     )
 
     if MOCK_WECOM_MESSAGES:
@@ -157,7 +162,10 @@ async def run_e2e_demo():
         print("+" + "-" * 60 + "+")
 
     db.close()
-    print_step("🎉 E2E 数字化转型全链路闭环联调演示 100% 成功！", "所有中间件状态校验通过，系统已完全具备生产交付与演示能力！")
+    print_step(
+        "🎉 E2E 数字化转型全链路闭环联调演示 100% 成功！",
+        "所有中间件状态校验通过，系统已完全具备生产交付与演示能力！",
+    )
 
 
 if __name__ == "__main__":
