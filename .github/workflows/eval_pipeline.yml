@@ -1,0 +1,45 @@
+name: RAGAS Quality Gate & Nightly Evaluation Pipeline
+
+on:
+  schedule:
+    - cron: '0 18 * * *' # Nightly 02:00 AM CST (18:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  ragas-quality-gate:
+    name: Run RAGAS Strict Quality Evaluation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff pytest pydantic pydantic-settings sqlalchemy
+
+      - name: Run Ruff Linting Check
+        run: |
+          python -m ruff check backend/ benchmark/
+
+      - name: Run Unit Tests
+        run: |
+          python -m pytest backend/tests/ -q
+
+      - name: Execute Strict Quality Gate Evaluation
+        run: |
+          python benchmark/eval_ragas.py --dataset benchmark/test-dataset.json --mode offline --strict-gate --threshold 0.90 --recall-threshold 0.88 --report-md benchmark/evaluation_report.md
+
+      - name: Archive Evaluation Markdown Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ragas-evaluation-report
+          path: benchmark/evaluation_report.md

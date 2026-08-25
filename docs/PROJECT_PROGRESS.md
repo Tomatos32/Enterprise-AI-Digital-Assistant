@@ -4,7 +4,7 @@
 > **当前运行模式**：**DEVELOPMENT MODE (完整开发模式 - 演进中)**  
 > **前序阶段**：BOOTSTRAP MODE (100% 验收达标已闭环)  
 > **基准规范**：[docs/SPEC.MD](file:///g:/LLM_Learning/product/docs/SPEC.MD) · [AGENTS.md](file:///g:/LLM_Learning/product/AGENTS.md) · [Runtime.md](file:///g:/LLM_Learning/product/docs/harness/Runtime.md) · [BOOTSTRAP.md](file:///g:/LLM_Learning/product/BOOTSTRAP.md)  
-> **系统最后更新**：2026-08-24  
+> **系统最后更新**：2026-08-25  
 
 ---
 
@@ -13,17 +13,21 @@
 ```text
 ========================================================================================
 [BOOTSTRAP MODE]   ████████████████████████████████ 100% (Sprint 1~12 / Issue 0001~0019 已闭环)
-[DEVELOPMENT MODE] ████████████████████████████████ 100% (Sprint 13~18 / Issue 0020~0025 已闭环)
+[DEVELOPMENT MODE] ████████████████████████████████ 100% (Sprint 13~21 / Issue 0020~0028 已闭环)
 ========================================================================================
 ```
 
 | 治理维度 | 当前指标 / 状态 | 评估与合规性 |
 | :--- | :--- | :--- |
 | **Harness 运行模式** | **`DEVELOPMENT MODE`** (由 `BOOTSTRAP MODE` 正式升级) | ✅ 8 项退出门禁全部满足，证据链完整 |
-| **已闭环 Issue 总数** | **25 项 (Issue-0001 ~ Issue-0025)** | ✅ 100% 具备 `.harness/runs/` 8 大证据包 |
-| **自动化测试通过率** | **106 / 106 项 (100% PASS)** | ✅ `backend/.venv/` 物理隔离执行通过 |
+| **已闭环 Issue 总数** | **28 项 (Issue-0001 ~ Issue-0028)** | ✅ 100% 具备 `.harness/runs/` 8 大证据包 |
+| **自动化测试通过率** | **119 / 119 项 (100% PASS)** | ✅ `backend/.venv/` 物理隔离执行通过 |
 | **代码静态质量分析** | **`Ruff 0 Errors / 0 Warnings`** | ✅ 严格符合 PEP 8 与项目编码标准 |
-| **RAG 准确率评估** | **Faithfulness > 0.94 / Context Recall > 0.91** | ✅ 满足 RAGAS 0.90 门禁要求 |
+| **MySQL 读写分离引擎** | **`RoutingSession` 主从分流 + 连接池高并发调优** | ✅ Issue-0026 压测与单元测试 100% PASS |
+| **Redis Sentinel 容灾** | **哨兵集群主从切换 + Standalone 优雅回退** | ✅ Issue-0026 单元测试 100% PASS |
+| **RLHF / DPO 反馈闭环** | **`FeedbackRecord` 表 + PII 隐私脱敏 + DPO JSONL 抽取** | ✅ Issue-0027 单元测试 100% PASS |
+| **RAGAS CI/CD 质量门禁** | **`--strict-gate` 严格双阈值阻断 + 坏例 Markdown 报告** | ✅ Issue-0028 单元测试与 GitHub Actions 就绪 |
+| **RAG 准确率评估** | **Faithfulness > 0.94 / Context Recall > 0.91** | ✅ 满足 RAGAS 0.90 / 0.88 门禁要求 |
 | **多模态与排版解析** | **PDF 双栏重构 / 跨页表格合并 / Excel 多级表头** | ✅ Issue-0020 单元测试 100% PASS |
 | **知识图谱与 Graph RAG** | **实体抽取 / 拓扑子图扩展 / 向量+图双路融合** | ✅ Issue-0022 单元测试 100% PASS |
 | **向量多租户安全热隔离** | **Qdrant Payload Filter / 租户数据硬物理隔离** | ✅ Issue-0023 单元测试 100% PASS |

@@ -5,6 +5,7 @@ from backend.models.inventory import Inventory
 from backend.models.ticket import Ticket
 from backend.models.purchase import Purchase
 from backend.models.approval import Approval
+from backend.models.feedback import FeedbackRecord
 
 __all__ = [
     "User",
@@ -12,4 +13,5 @@ __all__ = [
     "Ticket",
     "Purchase",
     "Approval",
+    "FeedbackRecord",
 ]
