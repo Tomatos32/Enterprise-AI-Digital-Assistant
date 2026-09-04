@@ -1,6 +1,6 @@
 # RAG Pipeline Quality Evaluation Report
 
-- **Evaluation Date**: `2026-08-25T10:24:52.358267+00:00`
+- **Evaluation Date**: `2026-09-04T17:04:02.312886+00:00`
 - **Evaluation Mode**: `OFFLINE`
 - **Total Samples Evaluated**: `30`
 - **Pipeline Gate Status**: `❌ BLOCKED`

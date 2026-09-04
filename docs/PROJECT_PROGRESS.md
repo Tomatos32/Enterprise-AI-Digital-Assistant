@@ -20,9 +20,12 @@
 | 治理维度 | 当前指标 / 状态 | 评估与合规性 |
 | :--- | :--- | :--- |
 | **Harness 运行模式** | **`DEVELOPMENT MODE`** (由 `BOOTSTRAP MODE` 正式升级) | ✅ 8 项退出门禁全部满足，证据链完整 |
-| **已闭环 Issue 总数** | **29 项 (Issue-0001 ~ Issue-0029)** | ✅ 100% 具备 `.harness/runs/` 8 大证据包 |
-| **自动化测试通过率** | **124 / 124 项 (100% PASS)** | ✅ `backend/.venv/` 物理隔离执行通过 |
+| **已闭环 Issue 总数** | **32 项 (Issue-0001 ~ Issue-0032)** | ✅ 100% 具备 `.harness/runs/` 8 大证据包 |
+| **自动化测试通过率** | **140 / 140 项 (100% PASS)** | ✅ `backend/.venv/` 物理隔离执行通过 |
 | **代码静态质量分析** | **`Ruff 0 Errors / 0 Warnings`** | ✅ 严格符合 PEP 8 与项目编码标准 |
+| **分布式长事务 Saga 补偿** | **Orchestrator-based LIFO 逆序补偿 + ERP/财务/OA 幂等回滚** | ✅ Issue-0032 单元测试与 8 大证据包闭环 100% PASS |
+| **Swarm 协同与 Handoff 总线** | **多 Agent 跨部门移交 + 双轨状态隔离 (Shared / Private)** | ✅ Issue-0031 单元测试与 SOP 闭环 100% PASS |
+| **专职 Subgraph 体系解耦** | **HR / Finance / IT / Compliance 4 大专职子图与专属工具白名单** | ✅ Issue-0030 单元测试 100% PASS |
 | **模型 A/B Testing 与影子部署** | **确定性哈希分流比 + 异步非阻塞 Shadow 模式 + Redis 指标** | ✅ Issue-0029 单元测试 100% PASS |
 | **MySQL 读写分离引擎** | **`RoutingSession` 主从分流 + 连接池高并发调优** | ✅ Issue-0026 压测与单元测试 100% PASS |
 | **Redis Sentinel 容灾** | **哨兵集群主从切换 + Standalone 优雅回退** | ✅ Issue-0026 单元测试 100% PASS |
