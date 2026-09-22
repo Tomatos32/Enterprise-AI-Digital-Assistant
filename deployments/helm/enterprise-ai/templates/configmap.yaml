@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "enterprise-ai.fullname" . }}-config
+  labels:
+    {{- include "enterprise-ai.labels" . | nindent 4 }}
+data:
+  ENVIRONMENT: {{ .Values.env.ENVIRONMENT | quote }}
+  USE_MOCK_SYSTEMS: {{ .Values.env.USE_MOCK_SYSTEMS | quote }}
+  MYSQL_SERVER: {{ .Values.env.MYSQL_SERVER | quote }}
+  MYSQL_PORT: {{ .Values.env.MYSQL_PORT | quote }}
+  MYSQL_DB: {{ .Values.env.MYSQL_DB | quote }}
+  REDIS_HOST: {{ .Values.env.REDIS_HOST | quote }}
+  REDIS_PORT: {{ .Values.env.REDIS_PORT | quote }}
+  REDIS_DB: {{ .Values.env.REDIS_DB | quote }}
+  QDRANT_HOST: {{ .Values.env.QDRANT_HOST | quote }}
+  QDRANT_PORT: {{ .Values.env.QDRANT_PORT | quote }}
+  QDRANT_COLLECTION: {{ .Values.env.QDRANT_COLLECTION | quote }}
+  HR_BASE_URL: {{ .Values.env.HR_BASE_URL | quote }}
+  ERP_BASE_URL: {{ .Values.env.ERP_BASE_URL | quote }}
+  OA_BASE_URL: {{ .Values.env.OA_BASE_URL | quote }}

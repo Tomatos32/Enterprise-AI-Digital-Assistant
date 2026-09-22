@@ -1,0 +1,16 @@
+apiVersion: v2
+name: enterprise-ai
+description: Production Helm chart for Enterprise AI Digital Assistant Platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - enterprise-ai
+  - langgraph
+  - rag
+  - fastapi
+  - kubernetes
+  - canary
+maintainers:
+  - name: Harness Engineering Team
+    email: harness-eng@enterprise.internal

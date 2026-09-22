@@ -1,0 +1,135 @@
+# Default values for enterprise-ai Helm Chart.
+# This is a YAML-formatted file.
+
+replicaCount: 2
+
+image:
+  repository: enterprise-ai/backend
+  pullPolicy: IfNotPresent
+  tag: "0.1.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: "/metrics"
+  prometheus.io/port: "8000"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  fsGroup: 10001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+
+resources:
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 80
+  customMetrics:
+    activeWebsockets:
+      enabled: true
+      targetAverageValue: "100"
+
+probes:
+  liveness:
+    path: /api/v1/health
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /api/v1/health
+    initialDelaySeconds: 15
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 2
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: "64m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  hosts:
+    - host: ai.enterprise.corp
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+canary:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: enterprise-ai/backend
+    pullPolicy: IfNotPresent
+    tag: "0.2.0-canary"
+  weight: 10
+  header:
+    enabled: true
+    name: "X-Canary"
+    value: "always"
+  cookie:
+    enabled: false
+    name: "canary_user"
+
+# Non-sensitive runtime parameters (ConfigMap)
+env:
+  ENVIRONMENT: "production"
+  USE_MOCK_SYSTEMS: "false"
+  MYSQL_SERVER: "mysql-master.database.svc.cluster.local"
+  MYSQL_PORT: "3306"
+  MYSQL_DB: "enterprise_ai"
+  REDIS_HOST: "redis-sentinel.cache.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  QDRANT_HOST: "qdrant.vector.svc.cluster.local"
+  QDRANT_PORT: "6333"
+  QDRANT_COLLECTION: "enterprise_knowledge"
+  HR_BASE_URL: "https://open.feishu.cn"
+  ERP_BASE_URL: "https://erp.internal.corp"
+  OA_BASE_URL: "https://oa.internal.corp"
+
+# Sensitive runtime parameters (Kubernetes Secret)
+secrets:
+  enabled: true
+  name: "enterprise-ai-secret"
+  mysqlUser: "app_user"
+  mysqlPassword: "SuperSecureProdPassword2026!"
+  redisPassword: "RedisProdAuthPassword2026!"
+  secretKey: "super_secret_jwt_key_enterprise_ai_2026_harness"
+  hrApiToken: "feishu_prod_tenant_token_xyz"
+  erpApiToken: "sap_prod_auth_token_xyz"
+  oaApiToken: "jira_prod_bearer_token_xyz"
+  wecomWebhookUrl: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=prod_key"
+  difyApiKey: "app-prod-dify-secret-key"

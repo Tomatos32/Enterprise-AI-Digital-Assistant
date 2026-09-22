@@ -10,6 +10,7 @@ from langgraph.errors import GraphInterrupt
 from backend.graph.workflow import graph
 from backend.graph.state import AgentState
 from backend.core.task_manager import task_manager
+from backend.core.guardrails import validate_input, sanitize_text, StreamingSanitizer
 
 router = APIRouter(prefix="", tags=["WebSocket Chat"])
 
@@ -45,6 +46,18 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
     metadata = data.get("metadata", {})
     metadata["thread_id"] = thread_id
 
+    # 0. Input Security & Guardrail Check (OWASP LLM01 Prompt Injection / Jailbreak)
+    guard_result = validate_input(user_message)
+    if not guard_result.is_valid:
+        await websocket.send_text(json.dumps({
+            "type": "error",
+            "status": 400,
+            "thread_id": thread_id,
+            "message": f"400 Bad Request: Policy Violation - {guard_result.reason} ({guard_result.category})",
+            "category": guard_result.category,
+        }, ensure_ascii=False))
+        return
+
     initial_state: AgentState = {
         "messages": [HumanMessage(content=user_message)],
         "user_id": user_id,
@@ -53,6 +66,9 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
         "metadata": metadata,
     }
     config = {"configurable": {"thread_id": thread_id}}
+
+    # Initialize streaming PII sanitizer
+    sanitizer = StreamingSanitizer()
 
     # Send Initial Handshake Response
     await websocket.send_text(json.dumps({
@@ -78,11 +94,13 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
             elif kind == "on_chat_model_stream":
                 chunk = event.get("data", {}).get("chunk")
                 if chunk and hasattr(chunk, "content") and chunk.content:
-                    await websocket.send_text(json.dumps({
-                        "type": "token",
-                        "content": chunk.content,
-                        "thread_id": thread_id
-                    }, ensure_ascii=False))
+                    safe_token = sanitizer.process_chunk(chunk.content)
+                    if safe_token:
+                        await websocket.send_text(json.dumps({
+                            "type": "token",
+                            "content": safe_token,
+                            "thread_id": thread_id
+                        }, ensure_ascii=False))
 
             # 3. Tool Execution Logs
             elif kind == "on_tool_start":
@@ -103,9 +121,18 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
                     "type": "tool_log",
                     "status": "completed",
                     "tool": tool_name,
-                    "output": str(tool_output),
+                    "output": sanitize_text(str(tool_output)),
                     "thread_id": thread_id
                 }, ensure_ascii=False))
+
+        # Flush any remaining tokens from streaming sanitizer buffer
+        flush_token = sanitizer.flush()
+        if flush_token:
+            await websocket.send_text(json.dumps({
+                "type": "token",
+                "content": flush_token,
+                "thread_id": thread_id
+            }, ensure_ascii=False))
 
     except GraphInterrupt:
         # LangGraph Interrupt Caught (e.g. High-value Purchase Approval required)
@@ -147,7 +174,7 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
         await websocket.send_text(json.dumps({
             "type": "complete",
             "thread_id": thread_id,
-            "final_answer": last_text,
+            "final_answer": sanitize_text(last_text),
             "current_step": final_values.get("current_step", "completed")
         }, ensure_ascii=False))
 

@@ -41,6 +41,9 @@
 | **7** | **E2E 演示数据库** | `backend/scripts/demo_e2e_closed_loop.py`<br/>`sqlite:///:memory:` (StaticPool) | 连接生产环境 **MySQL 8.0 主从复制高可用集群** | `MYSQL_SERVER=prod-mysql.internal`<br/>`MYSQL_PORT=3306`<br/>`MYSQL_USER=...` |
 | **8** | **冷启动知识库文档** | `docs/sample_kb/*.md`<br/>`docs/sample_kb/*.pdf`, `*.xlsx` | 挂载企业 **SharePoint / Confluence / NAS 知识库源** | `KNOWLEDGE_BASE_SYNC_DIR=/mnt/enterprise_docs/`<br/>`QDRANT_HOST=prod-qdrant.internal` |
 | **9** | **LLM 网关与降级** | `backend/core/llm_infra.py`<br/>`LLMGateway` (Fallback 假数据) | 对接真实 **Azure OpenAI / 阿里云通义千问 / 本地 vLLM 集群** | `OPENAI_API_KEY=sk-...`<br/>`OPENAI_API_BASE=https://...`<br/>`QWEN_API_KEY=sk-...` |
+| **10** | **专职 Subgraph 专属工具集** | `backend/graph/subgraphs/`<br/>(HR/Finance/IT/Compliance Mock 工具函数) | 对接企业真实 **专职数字员工 OpenAPI / 专用数据库视图 / 真实合规网关** | `USE_MOCK_SYSTEMS=False`<br/>`FINANCE_API_BASE=https://fin.corp.internal`<br/>`COMPLIANCE_API_KEY=...` |
+| **11** | **Swarm 协同与入职 SOP** | `backend/graph/swarm_router.py`<br/>(跨部门上下文传递与工单模拟) | 对接企业真实 **跨部门协同 BPM / OA 审批流网关 (泛微 / 飞书服务台)** | `USE_MOCK_SYSTEMS=False`<br/>`BPM_GATEWAY_URL=https://bpm.corp.internal` |
+| **12** | **分布式 Saga 多系统补偿状态** | `backend/core/saga_orchestrator.py`<br/>`mock_enterprise_systems` (内存事务状态) | 对接真实 **ERP MM/SD 接口、财务核算中心、OA 审批流 Webhook** 逆向回滚接口 | `USE_MOCK_SYSTEMS=False`<br/>`ERP_SAGA_ROLLBACK_ENDPOINT=/api/v1/rollback`<br/>`FINANCE_REFUND_ENDPOINT=/api/v1/refund` |
 
 ---
 
@@ -128,6 +131,22 @@
 
 ---
 
+### 3.6 维度六：多 Agent 协作网格与分布式 Saga 事务 (Subgraphs, Swarm & Saga)
+
+#### 1. 专职 Subgraph 领域工具 Mock
+- **当前 Mock 实现**：`backend/graph/subgraphs/` 中 4 大专职子图（HR、财务、IT、合规）使用的本地规则工具调用与模拟返回。
+- **生产替换方案**：配置真实的专职业务微服务 RPC/REST 地址，对接真实薪酬核算引擎、企业电子发票验真云服务与法务合同审查网关。
+
+#### 2. Swarm 协同入职流程与工单模拟
+- **当前 Mock 实现**：`backend/graph/swarm_router.py` 中的入职 3 阶段（HR ➔ IT ➔ 财务）采用内存字典生成假工单与假资产编号。
+- **生产替换方案**：对接企业标准 BPM 协同网关与 OA 真实审批中心，通过 Webhook 触发跨系统审批任务。
+
+#### 3. 分布式 Saga 多系统写操作与幂等补偿
+- **当前 Mock 实现**：`backend/core/saga_orchestrator.py` 中的 `mock_enterprise_systems`（`EnterpriseSystemState` 单例），在内存中维护 `inventory_locks`、`budget_freezes`、`oa_tickets`。
+- **生产替换方案**：绑定生产级 ERP、财务与 OA OpenAPI，正向调用锁定/冻结接口，反向调用带唯一 `transaction_id` 的幂等释放/退款接口。
+
+---
+
 ## 4. 生产环境一键切换配置规范 (`.env.production.example`)
 
 在部署生产环境时，只需在根目录创建 `.env` 文件并填入以下真实生产配置：
@@ -182,12 +201,23 @@ OPENAI_API_KEY=sk-prod-openai-key-xxx
 OPENAI_API_BASE=https://api.openai.com/v1
 QWEN_API_KEY=sk-prod-qwen-key-xxx
 DEEPSEEK_API_KEY=sk-prod-deepseek-key-xxx
+# 9. 专职 Subgraph 领域微服务与合规审查
+FINANCE_API_BASE=https://finance-service.internal/api/v1
+HR_SERVICE_URL=https://hr-service.internal/api/v1
+IT_SERVICE_URL=https://it-service.internal/api/v1
+COMPLIANCE_API_KEY=prod_compliance_key_xxx
+
+# 10. 跨部门 BPM 工作流与分布式 Saga 事务回滚端点
+BPM_GATEWAY_URL=https://bpm-gateway.corp.internal/v1/handoff
+ERP_SAGA_ROLLBACK_ENDPOINT=https://erp.enterprise.internal/api/v1/saga/rollback
+FINANCE_REFUND_ENDPOINT=https://finance.enterprise.internal/api/v1/saga/refund
+OA_CANCEL_ENDPOINT=https://oa.enterprise.internal/api/v1/saga/cancel
 ```
 
 ---
 
 ## 5. 总结与后续 Issue 执行指引
 
-- **资产核准**：全系统共计 **9 处 Mock 节点已全部审计并锁定归档**。
-- **切换能力**：通过 `backend/core/config.py` 的集中配置，系统已完全具备“一键解除 Mock、切换生产真实系统”的能力。
-- **后续行动**：完成 Issue-0021 关单后，系统将正式进入 `Issue-0022`（企业知识图谱与 Graph RAG 拓扑推理）。
+- **资产核准**：全系统共计 **12 处 Mock 节点已全部审计并锁定归档**（涵盖基础系统、工作流通知、持久化存储、冷启动知识库、模型网关，以及 Sprint 23~25 新增的专职 Subgraph 专属工具、Swarm 入职协作 SOP 与 Saga 分布式事务补偿）。
+- **切换能力**：通过 `backend/core/config.py` 的集中配置与适配器模式，系统已完全具备“一键解除全部 Mock、无缝切换生产真实企业系统”的高可靠物理能力。
+- **阶段跃迁**：随着 Development Mode 战役一至战役四全量 32 项 Issue 100% 闭环，系统正式具备进入 **`PRODUCTION & HARDENING MODE` (生产就绪与投产硬化模式)** 的物理条件！
