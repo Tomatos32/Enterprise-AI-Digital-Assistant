@@ -53,8 +53,13 @@ class Settings(BaseSettings):
     DIFY_API_KEY: Optional[str] = None
     N8N_WEBHOOK_URL: Optional[str] = None
 
+    # Database URL override (e.g. for SQLite demo / testing)
+    DATABASE_URL: Optional[str] = None
+
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
         return f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_SERVER}:{self.MYSQL_PORT}/{self.MYSQL_DB}"
 
     @property
