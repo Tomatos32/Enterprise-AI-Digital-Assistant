@@ -2,24 +2,71 @@
 @tailwindcss components;
 @tailwindcss utilities;
 
-/* Glassmorphism & Custom Effects */
+/* UI/UX Pro Max - Industrial Design System Tokens */
+:root {
+  /* 基础底色层级 (Slate 系列) */
+  --bg-sidebar:      #0b0f19; /* 侧边栏底色：极深邃蓝灰 */
+  --bg-main:         #0f172a; /* 主画布底色：Slate-900 */
+  --bg-card:         #1e293b; /* 对话卡片/气泡底色：Slate-800 */
+  --bg-input:        #1e293b; /* 底部悬浮输入框背景 */
+
+  /* 边框与微光 */
+  --border-subtle:   rgba(255, 255, 255, 0.08); /* 极细分隔线 */
+  --border-card:     rgba(255, 255, 255, 0.12); /* 卡片边缘 */
+  --border-focus:    #3b82f6;                    /* 聚焦高亮蓝 */
+
+  /* 文本对比阶梯 (符合 WCAG AA >= 4.5:1) */
+  --text-main:       #f8fafc; /* 主标题与正文：Slate-50 (对比度 > 10:1) */
+  --text-secondary:  #94a3b8; /* 次要标签/说明：Slate-400 (对比度 > 5:1) */
+  --text-muted:      #64748b; /* 提示符/微标注：Slate-500 */
+
+  /* 业务语义品牌色 */
+  --brand-primary:   #3b82f6; /* 主操作/发送按键：Blue-500 */
+  --brand-primary-hover: #2563eb; /* 悬浮深蓝：Blue-600 */
+  --brand-gradient:  linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%); /* AI 头像渐变 */
+  --status-approval: #f59e0b; /* 审批警示：Amber-500 */
+  --status-success:  #10b981; /* 审批通过/就绪：Emerald-500 */
+  --status-danger:   #f43f5e; /* 驳回/中断：Rose-500 */
+}
+
+/* 全局抗锯齿与排版基准 */
+html, body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* 移动端触控优化与安全区适配 */
+button, a, input, textarea, select {
+  touch-action: manipulation;
+}
+
+/* 玻璃拟态与微光面板 */
 .glass-panel {
-  background: rgba(30, 41, 59, 0.7);
+  background: rgba(30, 41, 59, 0.75);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
 }
 
 .glass-card {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
 }
 
-/* Custom Scrollbar */
+/* 细长半透明深色滚动条 */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -27,15 +74,16 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: rgba(148, 163, 184, 0.2);
   border-radius: 9999px;
+  transition: background-color 150ms ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: rgba(148, 163, 184, 0.35);
 }
 
-/* Streaming Typing Cursor Animation */
+/* 打字机光标动画 */
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
@@ -45,6 +93,14 @@
   content: '▋';
   display: inline-block;
   margin-left: 2px;
-  color: #10b981;
+  color: var(--brand-primary);
   animation: blink 0.8s infinite;
+}
+
+/* 交互热区与抗重排抖动标准 */
+.interactive-action {
+  cursor: pointer;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }

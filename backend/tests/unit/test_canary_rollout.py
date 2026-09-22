@@ -106,8 +106,8 @@ def test_canary_auto_rollback_trips_circuit_breaker():
     controller = CanaryController(config=config)
     controller.inject_canary_fault(True)
 
-    # Send requests to trigger threshold
-    for _ in range(10):
+    # Send requests to trigger threshold (sufficient iterations to guarantee min_requests_for_eval=3 under 50% probability)
+    for _ in range(30):
         controller.handle_request(failover_on_error=True)
 
     assert controller.is_rolled_back is True
