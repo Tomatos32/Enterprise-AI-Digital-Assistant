@@ -1,9 +1,10 @@
 """Qdrant Vector Database Connection Manager & RBAC Security Filter Engine."""
 
-import hashlib
-import math
-import uuid
+import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional
+import uuid
+
 from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 from qdrant_client import QdrantClient
@@ -19,8 +20,16 @@ from qdrant_client.http.models import (
 )
 
 from backend.core.config import settings
+from backend.rag.embeddings import (
+    get_embedding,
+    get_embeddings_batch,
+    get_embedding_engine_info,
+)
+
+logger = logging.getLogger(__name__)
 
 _global_qdrant_client: Optional[QdrantClient] = None
+_global_qdrant_mode: str = "uninitialized"
 
 
 class DocumentSecurity(BaseModel):
@@ -71,16 +80,35 @@ def build_rbac_filter(
     return Filter(must=must_conditions)
 
 
+def reset_qdrant_client():
+    """Resets the global Qdrant client singleton (useful for testing)."""
+    global _global_qdrant_client, _global_qdrant_mode
+    if _global_qdrant_client is not None:
+        try:
+            _global_qdrant_client.close()
+        except Exception:
+            pass
+    _global_qdrant_client = None
+    _global_qdrant_mode = "uninitialized"
+
+
 def get_qdrant_client(
     host: Optional[str] = None,
     port: Optional[int] = None,
     memory: bool = False,
+    storage_path: Optional[str] = None,
 ) -> QdrantClient:
     """Returns a QdrantClient instance.
 
-    If remote server is unreachable or offline, gracefully falls back to an in-memory client.
+    Priority:
+    1. If `memory=True` or `host == ':memory:'`: In-memory isolated client.
+    2. If explicit host/port passed: Connect to specified remote server.
+    3. Global singleton:
+       a. Attempt remote connection to settings.QDRANT_HOST:settings.QDRANT_PORT.
+       b. Fallback to local persistent disk storage (settings.QDRANT_STORAGE_PATH).
+       c. Fallback to in-memory if local disk initialization fails.
     """
-    global _global_qdrant_client
+    global _global_qdrant_client, _global_qdrant_mode
 
     if memory or host == ":memory:":
         return QdrantClient(":memory:")
@@ -89,36 +117,100 @@ def get_qdrant_client(
         return QdrantClient(host=host or settings.QDRANT_HOST, port=port or settings.QDRANT_PORT, timeout=1.5)
 
     if _global_qdrant_client is not None:
-        return _global_qdrant_client
+        underlying = getattr(_global_qdrant_client, "_client", None)
+        if underlying is not None and getattr(underlying, "closed", False):
+            _global_qdrant_client = None
+            _global_qdrant_mode = "uninitialized"
+        else:
+            return _global_qdrant_client
 
+    # 1. Try remote server
     try:
-        client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, timeout=1.5)
+        client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, timeout=1.0)
         client.get_collections()
         _global_qdrant_client = client
-        return client
-    except Exception:
-        _global_qdrant_client = QdrantClient(":memory:")
+        _global_qdrant_mode = "remote_server"
+        logger.info("Connected to remote Qdrant server at %s:%s", settings.QDRANT_HOST, settings.QDRANT_PORT)
         return _global_qdrant_client
+    except Exception:
+        pass
+
+    # 2. Try local disk persistence
+    try:
+        path_to_use = storage_path or settings.QDRANT_STORAGE_PATH
+        storage_dir = Path(path_to_use)
+        storage_dir.mkdir(parents=True, exist_ok=True)
+        client = QdrantClient(path=str(storage_dir))
+        _global_qdrant_client = client
+        _global_qdrant_mode = "local_storage"
+        logger.info("Initialized local persistent Qdrant storage at %s", storage_dir)
+        return _global_qdrant_client
+    except Exception as exc:
+        logger.warning("Failed to initialize local persistent Qdrant at %s: %s. Falling back to :memory:", path_to_use, exc)
+
+    # 3. Final fallback: in-memory
+    _global_qdrant_client = QdrantClient(":memory:")
+    _global_qdrant_mode = "in_memory"
+    return _global_qdrant_client
 
 
-def get_embedding(text: str, dim: int = 1024) -> List[float]:
-    """Generates a deterministic, normalized 1024-dimensional vector (BGE-M3 standard).
+def get_qdrant_info(client: Optional[QdrantClient] = None) -> Dict[str, Any]:
+    """Returns comprehensive diagnostic telemetry for the Qdrant vector database."""
+    global _global_qdrant_mode
 
-    Used as default embedding calculation without external model weights.
-    """
-    if not text:
-        text = "empty"
+    if client is None:
+        client = get_qdrant_client()
 
-    raw_hash = hashlib.sha256(text.encode("utf-8")).digest()
-    vec = []
-    for i in range(dim):
-        byte_val = raw_hash[i % len(raw_hash)]
-        val = math.sin((i + 1) * byte_val * 0.1)
-        vec.append(val)
+    mode = _global_qdrant_mode if client == _global_qdrant_client else "custom_instance"
+    storage_loc = settings.QDRANT_STORAGE_PATH if mode == "local_storage" else f"{settings.QDRANT_HOST}:{settings.QDRANT_PORT}"
 
-    # L2 normalize
-    norm = math.sqrt(sum(v * v for v in vec)) or 1.0
-    return [v / norm for v in vec]
+    try:
+        col_res = client.get_collections()
+        col_names = [c.name for c in col_res.collections]
+        target_col = settings.QDRANT_COLLECTION
+
+        points_count = 0
+        vector_size = settings.EMBEDDING_DIMENSION
+
+        if target_col in col_names:
+            try:
+                cnt_res = client.count(collection_name=target_col)
+                points_count = cnt_res.count
+            except Exception:
+                points_count = 0
+
+            try:
+                col_info = client.get_collection(collection_name=target_col)
+                if hasattr(col_info.config.params, "vectors"):
+                    vectors_cfg = col_info.config.params.vectors
+                    if hasattr(vectors_cfg, "size"):
+                        vector_size = vectors_cfg.size
+            except Exception:
+                pass
+
+        return {
+            "status": "healthy",
+            "client_mode": mode,
+            "storage_location": storage_loc,
+            "all_collections": col_names,
+            "collection_name": target_col,
+            "collection_exists": target_col in col_names,
+            "points_count": points_count,
+            "vector_size": vector_size,
+            "embedding_engine": get_embedding_engine_info(),
+        }
+    except Exception as exc:
+        return {
+            "status": "degraded",
+            "client_mode": mode,
+            "storage_location": storage_loc,
+            "error": str(exc),
+            "collection_name": settings.QDRANT_COLLECTION,
+            "collection_exists": False,
+            "points_count": 0,
+            "vector_size": settings.EMBEDDING_DIMENSION,
+            "embedding_engine": get_embedding_engine_info(),
+        }
 
 
 def init_qdrant_collection(
@@ -126,7 +218,7 @@ def init_qdrant_collection(
     vector_size: int = 1024,
     client: Optional[QdrantClient] = None,
 ) -> bool:
-    """Ensures Qdrant collection exists with 1024-dim Cosine similarity configuration."""
+    """Ensures Qdrant collection exists with Cosine similarity configuration."""
     if client is None:
         client = get_qdrant_client()
 
@@ -150,7 +242,7 @@ def upsert_documents(
     client: Optional[QdrantClient] = None,
     default_security: Optional[DocumentSecurity] = None,
 ) -> int:
-    """Upserts a batch of Document objects into Qdrant collection with 1024-dim vectors
+    """Upserts a batch of Document objects into Qdrant collection with embeddings
 
     and enforces RBAC security metadata.
     """
@@ -160,16 +252,18 @@ def upsert_documents(
     if client is None:
         client = get_qdrant_client()
 
-    init_qdrant_collection(collection_name=collection_name, vector_size=1024, client=client)
+    dim = settings.EMBEDDING_DIMENSION
+    init_qdrant_collection(collection_name=collection_name, vector_size=dim, client=client)
 
     sec = default_security or DocumentSecurity()
+    texts = [d.page_content for d in docs]
+    vectors = get_embeddings_batch(texts, dim=dim)
+
     points: List[PointStruct] = []
-
-    for doc in docs:
+    for doc, vec in zip(docs, vectors):
         point_id = str(uuid.uuid4())
-        vec = get_embedding(doc.page_content, dim=1024)
-
         meta = dict(doc.metadata) if doc.metadata else {}
+
         # Ensure security fields are present
         if "tenant_id" not in meta:
             meta["tenant_id"] = sec.tenant_id
@@ -203,7 +297,8 @@ def search_similar_documents(
     if client is None:
         client = get_qdrant_client()
 
-    query_vector = get_embedding(query, dim=1024)
+    dim = settings.EMBEDDING_DIMENSION
+    query_vector = get_embedding(query, dim=dim)
 
     # Resolve filter
     effective_filter = query_filter

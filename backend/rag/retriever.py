@@ -8,6 +8,7 @@ from langchain_core.documents import Document
 from rank_bm25 import BM25Okapi
 
 from backend.rag.loader import load_sample_kb_documents
+from backend.rag.splitter import split_documents
 from backend.rag.vector_store import search_similar_documents, upsert_documents
 
 
@@ -143,15 +144,17 @@ class Reranker:
         for doc in docs:
             doc_tokens = set(tokenize_text(doc.page_content))
 
-            # Compute token overlap & RRF weight boost
+            # Compute token overlap & query coverage
             overlap = len(query_tokens.intersection(doc_tokens))
+            query_coverage = overlap / (len(query_tokens) or 1.0)
             jaccard_sim = overlap / (len(query_tokens.union(doc_tokens)) or 1.0)
+            semantic_overlap = 0.75 * query_coverage + 0.25 * jaccard_sim
 
             rrf_score = doc.metadata.get("rrf_score", 0.0)
             dense_score = doc.metadata.get("score", 0.0)
 
             # Combined hybrid rerank score
-            combined_score = 0.5 * jaccard_sim + 0.3 * rrf_score + 0.2 * dense_score
+            combined_score = 0.5 * semantic_overlap + 0.3 * rrf_score + 0.2 * dense_score
 
             meta = doc.metadata.copy()
             meta["rerank_score"] = round(float(combined_score), 4)
@@ -173,7 +176,8 @@ class HybridRetriever:
 
     def __init__(self, sample_kb_dir: Optional[Path] = None):
         kb_path = sample_kb_dir or Path("docs/sample_kb")
-        self.sample_docs = load_sample_kb_documents(kb_path)
+        raw_docs = load_sample_kb_documents(kb_path)
+        self.sample_docs = split_documents(raw_docs, chunk_size=500, chunk_overlap=50) if raw_docs else []
         self.bm25_retriever = BM25Retriever(self.sample_docs)
 
         # Ensure sample docs are indexed in Qdrant as well

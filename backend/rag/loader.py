@@ -17,7 +17,7 @@ def extract_metadata_from_filename(file_path: Path) -> Dict[str, Any]:
         category = "CS"
     elif "HR" in name or "人事" in name or "行政" in name:
         category = "HR"
-    elif "PROCUREMENT" in name or "采购" in name:
+    elif "PROCUREMENT" in name or "PROC" in name or "采购" in name:
         category = "PROCUREMENT"
     elif "FINANCE" in name or "财务" in name or "报销" in name:
         category = "FINANCE"
