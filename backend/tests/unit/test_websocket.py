@@ -81,8 +81,8 @@ def test_websocket_chat_streaming_flow():
         tokens = []
         complete_frame = None
 
-        # Read frames until 'complete' or timeout
-        for _ in range(30):
+        # Read frames until 'complete' or timeout (streaming tokens can be 50-150 frames)
+        for _ in range(200):
             try:
                 frame = websocket.receive_json()
                 frame_type = frame.get("type")

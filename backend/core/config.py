@@ -29,6 +29,23 @@ class Settings(BaseSettings):
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
     QDRANT_COLLECTION: str = "enterprise_knowledge"
+    QDRANT_STORAGE_PATH: str = "backend/data/qdrant_storage"
+
+    # Embedding Vector Engine Config
+    EMBEDDING_PROVIDER: str = "auto"  # 'auto', 'fastembed', 'openai', 'local_semantic'
+    EMBEDDING_MODEL: str = "BAAI/bge-small-zh-v1.5"
+    EMBEDDING_DIMENSION: int = 1024
+    EMBEDDING_API_BASE: Optional[str] = None
+    EMBEDDING_API_KEY: Optional[str] = None
+
+    # LLM & Chat Model Config (OpenAI-compatible: DeepSeek, Qwen, SiliconFlow, Ollama, vLLM)
+    LLM_PROVIDER: str = "auto"  # 'auto', 'openai', 'deepseek', 'vllm', 'ollama', 'local_fallback'
+    LLM_MODEL: str = "deepseek-chat"
+    LLM_API_BASE: Optional[str] = None  # e.g., "https://api.deepseek.com/v1" or "http://localhost:11434/v1"
+    LLM_API_KEY: Optional[str] = None
+    LLM_TEMPERATURE: float = 0.2
+    LLM_MAX_TOKENS: int = 2048
+    LLM_STREAM: bool = True
 
     # JWT Security Config
     SECRET_KEY: str = "super_secret_jwt_key_enterprise_ai_2026_harness"
