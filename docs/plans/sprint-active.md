@@ -29,6 +29,16 @@
   - [x] Checkpoint 4: 引入检索相关性阈值过滤与无相关内容时的优雅自校验反思（Self-Correction），附带精确来源溯源
   - [x] Checkpoint 5: 编写完整测试套件 `test_rag_pipeline_and_streaming.py`，全仓 253 项测试 100% 通过 (6/6 PASS, 253/253 PASS)
 
+- [x] **Sprint F-09: ChatGPT / Claude 原生 Web 交互与 Vuebits 旗舰动效组件集成 - [100% COMPLETED]**
+  - [x] Checkpoint 1: 依赖装配与注册表固化（`@hugeicons/vue`, `@hugeicons/core-free-icons`, `motion-v`, `lucide-vue-next`）
+  - [x] Checkpoint 2: 日间温润白与夜间曜石灰双主题色彩令牌与背景无缝拟合（`src/index.css`, `tailwind.config.js`）
+  - [x] Checkpoint 3: Vuebits 12 大旗舰原子组件套件落地（`PromptBar`, `ThoughtLine`, `CallChip`, `VoicePill`, `FolderFloat`, `LineSidebar` 等）
+  - [x] Checkpoint 4: 输入交互区升维（`PromptBar` 充能发送、停止方块、`@` 数据源菜单、`/` 指令菜单与语音胶囊）
+  - [x] Checkpoint 5: 思维链与工具调用重塑（`ThoughtLine` 呼吸秒表、模糊交叉收拢、`CallChip` 进度擦除与毫秒计时）
+  - [x] Checkpoint 6: 侧栏光标邻近微动（`LineSidebar`）、知识库卡片云（`FolderFloat`）与金属流光徽章（`ShinyText`）
+  - [x] Checkpoint 7: 全站 100% 消除系统 Emoji 符号，清空所有技术调试注释与占位符
+  - [x] Checkpoint 8: 生产构建通过（`npm run build`），WCAG AA/AAA 对比度核验与 8 大证据包落盘 (ReviewScore: 98, APPROVED)
+
 - [ ] **Sprint R-04: 个人可及的开源工作流平台集成与个人运行指南 (Workflows & Runbook)**
   - [ ] Checkpoint 1: 真实对接个人部署的 N8N Webhook（大额审批与工单创建事件真实推送）
   - [ ] Checkpoint 2: 真实对接 Dify Workflow API（支持复杂子任务委托执行）

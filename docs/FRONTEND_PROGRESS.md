@@ -16,7 +16,7 @@
 [PHASE 2: 流式对话与自然思考]   ████████████████████████████████ 100% (Sprint F-03 & F-04 全部闭环)
 [PHASE 3: 业务协同与待办中心]   ████████████████████████████████ 100% (Sprint F-05 & F-06 全部闭环)
 [PHASE 4: 多端响应与硬化验收]   ████████████████████████████████ 100% (Sprint F-07 & F-08 全部闭环)
-[PHASE 5: 原生体验与组件升维]   ████████████████████████████████ 规划就绪 (Sprint F-09: Vuebits 旗舰集成)
+[PHASE 5: 原生体验与组件升维]   ████████████████████████████████ 100% (Sprint F-09: Vuebits 旗舰集成全量闭环)
 ====================================================================================================
 ```
 
@@ -272,6 +272,80 @@ npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallCh
 
 ---
 
+### 6.4 双主题无缝背景拟合架构 (Day/Night Theme Architecture & Background Fitting)
+
+现代 AI 交互界面的顶级体验不仅取决于孤立组件，更取决于组件与背景画布的**沉浸拟合度**。ChatGPT 与 Claude 的原生 Web 界面均摒弃了粗糙生硬的边框分块，转向基于自然光照与纸材质感的双轨主题体系：
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 日间与夜间双主题拟合色彩令牌体系                                  │
+├────────────────────────────────┬────────────────────────────────┬────────────────────────────────┤
+│ 语义层级 (Design Tokens)        │ 日间模式 (Claude/GPT 纸质温润白) │ 夜间模式 (ChatGPT 曜石沉浸黑)   │
+├────────────────────────────────┼────────────────────────────────┼────────────────────────────────┤
+│ 主画布背景 (--bg-main)          │ #FBF9F5 (象牙白) / #FFFFFF (纯白)│ #0F172A (深板岩) / #18181B (曜石)│
+│ 侧边栏底色 (--bg-sidebar)       │ #F3F0E6 (温润米灰) / #F7F7F8    │ #0B0F19 (深蓝黑) / #111113 (暗影)│
+│ 卡片/输入框底色 (--bg-card)     │ #FFFFFF (纯白高透悬浮)          │ #1E293B (深蓝灰) / #27272A (炭黑)│
+│ 发丝级微弱边框 (--border-subtle)│ rgba(0, 0, 0, 0.08)            │ rgba(255, 255, 255, 0.08)      │
+│ 主正文文字 (--text-main)        │ #111827 (极深墨色, 对比度 >12:1)│ #F8FAFC (柔和珍珠白, 对比度>10:1)│
+│ 次要文字说明 (--text-secondary) │ #4B5563 (中灰, 对比度 >5:1)     │ #94A3B8 (淡板岩蓝灰)            │
+│ 品牌主色/点缀 (--brand-primary) │ #CC5A27 (赤陶橙) / #0D0D0D (墨黑)│ #38BDF8 (天蓝) / #10A37F (翠绿) │
+│ 阴影微光系统 (Ambient Shadow)   │ 0 4px 20px -2px rgba(0,0,0,0.05)│ 0 4px 24px -2px rgba(0,0,0,0.5)│
+└────────────────────────────────┴────────────────────────────────┴────────────────────────────────┘
+```
+
+#### 背景拟合核心技术标准：
+1. **毛玻璃自然融合 (Backdrop Blur)**：悬浮输入框 (`PromptBar`)、顶部沉浸栏与浮动选择器 (`GlideSelect`) 统一应用 `backdrop-blur-md bg-opacity-80`，与滚动穿过的会话内容形成自然通透的拟合层次，彻底告别突兀的硬切背景块。
+2. **零硬边切割**：采用 `1px border-subtle` 发丝纹与环境弥散柔和阴影，取代高反差的分块边框。
+3. **双主题平滑过渡**：全局应用 `transition-colors duration-200 ease-out`，在日间象牙白与夜间曜石灰切换时绝无白屏或色块闪烁。
+
+---
+
+### 6.5 严苛去 Emoji 与零技术注释纯净化交互标准 (Zero Emoji & Zero Technical Annotations)
+
+为保障企业级生产力终端的严肃性与专业度，本工程执行 **“双零 (Zero-Tolerance) 纯净化铁律”**：
+
+1. **100% 消除任何系统 Emoji 符号**：
+   - 彻底清除所有在界面、状态指示、按钮或提示中出现的 Emoji（严禁出现 ⚡, 📋, 💬, 🤖, 💡, ⚠️, ⚙️, ✅, ❌ 等字符）。
+   - 所有语义与操作指示统一由专业矢量 SVG 替代（如以 `Sparkles` 代替 ⚡，以 `FileCheck` 代替 📋，以 `MessageSquare` 代替 💬，以 `CheckCircle` 代替 ✅）。
+2. **100% 抹杀开发注释与调试占位符**：
+   - 严禁在任何前端组件模板、状态卡片、气泡或文案中直接暴露底层开发注释（如 `<!-- @TODO: ... -->`、`// debug mock`、`node_state`、`trace_id`、`mock_inventory_flag` 等）。
+   - 所有文本必须呈现为地道、优雅、严谨的企业级人机交互语言（例：“已为您核对相关制度规范”、“需要主管确认”）。
+
+---
+
+### 6.6 GPT / Claude 风格专业 Icon 库选型与规范 (Hugeicons + Lucide Icons)
+
+经过对 ChatGPT (OpenAI) 与 Claude (Anthropic) 原生界面矢量图标视觉语言的深度拆解与比对，本架构确立 **“双核矢量图标体系”**：
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 双核专业矢量图标库架构与选型分工                                  │
+├───────────────────────────────────┬──────────────────────────────────────────────────────────────┤
+│ 图标库名称                         │ 视觉风格与工程职责分工                                        │
+├───────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ 1. @hugeicons/vue                 │ 【AI 动效与交互组件专属】：                                    │
+│    (@hugeicons/core-free-icons)   │ • 与 @vue-bits 物理动效深度绑定的原生底层图标系统；             │
+│                                   │ • 采用 1.5px/2.0px 圆角端点 (Round Cap/Join) 的几何微单线设计； │
+│                                   │ • 负责 PromptBar 麦克风/附件/指令、ThoughtLine 思维火花、     │
+│                                   │   CallChip 终端与搜索等高度契合 GPT/Claude 原生质感的动效图符。  │
+├───────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ 2. lucide-vue-next                │ 【系统级全局业务导航与单据治理专属】：                        │
+│    (Lucide Icons)                 │ • 遵循 shadcn-vue 官方原子规范，严格 24x24 viewBox 像素对齐；  │
+│                                   │ • 负责侧边栏目录折叠、会话管理、多端汉堡抽屉、企业审批单据、  │
+│                                   │   通用状态提示等系统骨架交互，具备全球顶级的极简一致性。        │
+└───────────────────────────────────┴──────────────────────────────────────────────────────────────┘
+```
+
+#### 常见业务场景图标映射规范（彻底替代 Emoji）：
+- 原 `⚡ 正在核对制度...` ➔ 替换为 Hugeicons `SparklesIcon` (带呼吸光晕)
+- 原 `📋 采购审批单据` ➔ 替换为 Lucide `FileCheck2` (单线几何矢量)
+- 原 `💬 会话历史列表` ➔ 替换为 Lucide `MessageSquare`
+- 原 `🤖 智能数字员工` ➔ 替换为 Lucide `Bot`
+- 原 `✅ 审批已通过` ➔ 替换为 Hugeicons `Tick02Icon` 或 Lucide `CheckCircle2` (Emerald 翠绿微光)
+- 原 `❌ 审批已驳回` ➔ 替换为 Hugeicons `Cancel01Icon` 或 Lucide `XCircle` (Rose 赤红微光)
+
+---
+
 ## 7. Sprint F-01 ~ F-09 前端里程碑规划与标准提示词模板库
 
 本计划将重构工程细化为 9 个敏捷 Sprint，每个 Sprint 提供精准的执行目标与指派提示词，后续执行时可按需取用：
@@ -286,7 +360,7 @@ npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallCh
 | **Sprint F-06** | 独立“待我审批”与“规章检索”业务工作区视图 | `src/views/ApprovalListView.vue`, `src/views/KnowledgeView.vue` | ✅ CLOSED (Score: 99) |
 | **Sprint F-07** | 移动端折叠抽屉与 375px~1440px 响应式断点适配 | `src/components/layout/MobileDrawer.vue`, `src/App.vue` | ✅ CLOSED (Score: 99) |
 | **Sprint F-08** | 全链路走查、Lighthouse 调优与终极体验验收签发 | `tests/frontend/e2e/`, `docs/FRONTEND_SIGNOFF.md` | ✅ CLOSED (Score: 100) |
-| **Sprint F-09** | ChatGPT / Claude 原生交互与 Vuebits 旗舰动效组件集成 | `components.json`, `@vue-bits/*`, `ChatView.vue`, `ThoughtLine`, `PromptBar` | 规划就绪 (Ready for Dispatch) |
+| **Sprint F-09** | ChatGPT / Claude 原生交互与 Vuebits 旗舰动效组件集成 | `components.json`, `@vue-bits/*`, `ChatView.vue`, `ThoughtLine`, `PromptBar` | ✅ CLOSED (Score: 98) |
 
 ---
 
@@ -505,15 +579,17 @@ npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallCh
 请按照 Harness Engineering 与 UI/UX Pro Max 规范指派 Sprint F-09：“ChatGPT / Claude 原生 Web 交互与 Vuebits 旗舰动效组件集成”。
 
 【工程目标】：
-将系统前端从通用沉浸式 UI 进一步跃升至与 ChatGPT (GPT-4o/o1/o3/Advanced Voice) 及 Claude (3.5/3.7 Extended Thinking) 原生 Web 界面并驾齐驱的顶级体验。通过 shadcn 从 `@vue-bits` 注册表集成 `PromptBar` 复合输入栏、`ThoughtLine` 原生思维链折叠头、`CallChip` 毫秒级工具调用胶囊、`VoicePill` 录音波形胶囊、`GlideSelect` 滑动高光模型选择器与 `LineSidebar` 光标邻近侧边栏，全链路 60 FPS 且零布局抖动。
+将系统前端从通用沉浸式 UI 进一步跃升至与 ChatGPT (GPT-4o/o1/o3/Advanced Voice) 及 Claude (3.5/3.7 Extended Thinking) 原生 Web 界面并驾齐驱的顶级体验。不仅完成动效组件替换，更实现日间纸质温润白（#FBF9F5/#FFFFFF）与夜间曜石黑（#0F172A/#18181B）的深度背景拟合，引入专业双核矢量图标库（@hugeicons/vue + lucide-vue-next），全站 100% 抹杀任何 Emoji 符号与底层代码注释，保障 60 FPS 物理动效与 WCAG AA/AAA 视觉对比度。
 
 【落实步骤 (Step-by-Step Flow)】：
-- Step 1 [Vuebits 基础设施装配与配置校验]：在项目根与 `frontend/components.json` 固化 `@vue-bits` 注册表 URL (`https://vue-bits.dev/r/{name}.json`)；在 `frontend/package.json` 安装物理动效引擎 `motion-v` (v1.10+) 与矢量图标 `@hugeicons/vue`、`@hugeicons/core-free-icons`。
-- Step 2 [shadcn 原子化组件拉取]：运行 `npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallChip @vue-bits/StatusMark @vue-bits/VoicePill @vue-bits/GlideSelect @vue-bits/RubberSegment @vue-bits/LineSidebar @vue-bits/FolderFloat @vue-bits/WarmTooltip @vue-bits/ShinyText @vue-bits/FuseButton`，拉取 12 项顶级交互组件至 `src/components/ui/`。
-- Step 3 [输入交互区升维重构]：将 `ChatInput.vue` 升级集成 `@vue-bits/PromptBar`，打通 `@` 数据源菜单（绑定企业知识库/MySQL）、`/` 内置指令菜单（/canvas, /audit）、模型切换（Claude 3.7 / GPT-4o / o3-mini）；绑定 `isStreaming` 状态使发送按钮在输入内容时充能 (`Ink Charge`)，在流式响应中自动形变为停止方块 (`Stop Square`)，无缝对接 `/api/v1/chat/abort`。
-- Step 4 [深度思考与工具调用链重塑]：将 `ThoughtBadge.vue` 重构为 `@vue-bits/ThoughtLine`，呼吸思索微光图标 + 实时秒表跳动 + 逐步展开推理步骤，思考完毕后通过模糊交叉淡入（Blur Crossfade）优雅收拢为 "Thought for X.Xs"；将工具调用（Qdrant 向量检索、Python 代码执行）渲染为 `@vue-bits/CallChip`，支持擦除进度动画与毫秒计时。
-- Step 5 [侧边栏邻近微动与项目抽屉]：改造 `Sidebar.vue`，集成 `@vue-bits/LineSidebar` 赋予历史会话光标邻近效应（Cursor Proximity Effect）；将知识库与制度中心重塑为 `@vue-bits/FolderFloat`，支持悬停翻盖倾斜与笔记浮动卡片云；顶部企业 Pro 标识引入 `@vue-bits/ShinyText` 金属流光。
-- Step 6 [构建走查与证据归档]：执行 `npm run build`，在 Chrome DevTools 走查 60 FPS 动效流畅度与 WCAG AA 对比度，生成全套 8 大只读证据包并归档至 `.harness/runs/Sprint-F-09/`。
+- Step 1 [双核矢量图标库与动效引擎装配]：在 `frontend/package.json` 安装 `@hugeicons/vue`、`@hugeicons/core-free-icons` 与 `lucide-vue-next` (v0.344+)，安装物理动效引擎 `motion-v` (v1.10+)；在项目根与 `frontend/components.json` 固化 `@vue-bits` 注册表 URL (`https://vue-bits.dev/r/{name}.json`)。
+- Step 2 [日夜双主题色彩令牌与背景无缝拟合]：重构 `frontend/src/index.css` 与 `tailwind.config.js`，建立日间模式（象牙白 `--bg-main: #fbf9f5`、侧栏 `--bg-sidebar: #f3f0e6`、墨色正文 `--text-main: #111827`）与夜间 Dark style（曜石灰 `--bg-main: #0f172a`、深板岩 `--bg-sidebar: #0b0f19`、珍珠白 `--text-main: #f8fafc`）双轨映射；在 PromptBar、顶栏与选择器统一引入 `backdrop-blur-md` 毛玻璃与环境微光阴影，实现与背景画布的平滑拟合，双主题切换带有 `transition-colors duration-200` 平滑过渡。
+- Step 3 [全站 100% 消除 Emoji 与清除开发注释]：全面扫描清洗前端组件与视图模板，将所有 `⚡`、`📋`、`💬`、`🤖`、`💡`、`⚠️`、`⚙️`、`✅`、`❌` 等 Emoji 符号彻底替换为 Hugeicons 与 Lucide 单线矢量 SVG 图标；彻底清除任何 `<!-- @TODO -->`、`// debug`、`node_state`、`mock_inventory` 等技术调试占位符与开发注释，确保呈现严谨纯粹的企业级生产力交互文案。
+- Step 4 [shadcn 原子化组件拉取与双主题适配]：运行 `npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallChip @vue-bits/StatusMark @vue-bits/VoicePill @vue-bits/GlideSelect @vue-bits/RubberSegment @vue-bits/LineSidebar @vue-bits/FolderFloat @vue-bits/WarmTooltip @vue-bits/ShinyText @vue-bits/FuseButton`，拉取至 `src/components/ui/` 并做日间白色与夜间深色样式的深度拟合适配。
+- Step 5 [输入交互区升维重构]：将 `ChatInput.vue` 升级集成 `@vue-bits/PromptBar` 与 `@vue-bits/VoicePill`，打通 `@` 数据源菜单（企业知识库/MySQL）、`/` 内置指令菜单（/canvas, /audit）、模型切换（Claude 3.7 / GPT-4o / o3-mini）；绑定 `isStreaming` 状态使发送按钮在输入内容时充能 (`Ink Charge`)，在流式响应中自动形变为停止方块 (`Stop Square`)，无缝对接 `/api/v1/chat/abort`。
+- Step 6 [深度思考与工具调用链重塑]：将 `ThoughtBadge.vue` 重构为 `@vue-bits/ThoughtLine`，呼吸思索微光图标 + 实时秒表跳动 + 逐步展开推理步骤，思考完毕后通过模糊交叉淡入（Blur Crossfade）优雅收拢为 "Thought for X.Xs"；将工具调用（Qdrant 向量检索、Python 代码执行）渲染为 `@vue-bits/CallChip`，支持擦除进度动画与毫秒计时。
+- Step 7 [侧边栏邻近微动与项目抽屉]：改造 `Sidebar.vue`，集成 `@vue-bits/LineSidebar` 赋予历史会话光标邻近效应（Cursor Proximity Effect）；将知识库与制度中心重塑为 `@vue-bits/FolderFloat`，支持悬停翻盖倾斜与笔记浮动卡片云；顶部企业 Pro 标识引入 `@vue-bits/ShinyText` 金属流光。
+- Step 8 [构建走查与证据归档]：执行 `npm run build`，在 Chrome DevTools 走查日夜间双主题拟合、60 FPS 动效流畅度、0 Emoji 0 注释合规性与 WCAG AA 对比度，生成全套 8 大只读证据包并归档至 `.harness/runs/Sprint-F-09/`。
 
 【落实组件与核心资产】：
 1. `src/components/ui/PromptBar.vue`: 终极多模态输入栏（@知识库、/指令、模型选择、语音、充能/停止发送）。
@@ -524,13 +600,14 @@ npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallCh
 6. `src/components/ui/LineSidebar.vue`: 带光标邻近流动感的高级会话历史导航。
 7. `src/components/ui/FolderFloat.vue`: 翻盖前倾悬浮卡片云知识库文件夹。
 8. `src/components/chat/ChatContainer.vue` & `src/views/ChatView.vue`: 旗舰组件全量集成与流式状态机联动。
+9. `src/index.css` & `tailwind.config.js`: 日间象牙白与夜间曜石灰双主题色彩令牌与背景拟合。
 ```
 
 ---
 
 ## 8. 终极交付核准与治理保障 (Sign-off Criteria)
 
-在全量实施重构后，系统将依据以下 **4 大终极准则** 进行终极验收：
+在全量实施重构后，系统将依据以下 **5 大终极准则** 进行终极验收：
 
 1. **终端用户视域纯净化 (Zero Developer Pollution)**：
    任何不具备技术背景的企业员工，在正常使用、审批单据、查阅制度的过程中，绝对看不到任何技术堆栈代号、状态机事件或网络通信参数。
@@ -540,6 +617,8 @@ npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallCh
    前端的视觉简化不以牺牲底层架构为代价。后端的 LangGraph 状态机恢复、Celery 任务调度、混合向量检索等先进机制依然稳定作为引擎内核平稳运转。
 4. **原生旗舰级动态美学 (ChatGPT/Claude Flagship Fidelity)**：
    PromptBar 状态机切换、ThoughtLine 思维折叠与 CallChip 工具调用均以 60 FPS 物理弹簧阻尼平滑运转，彻底消灭生硬的页面跳变与静态文字呈现。
+5. **双主题拟合与零 Emoji 零注释治理 (Theme Blending & Zero Emoji Compliance)**：
+   日间白色主基调（#FBF9F5/#FFFFFF）与夜间 Dark style（#0F172A/#18181B）切换平滑无色块跳闪，全局界面 100% 杜绝任何 Emoji 伪图标与代码注释泄露，所有视觉引导由 Hugeicons 与 Lucide 单线矢量图标统一呈现。
 
 ---
 
@@ -570,7 +649,7 @@ npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallCh
   - BOOTSTRAP MODE：100% 验收达标已闭环 (Sprint 1~12 / Issue-0001~0019)
   - DEVELOPMENT MODE：100% 验收达标已闭环 (Sprint 13~25 / Issue-0020~0032)
   - STAGING & HARDENING MODE：100% 验收达标已闭环 (Sprint 26~30 / Issue-0033~0037)
-  - FRONTEND MODERNIZATION MODE：Sprint F-01~F-08 全部闭环，Sprint F-09 (Vuebits 旗舰集成) 规划就绪
+  - FRONTEND MODERNIZATION MODE：Sprint F-01~F-09 全部闭环 (100% COMPLETED)
 - Python 专属虚拟环境：`backend/.venv/Scripts/python.exe`
 - 自动化测试健康度：216 / 216 项全量通过 (100% PASS)
 - 静态代码分析：Ruff 0 Errors / 0 Warnings
@@ -584,7 +663,7 @@ npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallCh
   - 多模态文档解析、GraphRAG、向量多租户隔离、OpenTelemetry 全链路追踪、Prometheus 度量大盘
   - MySQL 读写分离引擎、Redis Sentinel 哨兵集群容灾、RLHF/DPO 数据闭环、RAGAS 严格门禁
   - 专职领域 Subgraphs (HR/Finance/IT/Compliance)、Swarm 跨部门移交总线、分布式 Saga 逆序补偿
-  - 前端现代化资产基准：Vue 3 + Vite + Tailwind CSS + Pinia + Lucide Icons + Vuebits (shadcn registry `@vue-bits`)
+  - 前端现代化资产基准：Vue 3 + Vite + Tailwind CSS + Pinia + Lucide Icons + Vuebits (shadcn registry `@vue-bits`) + Hugeicons 矢量图标库 + 日间温润白/夜间曜石黑双主题系统
 
 ================================================
 第二阶段：Issue / Ops 任务强制物理履约 SOP (Execution Contract)
@@ -630,6 +709,8 @@ npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallCh
 ❌ 严禁未运行实际 pytest/unittest 测试命令即宣称“测试通过”。
 ❌ 严禁破坏现有 216 项单元测试与 0 Ruff 告警的生产高可用稳态。
 ❌ 严禁将证据文件写入仓库外的缓存区，必须落盘至项目根目录下的 `.harness/runs/` 路径。
+❌ 严禁在界面使用任何系统 Emoji (⚡/📋/💬/🤖/💡/⚠️/⚙️/✅/❌) 或暴露任何代码注释/技术调试占位符，必须统一使用 `lucide-vue-next` 与 `@hugeicons/vue` 矢量图标。
+❌ 严禁破坏日间白色主基调与夜间 Dark style 的背景拟合体系（暗色正文对比度 ≥ 4.5:1，日间正文对比度 ≥ 7:1，均须符合 WCAG AA/AAA）。
 
 确认理解上述 Harness 规范后，请输出你的 Onboarding 诊断结果，并等待我的下一个任务指派。
 
@@ -644,4 +725,5 @@ npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallCh
 
 ---
 *全景背书白皮书已于 2026-09-23 升级优化，全面完成 Harness SOP 与 UI/UX Pro Max 双轨工程治理绑定。*
+
 

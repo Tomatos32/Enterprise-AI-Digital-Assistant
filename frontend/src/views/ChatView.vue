@@ -1,9 +1,9 @@
 <template>
-  <div class="h-full w-full relative flex flex-col bg-bg-main overflow-hidden">
+  <div class="h-full w-full relative flex flex-col bg-bg-main overflow-hidden transition-colors duration-200">
     <!-- Mode A: Dify Managed WebApp Viewport -->
     <div v-if="isDifyMode" class="w-full h-full flex flex-col relative">
       <!-- Top Status Control Bar -->
-      <div class="h-9 bg-slate-900/90 border-b border-border-subtle flex items-center justify-between px-3 sm:px-4 text-xs select-none z-10 shrink-0">
+      <div class="h-9 glass-panel border-b border-border-subtle flex items-center justify-between px-3 sm:px-4 text-xs select-none z-10 shrink-0">
         <div class="flex items-center space-x-2">
           <span class="flex h-2 w-2 relative">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -34,7 +34,7 @@
           <!-- Hot Mode Toggle Button -->
           <button
             @click="toggleUIMode"
-            class="interactive-action px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-border-subtle text-text-main text-[11px] font-medium flex items-center gap-1.5 transition-colors duration-150 cursor-pointer active:scale-95 shadow-sm"
+            class="interactive-action px-2.5 py-1 rounded-lg glass-panel hover:bg-slate-200/50 dark:hover:bg-slate-700 border border-border-subtle text-text-main text-[11px] font-medium flex items-center gap-1.5 transition-colors duration-150 cursor-pointer active:scale-95 shadow-sm"
           >
             <ArrowRightLeft class="w-3 h-3 text-brand-primary" />
             <span>切回自研界面</span>
@@ -59,9 +59,9 @@
         <button
           @click="toggleUIMode"
           title="切换至 Dify 托管体验前台"
-          class="interactive-action px-2.5 py-1 rounded-full bg-slate-900/80 hover:bg-slate-800/90 border border-border-subtle hover:border-brand-primary/40 text-[11px] text-text-secondary hover:text-text-main flex items-center space-x-1.5 shadow-md backdrop-blur-sm transition-all duration-150 cursor-pointer active:scale-95"
+          class="interactive-action px-2.5 py-1 rounded-full glass-panel hover:bg-slate-200/50 dark:hover:bg-slate-800/90 border border-border-subtle hover:border-brand-primary/40 text-[11px] text-text-secondary hover:text-text-main flex items-center space-x-1.5 shadow-md backdrop-blur-sm transition-all duration-150 cursor-pointer active:scale-95"
         >
-          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
           <span>Dify 前台</span>
           <ArrowRightLeft class="w-3 h-3 text-text-muted" />
         </button>

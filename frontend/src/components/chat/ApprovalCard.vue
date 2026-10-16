@@ -28,7 +28,7 @@
 
       <!-- Order ID Badge -->
       <div class="flex items-center space-x-1.5">
-        <span class="font-mono text-[11px] px-2.5 py-1 rounded-lg bg-slate-900/90 text-amber-300 border border-amber-500/30 font-medium tracking-tight">
+        <span class="font-mono text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-medium tracking-tight">
           {{ displayData.approval_id || displayData.id || 'PR-2026-0922' }}
         </span>
       </div>
@@ -38,28 +38,28 @@
     <div class="p-4 space-y-3">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
         <!-- Item Name -->
-        <div class="bg-slate-900/80 p-3 rounded-xl border border-border-subtle flex flex-col justify-between">
+        <div class="bg-slate-100/90 dark:bg-slate-900/80 p-3 rounded-xl border border-border-subtle flex flex-col justify-between">
           <span class="text-[11px] text-text-muted mb-1 flex items-center space-x-1">
             <span>申请物品品名</span>
           </span>
-          <span class="font-medium text-slate-100 text-xs sm:text-sm truncate" :title="displayData.item_name">
+          <span class="font-medium text-text-main text-xs sm:text-sm truncate" :title="displayData.item_name">
             {{ displayData.item_name || 'MacBook Pro 16 (高配开发机)' }}
           </span>
         </div>
 
-        <!-- Total Price (Amber-400 High Contrast) -->
-        <div class="bg-slate-900/80 p-3 rounded-xl border border-amber-500/20 flex flex-col justify-between">
-          <span class="text-[11px] text-amber-200/80 mb-1 flex items-center justify-between">
+        <!-- Total Price (Amber High Contrast) -->
+        <div class="bg-amber-500/5 dark:bg-slate-900/80 p-3 rounded-xl border border-amber-500/20 flex flex-col justify-between">
+          <span class="text-[11px] text-amber-800 dark:text-amber-200/80 mb-1 flex items-center justify-between">
             <span>采购总金额</span>
-            <span class="text-[10px] text-amber-400/90 font-sans">超 ￥5,000 需主管复核</span>
+            <span class="text-[10px] text-amber-600 dark:text-amber-400 font-sans">超 ￥5,000 需主管复核</span>
           </span>
-          <span class="font-bold text-amber-400 font-mono text-base tracking-tight">
+          <span class="font-bold text-amber-600 dark:text-amber-400 font-mono text-base tracking-tight">
             ￥{{ formatCurrency(displayData.total_price || displayData.amount) }}
           </span>
         </div>
 
         <!-- Department & Applicant -->
-        <div class="bg-slate-900/80 p-3 rounded-xl border border-border-subtle flex flex-col justify-between">
+        <div class="bg-slate-100/90 dark:bg-slate-900/80 p-3 rounded-xl border border-border-subtle flex flex-col justify-between">
           <span class="text-[11px] text-text-muted mb-1">申请部门与负责人</span>
           <span class="text-text-main font-medium truncate">
             {{ displayData.department || '研发部 (AI 工程组)' }} · {{ displayData.applicant || '李工' }}
@@ -67,7 +67,7 @@
         </div>
 
         <!-- Reason -->
-        <div class="bg-slate-900/80 p-3 rounded-xl border border-border-subtle flex flex-col justify-between">
+        <div class="bg-slate-100/90 dark:bg-slate-900/80 p-3 rounded-xl border border-border-subtle flex flex-col justify-between">
           <span class="text-[11px] text-text-muted mb-1">采购申请事由</span>
           <span class="text-text-secondary truncate block" :title="displayData.reason">
             {{ displayData.reason || '本地大模型量化调试与高并发端侧推理测试算力需求' }}
@@ -76,9 +76,9 @@
       </div>
 
       <!-- Policy Citation Pill -->
-      <div class="px-3 py-2 rounded-xl bg-slate-900/60 border border-border-subtle text-[11px] text-text-secondary flex items-center justify-between">
+      <div class="px-3 py-2 rounded-xl bg-slate-100/80 dark:bg-slate-900/60 border border-border-subtle text-[11px] text-text-secondary flex items-center justify-between">
         <span class="flex items-center space-x-1.5 truncate">
-          <AlertCircle class="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <AlertCircle class="w-3.5 h-3.5 text-amber-500 shrink-0" />
           <span class="truncate">制度依据：{{ displayData.policy_ref || '《企业IT资产采购与固定资产管理制度》第三章第十二条' }}</span>
         </span>
         <span class="text-[10px] text-text-muted font-mono shrink-0 ml-2">已触发主管复核机制</span>
@@ -92,7 +92,7 @@
             v-model="commentText"
             type="text"
             placeholder="填写审批批注意见（可选）..."
-            class="w-full px-3.5 py-2 text-xs bg-slate-900/90 border border-border-subtle rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/30 transition-colors duration-150"
+            class="w-full px-3.5 py-2 text-xs bg-slate-100 dark:bg-slate-900/90 border border-border-subtle rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/30 transition-colors duration-150"
             :disabled="isSubmitting"
           />
         </div>
@@ -103,7 +103,7 @@
           <button
             @click="handleDecision('approve')"
             :disabled="isSubmitting"
-            class="interactive-action flex-1 py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-medium text-xs shadow-md shadow-emerald-600/20 hover:shadow-emerald-600/30 transition-colors duration-150 flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            class="interactive-action flex-1 py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-medium text-xs shadow-md shadow-emerald-600/20 hover:shadow-emerald-600/30 transition-colors duration-150 flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
           >
             <Check class="w-3.5 h-3.5 stroke-[2.5]" />
             <span>{{ isSubmitting && lastAction === 'approve' ? '正在提交...' : '同意并提交采购' }}</span>
@@ -113,7 +113,7 @@
           <button
             @click="handleDecision('reject')"
             :disabled="isSubmitting"
-            class="interactive-action py-2 px-3.5 rounded-xl bg-slate-900/90 hover:bg-rose-950/60 active:bg-rose-950 text-rose-400 hover:text-rose-300 border border-rose-500/30 hover:border-rose-500/50 font-medium text-xs transition-colors duration-150 flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            class="interactive-action py-2 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-900/90 hover:bg-rose-500/10 active:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 hover:border-rose-500/50 font-medium text-xs transition-colors duration-150 flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
           >
             <X class="w-3.5 h-3.5 stroke-[2.5]" />
             <span>{{ isSubmitting && lastAction === 'reject' ? '正在驳回...' : '驳回申请' }}</span>
@@ -128,12 +128,12 @@
       >
         <div
           class="p-3 rounded-xl flex items-center justify-between text-xs"
-          :class="currentStatus === 'APPROVED' ? 'bg-emerald-950/40 border border-emerald-500/30 text-emerald-300' : 'bg-rose-950/40 border border-rose-500/30 text-rose-300'"
+          :class="currentStatus === 'APPROVED' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300'"
         >
           <div class="flex items-center space-x-2">
             <div
               class="w-5 h-5 rounded-full flex items-center justify-center"
-              :class="currentStatus === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'"
+              :class="currentStatus === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/20 text-rose-600 dark:text-rose-400'"
             >
               <component :is="currentStatus === 'APPROVED' ? Check : X" class="w-3 h-3 stroke-[2.5]" />
             </div>
@@ -214,15 +214,15 @@ const statusIcon = computed(() => {
 });
 
 const cardBorderClass = computed(() => {
-  if (currentStatus.value === 'APPROVED') return 'border-emerald-500/30 bg-emerald-950/10';
-  if (currentStatus.value === 'REJECTED') return 'border-rose-500/30 bg-rose-950/10';
-  return 'border-amber-500/30 bg-amber-950/15';
+  if (currentStatus.value === 'APPROVED') return 'border-emerald-500/30 bg-emerald-500/5';
+  if (currentStatus.value === 'REJECTED') return 'border-rose-500/30 bg-rose-500/5';
+  return 'border-amber-500/30 bg-amber-500/5';
 });
 
 const headerBorderClass = computed(() => {
-  if (currentStatus.value === 'APPROVED') return 'border-emerald-500/20 bg-emerald-950/20';
-  if (currentStatus.value === 'REJECTED') return 'border-rose-500/20 bg-rose-950/20';
-  return 'border-amber-500/20 bg-amber-950/20';
+  if (currentStatus.value === 'APPROVED') return 'border-emerald-500/20 bg-emerald-500/10';
+  if (currentStatus.value === 'REJECTED') return 'border-rose-500/20 bg-rose-500/10';
+  return 'border-amber-500/20 bg-amber-500/10';
 });
 
 const headerIconBgClass = computed(() => {
@@ -232,9 +232,9 @@ const headerIconBgClass = computed(() => {
 });
 
 const headerIconColorClass = computed(() => {
-  if (currentStatus.value === 'APPROVED') return 'text-emerald-400';
-  if (currentStatus.value === 'REJECTED') return 'text-rose-400';
-  return 'text-amber-400';
+  if (currentStatus.value === 'APPROVED') return 'text-emerald-600 dark:text-emerald-400';
+  if (currentStatus.value === 'REJECTED') return 'text-rose-600 dark:text-rose-400';
+  return 'text-amber-600 dark:text-amber-400';
 });
 
 const handleDecision = async (action) => {
@@ -245,7 +245,6 @@ const handleDecision = async (action) => {
   const approvalId = displayData.value.approval_id || displayData.value.id || 'PR-2026-0922';
   const comment = commentText.value.trim();
 
-  // Emits both events for backwards compatibility
   emit('decision', approvalId, action, comment);
   emit('action', approvalId, action, comment);
 

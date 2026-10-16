@@ -145,7 +145,8 @@ const scrollToBottomManual = () => {
 // 监听消息变化进行平滑贴底
 watch(messages, autoScrollToBottom, { deep: true });
 
-const handleSend = (text) => {
+const handleSend = (payload) => {
+  const text = typeof payload === 'string' ? payload : (payload?.text || '');
   if (!text || isStreaming.value) return;
 
   // 自动将首条消息同步作为会话标题
@@ -156,15 +157,19 @@ const handleSend = (text) => {
 
   // 采购查询时自动携带 purchase_args 参数
   let customMetadata = {};
+  if (typeof payload === 'object' && payload.source) {
+    customMetadata.data_source = payload.source;
+  }
+  if (typeof payload === 'object' && payload.model) {
+    customMetadata.model = payload.model;
+  }
   if (text.includes('MacBook') || text.includes('采购')) {
-    customMetadata = {
-      purchase_args: {
-        item_name: 'MacBook Pro 16',
-        quantity: 1,
-        unit_price: 22999.0,
-        department: '研发部',
-        reason: 'AI 数字人研发高配置要求'
-      }
+    customMetadata.purchase_args = {
+      item_name: 'MacBook Pro 16',
+      quantity: 1,
+      unit_price: 22999.0,
+      department: '研发部',
+      reason: 'AI 数字人研发高配置要求'
     };
   }
 

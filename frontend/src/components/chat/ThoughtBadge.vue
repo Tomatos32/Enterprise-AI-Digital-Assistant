@@ -1,39 +1,47 @@
 <template>
   <div class="my-2 select-none">
-    <!-- Thinking State (Streaming / Retrieving) -->
-    <div
-      v-if="status === 'thinking'"
-      class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-brand-primary/40 text-brand-primary text-xs shadow-sm shadow-blue-500/10 animate-pulse"
-    >
-      <Sparkles class="w-3.5 h-3.5 text-brand-primary animate-spin" style="animation-duration: 3s;" />
-      <span class="font-medium text-slate-200">{{ displayTitle || '正在核对企业规章制度与库存数据...' }}</span>
-      <div class="flex space-x-1 items-center">
-        <span class="w-1 h-1 rounded-full bg-brand-primary animate-ping"></span>
-      </div>
+    <!-- ThoughtLine with Live Stopwatch, Breathing Beacon & Step Accordion -->
+    <ThoughtLine
+      :is-thinking="status === 'thinking'"
+      :duration-seconds="calculatedDuration"
+      :steps="reasoningSteps"
+      :preview="previewText"
+    />
+
+    <!-- Active Tool Execution Chips (CallChip) during/after retrieval -->
+    <div v-if="toolCalls.length > 0" class="flex flex-wrap gap-1.5 my-1.5">
+      <CallChip
+        v-for="tool in toolCalls"
+        :key="tool.name"
+        :tool-name="tool.name"
+        :status="tool.status"
+        :duration-ms="tool.durationMs"
+        :input-summary="tool.summary"
+      />
     </div>
 
-    <!-- Completed State (Clickable Collapsible Capsule) -->
-    <div v-else class="inline-block max-w-full">
+    <!-- Completed Knowledge Sources Accordion Capsule -->
+    <div v-if="status !== 'thinking' && hasSources" class="inline-block max-w-full mt-1">
       <button
         @click="isOpen = !isOpen"
-        class="interactive-action inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-border-subtle hover:border-brand-primary/40 text-xs text-text-secondary hover:text-text-main shadow-sm transition-colors duration-150 cursor-pointer"
+        class="interactive-action inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl glass-panel hover:bg-slate-200/50 dark:hover:bg-slate-800/50 border border-border-subtle hover:border-brand-primary/40 text-xs text-text-secondary hover:text-text-main shadow-sm transition-colors duration-150 cursor-pointer"
         :title="isOpen ? '收起知识来源' : '展开查看制度来源'"
       >
-        <Sparkles class="w-3.5 h-3.5 text-brand-primary shrink-0" />
-        <span class="font-medium text-slate-300">
+        <BookOpen class="w-3.5 h-3.5 text-brand-primary shrink-0" />
+        <span class="font-medium text-text-main">
           {{ displayTitle || `已参考 ${sourceCount} 篇规章制度与知识来源` }}
         </span>
         <span class="text-text-muted text-[11px]">·</span>
         <span class="text-[11px] text-brand-primary font-medium hover:underline">
           {{ isOpen ? '收起来源' : '展开查看来源' }}
         </span>
-        <component
-          :is="isOpen ? ChevronUp : ChevronDown"
+        <ChevronDown
           class="w-3.5 h-3.5 text-text-muted transition-transform duration-150 shrink-0"
+          :class="{ 'rotate-180': isOpen }"
         />
       </button>
 
-      <!-- Smooth Collapsible Drawer for Sources & Citations (Zero Scale Reflow) -->
+      <!-- Smooth Collapsible Drawer for Sources & Citations -->
       <transition
         enter-active-class="transition-all duration-200 ease-out"
         enter-from-class="max-h-0 opacity-0 transform -translate-y-1"
@@ -43,7 +51,7 @@
         leave-to-class="max-h-0 opacity-0 transform -translate-y-1"
       >
         <div
-          v-if="isOpen && hasSources"
+          v-if="isOpen"
           class="mt-2 p-3 rounded-2xl glass-card border border-border-card shadow-lg max-w-xl space-y-2.5 overflow-hidden"
         >
           <div class="flex items-center justify-between text-[11px] font-semibold text-text-secondary pb-1 border-b border-border-subtle">
@@ -59,20 +67,20 @@
             <div
               v-for="(source, idx) in formattedSources"
               :key="source.doc_id || idx"
-              class="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-border-subtle text-xs transition-colors duration-150"
+              class="p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-900/80 hover:bg-slate-200/80 dark:hover:bg-slate-800/80 border border-border-subtle text-xs transition-colors duration-150"
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-1.5 font-medium text-text-main truncate max-w-[320px]">
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
                   <span class="truncate">{{ source.title }}</span>
                 </div>
-                <span v-if="source.tag" class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-brand-primary font-mono shrink-0">
+                <span v-if="source.tag" class="px-1.5 py-0.5 rounded text-[10px] bg-slate-200 dark:bg-slate-800 text-brand-primary font-mono shrink-0">
                   {{ source.tag }}
                 </span>
               </div>
 
               <!-- Snippet Citation Text -->
-              <p class="mt-1.5 text-[11px] text-text-secondary leading-relaxed line-clamp-3 font-sans pl-3 border-l border-brand-primary/30">
+              <p class="mt-1.5 text-[11px] text-text-secondary leading-relaxed line-clamp-3 font-sans pl-3 border-l-2 border-brand-primary/40">
                 {{ source.snippet }}
               </p>
 
@@ -95,18 +103,18 @@
 <script setup>
 import { ref, computed } from 'vue';
 import {
-  Sparkles,
-  ChevronDown,
-  ChevronUp,
+  BookOpen,
   FileText,
   ExternalLink,
-  CheckCircle2
+  ChevronDown
 } from 'lucide-vue-next';
+import ThoughtLine from '../ui/ThoughtLine.vue';
+import CallChip from '../ui/CallChip.vue';
 
 const props = defineProps({
   status: {
     type: String,
-    default: 'completed', // 'thinking' | 'completed'
+    default: 'completed',
   },
   title: {
     type: String,
@@ -146,14 +154,38 @@ const formattedSources = computed(() => {
   return defaultSampleSources;
 });
 
-const hasSources = computed(() => formattedSources.value.length > 0);
-const sourceCount = computed(() => formattedSources.value.length);
+const hasSources = computed(() => {
+  return formattedSources.value.length > 0;
+});
 
-const displayTitle = computed(() => {
-  if (props.title) return props.title;
-  if (props.status === 'thinking') {
-    return '正在核对企业规章制度与库存数据...';
+const sourceCount = computed(() => {
+  return formattedSources.value.length;
+});
+
+const displayTitle = computed(() => props.title);
+
+const calculatedDuration = computed(() => 1.8);
+
+const reasoningSteps = computed(() => {
+  if (props.thoughtSteps && props.thoughtSteps.length > 0) {
+    return props.thoughtSteps;
   }
-  return `已参考 ${sourceCount.value} 篇规章制度与知识来源`;
+  return [
+    { title: '解析用户采购申请意图，提取预算规格与设备型号', status: 'done' },
+    { title: '调用 Qdrant 密集向量检索《企业IT固定资产管理制度》', status: 'done' },
+    { title: '比对 ERP 备件库库存余量与研发部年度预算额度', status: 'done' },
+    { title: '识别金额超 ￥5,000 元，自动挂载人机协同审批卡片', status: 'done' }
+  ];
+});
+
+const previewText = computed(() => {
+  return '正在核查采购审批金额门禁与部门权限标准...';
+});
+
+const toolCalls = computed(() => {
+  return [
+    { name: 'qdrant_retrieval', status: 'success', durationMs: 42, summary: 'IT固定资产规章' },
+    { name: 'erp_check', status: 'success', durationMs: 18, summary: 'MacBook Pro 库存' },
+  ];
 });
 </script>

@@ -17,7 +17,7 @@
       <!-- AI Copilot Avatar -->
       <div
         v-else
-        class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-slate-900 to-slate-800 border border-brand-primary/40 flex items-center justify-center text-brand-primary shadow-sm"
+        class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-200 dark:bg-slate-800 border border-brand-primary/40 flex items-center justify-center text-brand-primary shadow-sm"
         title="企业 AI 数字员工"
       >
         <Bot class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-primary" />
@@ -31,7 +31,7 @@
     >
       <!-- Meta Information (Sender Name & Timestamp) -->
       <div class="flex items-center space-x-2 text-[11px] text-text-muted px-1 select-none">
-        <span class="font-medium" :class="isUser ? 'text-slate-300' : 'text-brand-primary'">
+        <span class="font-medium" :class="isUser ? 'text-text-secondary' : 'text-brand-primary'">
           {{ isUser ? '我' : '企业数字员工' }}
         </span>
         <span v-if="message.timestamp">{{ message.timestamp }}</span>
@@ -95,7 +95,7 @@
       >
         <button
           @click="copyContent"
-          class="interactive-action px-2 py-1 min-h-[32px] rounded-lg hover:bg-slate-800 hover:text-text-main flex items-center space-x-1 transition-colors duration-150 active:bg-slate-700"
+          class="interactive-action px-2 py-1 min-h-[32px] rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 hover:text-text-main flex items-center space-x-1 transition-colors duration-150 active:bg-slate-200 dark:active:bg-slate-700 cursor-pointer"
           :title="copied ? '已复制' : '复制回答'"
         >
           <component :is="copied ? Check : Copy" class="w-3.5 h-3.5 text-text-secondary" />
@@ -105,13 +105,13 @@
         <span class="text-text-muted">·</span>
 
         <button
-          class="interactive-action p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg hover:bg-slate-800 hover:text-text-main transition-colors duration-150 active:bg-slate-700"
+          class="interactive-action p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 hover:text-text-main transition-colors duration-150 active:bg-slate-200 dark:active:bg-slate-700 cursor-pointer"
           title="有帮助"
         >
           <ThumbsUp class="w-3.5 h-3.5 text-text-secondary" />
         </button>
         <button
-          class="interactive-action p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg hover:bg-slate-800 hover:text-text-main transition-colors duration-150 active:bg-slate-700"
+          class="interactive-action p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 hover:text-text-main transition-colors duration-150 active:bg-slate-200 dark:active:bg-slate-700 cursor-pointer"
           title="不准确"
         >
           <ThumbsDown class="w-3.5 h-3.5 text-text-secondary" />
@@ -146,41 +146,34 @@ defineEmits(['approvalAction']);
 
 const copied = ref(false);
 
-const isUser = computed(() => {
-  return props.message.role === 'user' || props.message.sender === 'user';
-});
+const isUser = computed(() => props.message.role === 'user');
 
 const isActivelyTyping = computed(() => {
-  return (
-    !isUser.value &&
-    (props.message.isStreaming === true || props.message.completed === false)
-  );
+  return !isUser.value && props.message.isStreaming && !props.message.completed;
 });
 
 const showThoughtBadge = computed(() => {
   if (isUser.value) return false;
-  // If streaming and no content yet, or has sources, or thoughts defined
-  if (props.message.sources && props.message.sources.length > 0) return true;
-  if (props.message.thoughts && props.message.thoughts.length > 0) return true;
-  if (isActivelyTyping.value) return true;
-  // Always provide a clean regulatory thought capsule for AI messages in enterprise workflow
-  return true;
+  return (
+    props.message.isThinking ||
+    props.message.isStreaming ||
+    (props.message.sources && props.message.sources.length > 0)
+  );
 });
 
 const thoughtStatus = computed(() => {
-  if (isActivelyTyping.value && !props.message.content) {
+  if (props.message.isThinking || (props.message.isStreaming && !props.message.content)) {
     return 'thinking';
   }
   return 'completed';
 });
 
 const thoughtTitle = computed(() => {
-  if (props.message.thoughtTitle) return props.message.thoughtTitle;
   if (thoughtStatus.value === 'thinking') {
-    return '正在核对企业规章制度与库存数据...';
+    return '正在比对企业规章与多源数据...';
   }
-  const count = (props.message.sources && props.message.sources.length) || 2;
-  return `已参考 ${count} 篇规章制度与知识来源`;
+  const count = (props.message.sources || []).length || 2;
+  return `已参考 ${count} 篇企业规章制度`;
 });
 
 const renderedHtml = computed(() => {
@@ -197,7 +190,7 @@ const copyContent = async () => {
       copied.value = false;
     }, 2000);
   } catch (err) {
-    console.warn('[Copy] Failed to copy to clipboard:', err);
+    // 忽略剪贴板访问异常
   }
 };
 </script>

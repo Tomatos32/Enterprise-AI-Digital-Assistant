@@ -54,7 +54,7 @@
             <button
               @click="closeDrawer"
               title="关闭导航抽屉"
-              class="w-11 h-11 -mr-2 rounded-xl flex items-center justify-center text-text-secondary hover:text-text-main hover:bg-slate-800/80 transition-colors duration-150 cursor-pointer"
+              class="w-11 h-11 -mr-2 rounded-xl flex items-center justify-center text-text-secondary hover:text-text-main hover:bg-slate-200/50 dark:hover:bg-slate-800/80 transition-colors duration-150 cursor-pointer"
             >
               <X class="w-5 h-5" />
             </button>
@@ -82,7 +82,7 @@
                   :key="s.id"
                   @click="handleSelect(s.id)"
                   class="group px-3 py-2.5 min-h-[44px] rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors duration-150"
-                  :class="s.id === chatStore.activeSessionId ? 'bg-slate-800 text-text-main font-medium border border-border-card shadow-sm' : 'text-text-secondary hover:text-text-main hover:bg-slate-900/60'"
+                  :class="s.id === chatStore.activeSessionId ? 'bg-slate-200 dark:bg-slate-800 text-text-main font-semibold border border-border-card shadow-sm' : 'text-text-secondary hover:text-text-main hover:bg-slate-200/50 dark:hover:bg-slate-900/60'"
                 >
                   <div class="flex items-center space-x-2.5 truncate">
                     <MessageSquare class="w-4 h-4 shrink-0 text-brand-primary/80" />
@@ -108,7 +108,7 @@
                   :key="s.id"
                   @click="handleSelect(s.id)"
                   class="group px-3 py-2.5 min-h-[44px] rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors duration-150"
-                  :class="s.id === chatStore.activeSessionId ? 'bg-slate-800 text-text-main font-medium border border-border-card shadow-sm' : 'text-text-secondary hover:text-text-main hover:bg-slate-900/60'"
+                  :class="s.id === chatStore.activeSessionId ? 'bg-slate-200 dark:bg-slate-800 text-text-main font-semibold border border-border-card shadow-sm' : 'text-text-secondary hover:text-text-main hover:bg-slate-200/50 dark:hover:bg-slate-900/60'"
                 >
                   <div class="flex items-center space-x-2.5 truncate">
                     <MessageSquare class="w-4 h-4 shrink-0 text-brand-primary/80" />
@@ -134,7 +134,7 @@
                   :key="s.id"
                   @click="handleSelect(s.id)"
                   class="group px-3 py-2.5 min-h-[44px] rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors duration-150"
-                  :class="s.id === chatStore.activeSessionId ? 'bg-slate-800 text-text-main font-medium border border-border-card shadow-sm' : 'text-text-secondary hover:text-text-main hover:bg-slate-900/60'"
+                  :class="s.id === chatStore.activeSessionId ? 'bg-slate-200 dark:bg-slate-800 text-text-main font-semibold border border-border-card shadow-sm' : 'text-text-secondary hover:text-text-main hover:bg-slate-200/50 dark:hover:bg-slate-900/60'"
                 >
                   <div class="flex items-center space-x-2.5 truncate">
                     <MessageSquare class="w-4 h-4 shrink-0 text-brand-primary/80" />
@@ -153,7 +153,7 @@
           </div>
 
           <!-- Lower: Business Workspaces Navigation -->
-          <div class="p-3 border-t border-border-subtle bg-slate-950/60 shrink-0">
+          <div class="p-3 border-t border-border-subtle bg-slate-200/50 dark:bg-slate-950/60 shrink-0">
             <div class="px-1 pb-1.5 text-[11px] font-semibold text-text-muted tracking-wider">
               企业业务协同
             </div>
@@ -163,8 +163,8 @@
               <router-link
                 to="/approvals"
                 @click="closeDrawer"
-                class="flex items-center justify-between p-2.5 min-h-[44px] rounded-xl text-xs transition-colors duration-150 cursor-pointer active:bg-slate-800"
-                active-class="bg-slate-800 text-status-approval font-medium"
+                class="flex items-center justify-between p-2.5 min-h-[44px] rounded-xl text-xs transition-colors duration-150 cursor-pointer active:bg-slate-200 dark:active:bg-slate-800"
+                active-class="bg-slate-200 dark:bg-slate-800 text-status-approval font-semibold"
               >
                 <div class="flex items-center space-x-2.5 truncate">
                   <ClipboardList class="w-4 h-4 text-status-approval shrink-0" />
@@ -185,8 +185,8 @@
               <router-link
                 to="/knowledge"
                 @click="closeDrawer"
-                class="flex items-center justify-between p-2.5 min-h-[44px] rounded-xl text-xs transition-colors duration-150 cursor-pointer active:bg-slate-800"
-                active-class="bg-slate-800 text-brand-primary font-medium"
+                class="flex items-center justify-between p-2.5 min-h-[44px] rounded-xl text-xs transition-colors duration-150 cursor-pointer active:bg-slate-200 dark:active:bg-slate-800"
+                active-class="bg-slate-200 dark:bg-slate-800 text-brand-primary font-semibold"
               >
                 <div class="flex items-center space-x-2.5 truncate">
                   <BookOpen class="w-4 h-4 text-brand-primary shrink-0" />
@@ -198,10 +198,10 @@
           </div>
 
           <!-- Bottom: User Profile Card -->
-          <div class="p-3 border-t border-border-subtle bg-slate-950/80 flex items-center justify-between shrink-0">
+          <div class="p-3 border-t border-border-subtle bg-slate-200/60 dark:bg-slate-950/80 flex items-center justify-between shrink-0">
             <div class="flex items-center space-x-2.5 overflow-hidden">
-              <div class="w-9 h-9 rounded-full bg-slate-800 border border-border-card flex items-center justify-center text-text-secondary shrink-0">
-                <User class="w-4 h-4 text-slate-300" />
+              <div class="w-9 h-9 rounded-full bg-slate-300 dark:bg-slate-800 border border-border-card flex items-center justify-center text-text-secondary shrink-0">
+                <User class="w-4 h-4 text-slate-700 dark:text-slate-300" />
               </div>
               <div class="truncate">
                 <div class="text-xs font-semibold text-text-main truncate">张经理</div>
@@ -211,7 +211,7 @@
 
             <button
               title="设置"
-              class="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text-main hover:bg-slate-800 transition-colors duration-150 cursor-pointer"
+              class="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text-main hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors duration-150 cursor-pointer"
             >
               <Settings class="w-4 h-4" />
             </button>
@@ -228,13 +228,13 @@ import {
   X,
   Plus,
   MessageSquare,
-  Trash2,
   ClipboardList,
   BookOpen,
-  User,
   Settings,
-  Sparkles,
-  ChevronRight
+  User,
+  Trash2,
+  ChevronRight,
+  Sparkles
 } from 'lucide-vue-next';
 import { useChatStore } from '../../stores/chatStore';
 import { useApprovalStore } from '../../stores/approvalStore';
@@ -256,7 +256,7 @@ const router = useRouter();
 const isAnimating = ref(false);
 
 const pendingApprovalsCount = computed(() => {
-  return approvalStore.pendingCount !== undefined ? approvalStore.pendingCount : chatStore.pendingApprovalsCount;
+  return approvalStore.pendingApprovals.length;
 });
 
 const closeDrawer = () => {
@@ -264,37 +264,29 @@ const closeDrawer = () => {
 };
 
 const handleNewChat = () => {
-  const session = chatStore.createSession();
-  emit('newSession', session);
-  if (router.currentRoute.value.path !== '/') {
-    router.push('/');
-  }
+  chatStore.createSession();
+  emit('newSession');
   closeDrawer();
+  router.push('/');
 };
 
 const handleSelect = (id) => {
   chatStore.switchSession(id);
   emit('selectSession', id);
-  if (router.currentRoute.value.path !== '/') {
-    router.push('/');
-  }
   closeDrawer();
+  router.push('/');
 };
 
-// 抽屉展开时锁住背景滚动，防止穿透
-watch(
-  () => props.modelValue,
-  (isOpen) => {
-    if (typeof document !== 'undefined') {
-      if (isOpen) {
-        document.body.style.overflow = 'hidden';
-      } else {
-        document.body.style.overflow = '';
-      }
+// 抽屉展开时锁住背景滚动
+watch(() => props.modelValue, (isOpen) => {
+  if (typeof document !== 'undefined') {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
     }
-  },
-  { immediate: true }
-);
+  }
+});
 
 onUnmounted(() => {
   if (typeof document !== 'undefined') {
