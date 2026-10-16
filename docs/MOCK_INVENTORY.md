@@ -1,223 +1,174 @@
-# 全局 Mock 资产清单审计、记忆与生产环境真实数据对接替换规范
-# Global Mock Inventory & Production Cutover Specification
+# 全局资产清单审计、真实化割接与个人可及落地规范
+# Global Asset Inventory & Feasible Realization Specification
 
-> **文档性质**：生产割接基线与环境适配器记忆规范 (Production Cutover & Baseline Memory)  
-> **所属阶段**：Sprint 14 专项任务 (Issue-0021)  
-> **创建时间**：2026-08-24  
-> **最后维护**：Harness Engineering V1.0  
-
----
-
-## 1. 概述与生产割接愿景 (Executive Summary)
-
-在系统的前序构建与验证阶段（Sprint 1 ~ 13），为了实现开发解耦、单测自包含与端到端闭环验证，系统在 **企业业务系统（HR/ERP/OA）、工作流消息通知（企业微信 Bot、n8n/Dify Webhook）、持久化数据源、知识库文件与 AI 大模型网关** 等 5 大模块中引入了模拟（Mock）实现与内存降级逻辑。
-
-本文档作为**唯一权威的 Mock 资产清单与生产割接操作指南**，详尽记录了系统中每一个 Mock 节点的技术细节，并提供一键式环境变量切换契约，确保系统上线生产环境时能够“**零代码入侵、平滑无缝**”切换对接真实企业业务系统。
+> **文档性质**：面向用户视角的真实化落地、可及性边界与 Mock 割接规范  
+> **版本定义**：V2.0 (面向个人高保真可运行与交付视角全面纠偏)  
+> **最后维护**：2026-09-23  
 
 ---
 
-## 2. 全景 Mock 资产清单对照矩阵 (Master Mock Inventory Matrix)
+## 1. 现实边界与设计哲学纠偏 (Pragmatic Philosophy)
+
+在前期开发阶段，项目规划了大量大型企业专有系统（如飞书人事、SAP ERP、泛微 OA、企业微信 Bot 等），并在核心链路（对话持久化、向量化 Embedding、LLM 生成）上大量采用了内存 Mock 与伪算法。
+
+面向个人独立开发者与实际演示交付视角，必须明确**可及性边界 (Feasibility Boundaries)**：
+1. **不可及/非核心企业系统（退居模拟桩）**：
+   - 飞书开放平台、SAP ERP、泛微 e-cology、企业微信企业内审批网关等，由于个人开发者无企业组织认证、无内网专线、无百万级商业授权，**强制接入既不现实也无必要**。这部分保留清晰的**标准化 OpenAPI 协议模拟桩（Mock Stub）**即可，不再作为核心攻坚重点。
+2. **个人完全能及且必须真实化的核心资产（主攻真实闭环）**：
+   - **大模型推理引擎**：统一 OpenAI 兼容格式接口，真实支持商用模型（DeepSeek、通义千问 Qwen、OpenAI 等）以及本地自建推理引擎（vLLM、Ollama）。
+   - **开源自建工作流平台**：全面真实打通个人可在本地或云端一键拉起的 **Dify**（Workflow/Agent API）与 **N8N**（Webhook 编排与事件处理）。
+   - **真实向量数据库与知识库**：摒弃哈希正弦波伪向量，接入真实的轻量级 Embedding 模型（fastembed / BGE-M3 / OpenAI 兼容 Embedding），提供物理持久化的 Qdrant 存储、离线切片入库脚本与可视化健康探针。
+   - **端到端 RAG 真实闭环**：用户输入 -> 意图与 Query 解析 -> 密集+稀疏检索 -> 真实重排 -> 检索相关性自校验 -> 真实 LLM 流式生成与溯源。
+   - **数据库会话与工单持久化**：补充 `chat_sessions`、`chat_messages` 实体表，用真实数据库持久化替代易失的内存 `MemorySaver`。
+
+---
+
+## 2. 全景资产状态与割接规划矩阵 (Master Realization Matrix)
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 全系统 5 大核心维度 Mock 资产分布图                                     │
+│                              面向个人可运行交付的 5 大维度资产真实化分级图                               │
 ├──────────────────┬──────────────────┬──────────────────┬──────────────────┬────────────────────────────┤
-│ 1. 企业业务系统  │ 2. 外部工作流    │ 3. 数据库与会话  │ 4. 知识库数据源  │ 5. AI 模型网关             │
-│    (HR/ERP/OA)   │    (WeCom/Dify)  │    (SQLite/Pool) │    (Sample KB)   │    (Fallback/Cache)        │
+│ 1. 核心大模型与生成 │ 2. 知识库与向量库  │ 3. 数据库与会话  │ 4. 开源工作流平台 │ 5. 企业业务系统 (模拟桩)   │
+│    (LLM / vLLM)  │    (Vector & RAG)│    (MySQL/SQLite)│    (Dify / N8N)  │    (HR / ERP / OA)         │
 ├──────────────────┼──────────────────┼──────────────────┼──────────────────┼────────────────────────────┤
-│ 员工/库存/工单   │ 内存消息队列     │ 内存静态连接池   │ 6 篇测试规章     │ 模拟备选响应               │
-│ REST Mock API    │ Webhook 模拟路由 │ SQLite Fallback  │ Qdrant 本地集合  │ 本地规则 Fallback          │
+│ 🔴 现状: 假字符串 │ 🔴 现状: 伪哈希  │ 🔴 现状: 缺表    │ 🟡 现状: 内存队列 │ 🟢 定位: 标准化轻量模拟桩  │
+│ 🎯 目标: 真实API/│ 🎯 目标: 真实Embed│ 🎯 目标: Session/│ 🎯 目标: 真实API/ │ 🎯 目标: 保持标准 REST API │
+│    vLLM 流式生成  │    一键构建与探针│    Message持久化 │    Webhook 双向流│    个人无需购买真实企业软件 │
 └──────────────────┴──────────────────┴──────────────────┴──────────────────┴────────────────────────────┘
 ```
 
-| 序号 | 模块名称 | 当前 Mock 机制与文件路径 | 生产真实系统对接技术方案 | 环境变量切换开关 (Config Flag) |
+| 序号 | 资产模块 | 当前现状排查 (Current State) | 纠偏后的真实化方案 (Realization Plan) | 可行性等级与配置项 |
 | :---: | :--- | :--- | :--- | :--- |
-| **1** | **HR 员工信息查询** | `backend/api/v1/mock/hr.py`<br/>`backend/tools/impl/employee_tools.py` | 对接真实 **飞书人事 / 北森 / SAP SuccessFactors** OpenAPI | `USE_MOCK_SYSTEMS=False`<br/>`HR_BASE_URL=https://open.feishu.cn`<br/>`HR_APP_ID=...`<br/>`HR_APP_SECRET=...` |
-| **2** | **ERP 物料库存查询** | `backend/api/v1/mock/erp.py`<br/>`backend/tools/impl/inventory_tools.py` | 对接真实 **SAP ERP / 用友 NC Cloud / 金蝶云星空** REST API | `USE_MOCK_SYSTEMS=False`<br/>`ERP_BASE_URL=https://erp.enterprise.com`<br/>`ERP_API_TOKEN=...` |
-| **3** | **ERP 采购订单创建** | `backend/api/v1/mock/erp.py`<br/>`backend/tools/impl/purchase_tools.py` | 对接真实 **SAP MM 采购模块 / 甄云 SRM 采购系统** | `USE_MOCK_SYSTEMS=False`<br/>`ERP_PURCHASE_ENDPOINT=/api/v2/po/create` |
-| **4** | **OA 故障工单流转** | `backend/api/v1/mock/oa.py`<br/>`backend/tools/impl/ticket_tools.py` | 对接真实 **Jira Service Desk / 泛微 e-cology / 飞书服务台** | `USE_MOCK_SYSTEMS=False`<br/>`OA_BASE_URL=https://oa.enterprise.com`<br/>`OA_APP_KEY=...` |
-| **5** | **企业微信 Bot 通知** | `backend/api/v1/workflow.py`<br/>`MOCK_WECOM_MESSAGES` (内存列表) | 发送至真实 **企业微信群机器人 Webhook** 官方接口 | `WECOM_WEBHOOK_URL=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY` |
-| **6** | **n8n / Dify 事件联动** | `backend/api/v1/workflow.py`<br/>`POST /api/v1/webhook/event` | 投递至生产环境部署的 **n8n Workflow Webhook / Dify API** | `DIFY_API_BASE=https://api.dify.ai/v1`<br/>`DIFY_API_KEY=app-...`<br/>`N8N_WEBHOOK_URL=https://n8n.corp/webhook/...` |
-| **7** | **E2E 演示数据库** | `backend/scripts/demo_e2e_closed_loop.py`<br/>`sqlite:///:memory:` (StaticPool) | 连接生产环境 **MySQL 8.0 主从复制高可用集群** | `MYSQL_SERVER=prod-mysql.internal`<br/>`MYSQL_PORT=3306`<br/>`MYSQL_USER=...` |
-| **8** | **冷启动知识库文档** | `docs/sample_kb/*.md`<br/>`docs/sample_kb/*.pdf`, `*.xlsx` | 挂载企业 **SharePoint / Confluence / NAS 知识库源** | `KNOWLEDGE_BASE_SYNC_DIR=/mnt/enterprise_docs/`<br/>`QDRANT_HOST=prod-qdrant.internal` |
-| **9** | **LLM 网关与降级** | `backend/core/llm_infra.py`<br/>`LLMGateway` (Fallback 假数据) | 对接真实 **Azure OpenAI / 阿里云通义千问 / 本地 vLLM 集群** | `OPENAI_API_KEY=sk-...`<br/>`OPENAI_API_BASE=https://...`<br/>`QWEN_API_KEY=sk-...` |
-| **10** | **专职 Subgraph 专属工具集** | `backend/graph/subgraphs/`<br/>(HR/Finance/IT/Compliance Mock 工具函数) | 对接企业真实 **专职数字员工 OpenAPI / 专用数据库视图 / 真实合规网关** | `USE_MOCK_SYSTEMS=False`<br/>`FINANCE_API_BASE=https://fin.corp.internal`<br/>`COMPLIANCE_API_KEY=...` |
-| **11** | **Swarm 协同与入职 SOP** | `backend/graph/swarm_router.py`<br/>(跨部门上下文传递与工单模拟) | 对接企业真实 **跨部门协同 BPM / OA 审批流网关 (泛微 / 飞书服务台)** | `USE_MOCK_SYSTEMS=False`<br/>`BPM_GATEWAY_URL=https://bpm.corp.internal` |
-| **12** | **分布式 Saga 多系统补偿状态** | `backend/core/saga_orchestrator.py`<br/>`mock_enterprise_systems` (内存事务状态) | 对接真实 **ERP MM/SD 接口、财务核算中心、OA 审批流 Webhook** 逆向回滚接口 | `USE_MOCK_SYSTEMS=False`<br/>`ERP_SAGA_ROLLBACK_ENDPOINT=/api/v1/rollback`<br/>`FINANCE_REFUND_ENDPOINT=/api/v1/refund` |
+| **01** | **LLM 网关与降级 (大模型生成引擎)** | `generate_node.py` 截取检索内容前 150 字符硬编码拼装文本；`llm_gateway.py` 为休眠模拟 | 接入通用 OpenAI 兼容客户端（`AsyncOpenAI` / LangChain），支持真实 API（DeepSeek / Qwen / OpenAI）与本地自建 **vLLM / Ollama** | **P0 (必须真实化)**<br/>`LLM_PROVIDER=openai/deepseek/vllm`<br/>`OPENAI_API_BASE=...`<br/>`OPENAI_API_KEY=...`<br/>`LLM_MODEL=...` |
+| **02** | **冷启动知识库文档 (Embedding 与向量底座)** | `vector_store.py` 使用 `hashlib.sha256 + sin` 计算伪向量；连不上远程则降级为内存易失库 | 引入真实的轻量级 Embedding 引擎（默认支持 `fastembed` 本地免配置运行 / BGE-M3 / OpenAI Embedding API）；提供 Qdrant 物理持久化目录与健康探测 | **P0 (必须真实化)**<br/>`EMBEDDING_PROVIDER=fastembed/bge/openai`<br/>`QDRANT_HOST=localhost`<br/>`QDRANT_PORT=6333` |
+| **03** | **端到端 RAG 闭环与自校验** | 无语义 Rerank，无相关性校验，无幻觉反思，直接输出拼接假文本 | 实现真实 Top-K 检索 -> 真实重排得分计算 -> 检索相关性阈值过滤与自校验（低相关性时反思并引导提问） -> LLM 结合上下文生成并附带标注引用 | **P0 (必须真实化)**<br/>`RAG_RERANK_ENABLED=True`<br/>`RAG_SCORE_THRESHOLD=0.3` |
+| **04** | **对话会话与历史消息存储 (E2E 演示数据库与持久化)** | 缺失 `chat_sessions` 和 `chat_messages` 表；LangGraph 仅使用内存 `MemorySaver` | 新建 SQLAlchemy ORM 模型，支持多会话隔离、历史消息分页查询与前端回显；替换 Checkpointer 为数据库持久化存储 | **P0 (必须真实化)**<br/>`DB_PERSIST_CHAT=True`<br/>`SQLALCHEMY_DATABASE_URI=...` |
+| **05** | **知识库批量构建与探针** | 每次检索时临时读本地文件临时 upsert；开发者无法得知库内现状 | 编写一键离线切片入库脚本 `scripts/ingest_knowledge.py`；新增 `GET /api/v1/knowledge/status` 实时查看集合点数、向量维度与分段详情 | **P1 (必须真实化)**<br/>支持一键构建与控制台可视化查询 |
+| **06** | **n8n / Dify 事件联动 (开源工作流平台接入)** | `workflow.py` 内部使用 `EVENT_HISTORY` 内存列表 | 真实对接个人部署的 **Dify**（通过 REST API 触发 Agent/Chatflow）与 **N8N**（通过 Webhook 接收审批事件并执行后续自动化） | **P1 (个人完全可及)**<br/>`DIFY_API_BASE=http://localhost:8001/v1`<br/>`DIFY_API_KEY=...`<br/>`N8N_WEBHOOK_URL=http://localhost:5678/webhook/...` |
+| **07** | **工单流转与人机协同审批** | ORM 表已有，但缺乏统一查询接口与前端会话上下文强绑定 | 完善工单与审批列表 REST API，支持根据会话 ID 联动查看、通过/驳回审批，与真实会话流互通 | **P1 (必须真实化)**<br/>`POST /api/v1/approval/action` 真实写库并唤醒状态机 |
+| **08** | **HR 员工信息查询** | `backend/api/v1/mock/hr_mock.py` 查本地 MySQL `users` 表 | **保留本地标准化模拟桩**（个人无需购买飞书/北森账号，本地数据库即可完美支撑员工信息查询与演示） | **P3 (维持优质模拟桩)**<br/>`USE_MOCK_SYSTEMS=True` |
+| **09** | **ERP 物料库存查询** | `backend/api/v1/mock/erp_mock.py` 读取本地 `inventories` 表 | **保留本地标准化模拟桩**（个人无需对接 SAP/用友/金蝶，本地模拟桩具备完整的物料查询能力） | **P3 (维持优质模拟桩)**<br/>`USE_MOCK_SYSTEMS=True` |
+| **10** | **ERP 采购订单创建** | `backend/api/v1/mock/erp_mock.py` 向本地 `purchases` 表插入记录 | **保留本地标准化模拟桩**（本地模拟桩具备完整的单据生成与采购流程流转） | **P3 (维持优质模拟桩)**<br/>`USE_MOCK_SYSTEMS=True` |
+| **11** | **OA 故障工单流转** | `backend/api/v1/mock/oa_mock.py` 读写本地 `tickets` 表 | **保留本地标准化模拟桩**（个人无需对接 Jira/泛微，本地模拟桩具备完整的 SLA 与状态流转逻辑） | **P3 (维持优质模拟桩)**<br/>`USE_MOCK_SYSTEMS=True` |
+| **12** | **企业微信 Bot 通知** | `workflow.py` 内存收集卡片消息 | **双模支持**：未配 Webhook 时在管理界面回显卡片数据；配置真实 Webhook 时一键向真实群发送 Markdown 卡片 | **P2 (可选配置)**<br/>`WECOM_WEBHOOK_URL=...` |
 
 ---
 
-## 3. 各模块 Mock 细节与生产替换方案详解 (Module Deep-Dive)
+## 3. 核心真实化改造技术方案详述
 
-### 3.1 维度一：企业业务系统 Mock (HR / ERP / OA)
+### 3.1 改造一：统一 LLM 调用层与 vLLM/Ollama 适配
+- **痛点**：目前 `generate_node` 仅仅是字符串截取拼接，没有流式输出，更没有大模型推理。
+- **真实化方案**：
+  1. 在 `backend/core/llm.py` 中封装统一的 `get_chat_llm()` 工厂函数，返回标准 LangChain `BaseChatModel` 或 `AsyncOpenAI` 实例。
+  2. 支持标准环境变量切换：
+     ```bash
+     # 方案 A: 商业大模型 (以 DeepSeek / 通义千问 / OpenAI 为例)
+     OPENAI_API_BASE=https://api.deepseek.com/v1
+     OPENAI_API_KEY=sk-your-deepseek-key
+     LLM_MODEL=deepseek-chat
+     
+     # 方案 B: 本地推理引擎 (vLLM 或 Ollama)
+     OPENAI_API_BASE=http://localhost:8000/v1
+     OPENAI_API_KEY=EMPTY
+     LLM_MODEL=qwen2.5-7b-instruct
+     ```
+  3. 重构 `generate_node`，利用 Prompt 模板注入 System Prompt、历史对话与检索到的 Context，调用真实模型完成生成并流式输出。
 
-#### 1. HR 员工查询 (`/api/v1/mock/hr/employee/{user_id}`)
-- **当前 Mock 实现**：直接通过 SQLAlchemy 查询本地 MySQL `users` 表模拟员工信息。
-- **涉及代码**：`backend/api/v1/mock/hr.py`，`backend/tools/impl/employee_tools.py`。
-- **生产替换方案**：
-  ```python
-  # 生产适配器逻辑
-  async def get_employee_info_prod(user_id: str) -> Dict[str, Any]:
-      if settings.USE_MOCK_SYSTEMS:
-          return await get_mock_employee(user_id)
-      async with httpx.AsyncClient() as client:
-          resp = await client.get(
-              f"{settings.HR_BASE_URL}/open-apis/contact/v3/users/{user_id}",
-              headers={"Authorization": f"Bearer {await get_tenant_access_token()}"}
-          )
-          return resp.json()
-  ```
+### 3.2 改造二：真实 Embedding 与 Qdrant 离线切片管理
+- **痛点**：当前使用 sha256 + sin 生成无意义伪向量，无法进行任何语义召回；且每次运行实时遍历文件，Qdrant 状态黑盒不可见。
+- **真实化方案**：
+  1. 引入免网络、轻量级的本地向量计算（如 `fastembed`，内置 `bge-small-zh-v1.5`，CPU 秒级加载），或配置远程 Embedding API。
+  2. 编写 `backend/scripts/ingest_knowledge.py` 命令行工具：
+     ```bash
+     python -m backend.scripts.ingest_knowledge --kb-dir docs/sample_kb --recreate
+     ```
+     输出明确的控制台日志：文档解析数、生成切片数、写入 Qdrant 点位数量、耗时，并执行一道语义自检测试题。
+  3. 提供 `GET /api/v1/knowledge/status` 接口，返回：
+     - Qdrant 运行模式（物理服务 / 本地嵌入）；
+     - 当前集合名称与点数（Points Count）；
+     - 向量维度与距离度量（1024/512, Cosine）；
+     - 已索引知识库文档列表与切片概览。
 
-#### 2. ERP 库存与物料查询 (`/api/v1/mock/erp/inventory`)
-- **当前 Mock 实现**：读取本地 `inventories` 表。
-- **涉及代码**：`backend/api/v1/mock/erp.py`，`backend/tools/impl/inventory_tools.py`。
-- **生产替换方案**：调用 SAP OData 接口 `GET /sap/opu/odata/sap/API_MATERIAL_STOCK_SRV/MaterialStock`。
+### 3.3 改造三：端到端 RAG 闭环与自校验
+- **痛点**：检索结果无论相关与否均直接拼装，缺乏相关性过滤与自校验，存在严重幻觉隐患。
+- **真实化方案**：
+  1. **双路召回**：BM25 关键词匹配 + 真实密集向量检索。
+  2. **相关性过滤与 Rerank**：对候选文档计算相关性得分，低于阈值（如 < 0.25）的切片予以剔除。
+  3. **自校验与反思 (Self-Correction)**：若最终有效上下文为空，自动触发 `No-Context-Fallback` 机制，告知用户知识库中未检索到相关内容，并提供针对性的追问指引，而不是胡乱生成。
+  4. **溯源标注**：在最终生成的回复末尾自动附加引用源 `[参考来源: 采购审批管理制度.md (第 3 章)]`。
 
-#### 3. ERP 采购单据创建 (`/api/v1/mock/erp/purchase`)
-- **当前 Mock 实现**：向本地 `purchases` 表插入记录，生成 `PO-XXXX`。
-- **涉及代码**：`backend/api/v1/mock/erp.py`，`backend/tools/impl/purchase_tools.py`。
-- **生产替换方案**：向 SAP SRM 提交 `POST /api/v1/purchase-orders`，携带采购物品、单价、审批单号与成本中心编号。
+### 3.4 改造四：数据库会话历史持久化
+- **痛点**：数据库只有用户和业务表，没有对话表；LangGraph 使用内存 MemorySaver，重启即丢失。
+- **真实化方案**：
+  1. 在 `backend/models/chat.py` 中新增：
+     - `ChatSession`: `id`, `session_id`, `user_id`, `title`, `created_at`, `updated_at`
+     - `ChatMessage`: `id`, `session_id`, `role` (user/assistant/system/tool), `content`, `sources`, `created_at`
+  2. 暴露标准 REST API：
+     - `GET /api/v1/chat/sessions`：获取当前用户历史会话列表（供前端侧边栏历史抽屉回显）；
+     - `GET /api/v1/chat/sessions/{session_id}/messages`：加载指定会话的历史聊天记录；
+     - `DELETE /api/v1/chat/sessions/{session_id}`：删除会话。
+  3. WebSocket 对话开始与结束时，自动将提问与回答真实存入数据库。
 
-#### 4. OA 工单流转 (`/api/v1/mock/oa/ticket`)
-- **当前 Mock 实现**：向本地 `tickets` 表插入记录，生成 `TCK-XXXX`。
-- **涉及代码**：`backend/api/v1/mock/oa.py`，`backend/tools/impl/ticket_tools.py`。
-- **生产替换方案**：调用 Jira REST API `POST /rest/api/3/issue` 或泛微 OA 工作流接口创建审批流单据。
-
----
-
-### 3.2 维度二：工作流与 Webhook 模拟 (WeCom Bot & n8n / Dify)
-
-#### 1. 企业微信 Bot Markdown 卡片推送
-- **当前 Mock 实现**：
-  - `backend/api/v1/workflow.py` 中的 `MOCK_WECOM_MESSAGES` 全局内存队列，用于单测与离线演示捕获推送。
-- **生产替换方案**：
-  - 在 `.env` 中配置真实的 `WECOM_WEBHOOK_URL`；
-  - `dispatch_webhook_async` 检测到配置时，直接向企业微信发送 HTTP POST：
-  ```python
-  if settings.WECOM_WEBHOOK_URL:
-      async with httpx.AsyncClient(timeout=5.0) as client:
-          await client.post(settings.WECOM_WEBHOOK_URL, json=card_payload)
-  ```
-
-#### 2. n8n / Dify 工作流事件调度
-- **当前 Mock 实现**：`EVENT_HISTORY` 内存列表记录事件；
-- **生产替换方案**：配置 `N8N_WEBHOOK_URL` 与 `DIFY_API_BASE`，在状态机流转完成时同步推送结构化事件。
-
----
-
-### 3.3 维度三：数据库与会话 Fallback (E2E 演示与生产 MySQL)
-
-- **当前 Mock/演示实现**：
-  - `backend/scripts/demo_e2e_closed_loop.py` 使用 `sqlite:///:memory:` 与 `StaticPool` 保证无需依赖本地真实数据库即可 100% 独立运行演示。
-- **生产切换方案**：
-  - 生产环境移除 `dependency_overrides`，直连 `settings.SQLALCHEMY_DATABASE_URI`（MySQL 8.0 主从连接池）。
+### 3.5 改造五：个人可及的开源工作流平台真实集成 (Dify & N8N)
+- **痛点**：过去代码中只在内存列表记录了假事件，没有真正和外部平台对话。
+- **真实化方案**：
+  1. **N8N 真实联动**：当发生大额采购或报修工单创建时，系统真正通过 HTTP POST 向用户配置的 N8N Webhook 发送 JSON 载荷，可触发 N8N 后续的邮件、自动化脚本或通知流。
+  2. **Dify 真实联动**：系统提供专用适配器，支持调用本地/云端部署的 Dify Workflow API，将复杂业务子流程委托给 Dify 执行并取回结果。
 
 ---
 
-### 3.4 维度四：冷启动知识库文档与向量库
+## 4. 生产/个人开发一键配置模板 (`.env.example`)
 
-- **当前 Mock 实现**：`docs/sample_kb/` 内置 6 篇模拟规章（`考勤休假管理办法`, `采购审批管理制度`, `报销规范`, `技术保密协议`, `IT资产运维手册`, `员工差旅标准`）。
-- **生产切换方案**：
-  - 部署 Celery Worker，配置 `async_parse_multimodal_file` 定时扫描企业知识库共享目录 `/mnt/enterprise_kb/` 并自动增量增量切片入库至 Qdrant。
-
----
-
-### 3.5 维度五：AI 大模型网关与 Fallback 模拟
-
-- **当前 Mock 实现**：`backend/core/llm_infra.py` 中当主模型未配置 API Key 时，返回预定义的规则兜底响应。
-- **生产切换方案**：
-  - 配置生产级 API Keys：`OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, `QWEN_API_KEY`；
-  - 启用 vLLM 本地内网高性能推理集群。
-
----
-
-### 3.6 维度六：多 Agent 协作网格与分布式 Saga 事务 (Subgraphs, Swarm & Saga)
-
-#### 1. 专职 Subgraph 领域工具 Mock
-- **当前 Mock 实现**：`backend/graph/subgraphs/` 中 4 大专职子图（HR、财务、IT、合规）使用的本地规则工具调用与模拟返回。
-- **生产替换方案**：配置真实的专职业务微服务 RPC/REST 地址，对接真实薪酬核算引擎、企业电子发票验真云服务与法务合同审查网关。
-
-#### 2. Swarm 协同入职流程与工单模拟
-- **当前 Mock 实现**：`backend/graph/swarm_router.py` 中的入职 3 阶段（HR ➔ IT ➔ 财务）采用内存字典生成假工单与假资产编号。
-- **生产替换方案**：对接企业标准 BPM 协同网关与 OA 真实审批中心，通过 Webhook 触发跨系统审批任务。
-
-#### 3. 分布式 Saga 多系统写操作与幂等补偿
-- **当前 Mock 实现**：`backend/core/saga_orchestrator.py` 中的 `mock_enterprise_systems`（`EnterpriseSystemState` 单例），在内存中维护 `inventory_locks`、`budget_freezes`、`oa_tickets`。
-- **生产替换方案**：绑定生产级 ERP、财务与 OA OpenAPI，正向调用锁定/冻结接口，反向调用带唯一 `transaction_id` 的幂等释放/退款接口。
-
----
-
-## 4. 生产环境一键切换配置规范 (`.env.production.example`)
-
-在部署生产环境时，只需在根目录创建 `.env` 文件并填入以下真实生产配置：
+用户仅需在根目录配置 `.env` 即可完成全部真实能力的挂载：
 
 ```bash
 # ==============================================================================
-# Enterprise AI Digital Assistant - 生产环境一键切换配置模板 (.env)
+# Enterprise AI Digital Assistant - 个人可运行高保真配置模板 (.env)
 # ==============================================================================
 
-# 1. 核心运行环境
-ENVIRONMENT=production
-DEBUG=false
-USE_MOCK_SYSTEMS=false
+# 1. 核心运行模式
+ENVIRONMENT=development
+DEBUG=true
+USE_MOCK_SYSTEMS=true   # HR/ERP/OA 保留高质量本地标准化模拟桩
 
-# 2. 真实 MySQL 生产数据库连接
-MYSQL_SERVER=prod-mysql-cluster.internal
-MYSQL_PORT=3306
-MYSQL_USER=prod_ai_user
-MYSQL_PASSWORD=SecurePassword2026!
-MYSQL_DB=enterprise_ai_prod
+# 2. 真实大模型配置 (支持 DeepSeek / 通义千问 / OpenAI / vLLM / Ollama)
+OPENAI_API_BASE=https://api.deepseek.com/v1
+OPENAI_API_KEY=sk-your-real-api-key
+LLM_MODEL=deepseek-chat
 
-# 3. 真实 Redis 生产集群
-REDIS_HOST=prod-redis-sentinel.internal
-REDIS_PORT=6379
-REDIS_DB=0
+# 若使用本地 vLLM 或 Ollama:
+# OPENAI_API_BASE=http://localhost:8000/v1
+# OPENAI_API_KEY=EMPTY
+# LLM_MODEL=qwen2.5-7b-instruct
 
-# 4. 真实 Qdrant 向量数据库
-QDRANT_HOST=prod-qdrant.internal
+# 3. 真实 Embedding 向量计算配置 (fastembed: 本地免GPU极速运行; openai: API模式)
+EMBEDDING_PROVIDER=fastembed
+EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
+
+# 4. 向量数据库 Qdrant 配置 (支持本地 Docker 或内嵌存储)
+QDRANT_HOST=localhost
 QDRANT_PORT=6333
-QDRANT_COLLECTION=enterprise_knowledge_prod
+QDRANT_COLLECTION=enterprise_knowledge
 
-# 5. 企业业务系统 OpenAPI 真实地址与认证
-HR_BASE_URL=https://hr.enterprise.internal/api/v1
-HR_API_TOKEN=hr_bearer_token_prod_xxx
+# 5. 持久化关系数据库 (默认支持零配置 SQLite，亦可直连本地 MySQL)
+SQLALCHEMY_DATABASE_URI=sqlite:///./enterprise_ai.db
+# 或使用 MySQL: mysql+pymysql://root:password@localhost:3306/enterprise_ai
 
-ERP_BASE_URL=https://erp.enterprise.internal/api/v1
-ERP_API_TOKEN=erp_bearer_token_prod_xxx
+# 6. 开源工作流平台对接 (选填，自建 Dify / N8N 时生效)
+DIFY_API_BASE=http://localhost:8001/v1
+DIFY_API_KEY=app-your-dify-api-key
+N8N_WEBHOOK_URL=http://localhost:5678/webhook/your-webhook-uuid
 
-OA_BASE_URL=https://oa.enterprise.internal/api/v1
-OA_API_TOKEN=oa_bearer_token_prod_xxx
-
-# 6. 企业微信群机器人 Webhook (审批通知真实群广播)
-WECOM_WEBHOOK_URL=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=prod-wecom-bot-key-uuid
-
-# 7. n8n / Dify 生产工作流平台
-DIFY_API_BASE=https://dify.enterprise.internal/v1
-DIFY_API_KEY=app-prod-secret-key-xxx
-N8N_WEBHOOK_URL=https://n8n.enterprise.internal/webhook/prod-approval-listener
-
-# 8. 大模型 API 生产凭证
-OPENAI_API_KEY=sk-prod-openai-key-xxx
-OPENAI_API_BASE=https://api.openai.com/v1
-QWEN_API_KEY=sk-prod-qwen-key-xxx
-DEEPSEEK_API_KEY=sk-prod-deepseek-key-xxx
-# 9. 专职 Subgraph 领域微服务与合规审查
-FINANCE_API_BASE=https://finance-service.internal/api/v1
-HR_SERVICE_URL=https://hr-service.internal/api/v1
-IT_SERVICE_URL=https://it-service.internal/api/v1
-COMPLIANCE_API_KEY=prod_compliance_key_xxx
-
-# 10. 跨部门 BPM 工作流与分布式 Saga 事务回滚端点
-BPM_GATEWAY_URL=https://bpm-gateway.corp.internal/v1/handoff
-ERP_SAGA_ROLLBACK_ENDPOINT=https://erp.enterprise.internal/api/v1/saga/rollback
-FINANCE_REFUND_ENDPOINT=https://finance.enterprise.internal/api/v1/saga/refund
-OA_CANCEL_ENDPOINT=https://oa.enterprise.internal/api/v1/saga/cancel
+# 7. 企业微信机器人通知 (选填，填写后审批消息将真实推送到群)
+WECOM_WEBHOOK_URL=
 ```
 
 ---
 
-## 5. 总结与后续 Issue 执行指引
+## 5. 总结
 
-- **资产核准**：全系统共计 **12 处 Mock 节点已全部审计并锁定归档**（涵盖基础系统、工作流通知、持久化存储、冷启动知识库、模型网关，以及 Sprint 23~25 新增的专职 Subgraph 专属工具、Swarm 入职协作 SOP 与 Saga 分布式事务补偿）。
-- **切换能力**：通过 `backend/core/config.py` 的集中配置与适配器模式，系统已完全具备“一键解除全部 Mock、无缝切换生产真实企业系统”的高可靠物理能力。
-- **阶段跃迁**：随着 Development Mode 战役一至战役四全量 32 项 Issue 100% 闭环，系统正式具备进入 **`PRODUCTION & HARDENING MODE` (生产就绪与投产硬化模式)** 的物理条件！
+通过本次纠偏：
+1. **去伪存真**：剔除了纸面宣传中的不可及假设，锁定了个人开发者完全掌控的五大核心能力；
+2. **彻底消灭 Fake Mock**：假 Embedding、假 LLM 生成、假会话记忆将被真实工业级实现全面替换；
+3. **交付高保真产品**：用户 demo 时将拥有真实的 AI 多轮对话、真实的知识库规章问答、真实的会话历史留存与真实的本地工作流自动化！

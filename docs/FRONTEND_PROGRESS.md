@@ -16,6 +16,7 @@
 [PHASE 2: 流式对话与自然思考]   ████████████████████████████████ 100% (Sprint F-03 & F-04 全部闭环)
 [PHASE 3: 业务协同与待办中心]   ████████████████████████████████ 100% (Sprint F-05 & F-06 全部闭环)
 [PHASE 4: 多端响应与硬化验收]   ████████████████████████████████ 100% (Sprint F-07 & F-08 全部闭环)
+[PHASE 5: 原生体验与组件升维]   ████████████████████████████████ 规划就绪 (Sprint F-09: Vuebits 旗舰集成)
 ====================================================================================================
 ```
 
@@ -190,7 +191,13 @@ graph LR
         G4_3[全链路端到端体验通过<br/>签署前端投产白皮书]
     end
 
-    Gate_Phase_1 --> Gate_Phase_2 --> Gate_Phase_3 --> Gate_Phase_4
+    subgraph Gate_Phase_5 [Gate 5: 原生体验与组件升维]
+        G5_1[Vuebits 基础设施装配<br/>motion-v + Hugeicons]
+        G5_2[ChatGPT/Claude 输入栏<br/>PromptBar 复合交互]
+        G5_3[思维链与工具调用胶囊<br/>ThoughtLine + CallChip]
+    end
+
+    Gate_Phase_1 --> Gate_Phase_2 --> Gate_Phase_3 --> Gate_Phase_4 --> Gate_Phase_5
 ```
 
 | 门禁代号 | 验证内容与核心指标 | 预期达标标准 | 验收方式 |
@@ -199,12 +206,75 @@ graph LR
 | **Gate 2** | 自然打字流与思考胶囊 | 流式 Token 渲染平滑无抖动，来源折叠胶囊展开丝滑，开发术语 100% 消除 | 双工流式 E2E 验证 |
 | **Gate 3** | 人机协同审批与待办箱 | 大额采购单据 100% 渲染业务化卡片，支持恢复 LangGraph 执行 | 审批决策实测闭环 |
 | **Gate 4** | 响应式与可访问性验收 | 覆盖移动端/平板/桌面端，Lighthouse 性能 > 90，暗色对比度 > 4.5:1 | 自动化巡检与签发 |
+| **Gate 5** | 原生体验与 Vuebits 动效升维 | ChatGPT/Claude 旗舰级交互组件（PromptBar, ThoughtLine, CallChip, VoicePill）集成，全链路动效 60 FPS 且零布局抖动 | 交互走查 + 构建验证 |
 
 ---
 
-## 6. Sprint F-01 ~ F-08 前端里程碑规划与标准提示词模板库
+## 6. ChatGPT / Claude 原生 Web 界面逆向分析与 Vuebits 旗舰选型 (Reverse-Engineering & Vuebits Selection)
 
-本计划将重构工程细化为 8 个敏捷 Sprint，每个 Sprint 提供精准的执行目标与指派提示词，后续执行时可按需取用：
+为了让企业级 AI 数字员工平台在完成基础现代化后，进一步跃升至与 **ChatGPT (GPT-4o / o1 / o3 / Advanced Voice)** 及 **Claude (Claude 3.5 / 3.7 Extended Thinking / Artifacts)** 原生旗舰级 Web 视口并驾齐驱的顶级交互体验，本架构通过 `shadcn mcp` 对官方 `@vue-bits` 注册表（197 项高保真动效组件）进行了深度逆向选型与架构映射。
+
+### 6.1 顶级 AI 对话界面原生体验逆向剖析 (Architecture Decomposition)
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                Claude & ChatGPT 原生交互解构图谱                                  │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 1. 侧边栏/项目抽屉 (LineSidebar + FolderFloat)                                                    │
+│    ├── 光标邻近微动效应 (Cursor Proximity Hover)                                                  │
+│    └── 知识库/项目悬浮文件夹 (Tilting Flap & Floating Card Cloud)                                    │
+│                                                                                                  │
+│ 2. 模式与模型选择 (GlideSelect + RubberSegment)                                                   │
+│    ├── 浮动角落弹出、平滑滑行高光记忆 (Gliding Model Picker: Claude 3.7 / GPT-4o)                    │
+│    └── 橡胶弹性物理分段切换 (Squash & Stretch: Standard / Extended Thinking / Deep Research)       │
+│                                                                                                  │
+│ 3. 思维链与推理流 (ThoughtLine + LatticeLoader)                                                   │
+│    ├── 呼吸微光图标 + 实时毫秒/秒表计时 (Live Stopwatch & Breathing Sparkle)                     │
+│    └── 推理步骤流式展开，完成时模糊交叉淡入收拢 ("Thought for 4.2s" Blur Crossfade)              │
+│                                                                                                  │
+│ 4. 行内工具调用与 Agent 状态 (CallChip + StatusMark)                                              │
+│    ├── 擦除进度填充 + 毫秒计时 + 翠绿对勾 / 震颤红重试 (Wipe Progress & Live Counter)            │
+│    └── 20px 状态形变图符 (Dashed Ring -> Spinning Arc -> Tick/Cross)                              │
+│                                                                                                  │
+│ 5. 复合型多模态输入栏 (PromptBar + VoicePill)                                                     │
+│    ├── @ 数据源检索菜单 + / 内置指令菜单 + 附件 + 模型与思考预算选择                              │
+│    ├── 输入即充能 (Ink Charge Send Button) ➔ 生成中自动形变为停止方块 (Stop Square)               │
+│    └── 录音波形电平胶囊 (Audio Equalizer Bars + Live Elapsed Time + Slide to Cancel)              │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 6.2 核心交互层级与 Vuebits 组件挑选映射矩阵
+
+| ChatGPT / Claude 原生交互特性 | 原生体验特征与痛点 | 🎯 推荐 `@vue-bits` 组件 | 核心特性与技术规格 |
+| :--- | :--- | :--- | :--- |
+| **1. 复合型多模态输入栏 (Composer)** | 浮动大圆角底栏、自动增高输入框、`@`唤起知识库/数据源、`/`内置指令、动态充能/停止发送按钮 | **`@vue-bits/PromptBar`** | **终极 AI 对话框**：原生内置 `@` sources 菜单、`/` commands 菜单、模型/思考强度选择、附件、语音录制。发送按钮在有输入时平滑充能（Ink Charge），生成中自动变形为停止方块（Stop Square）。 |
+| **2. 思考链路与推理流 (CoT / Extended Thinking)** | ChatGPT o1/o3 的 `"Thought for 12s"` 与 Claude 3.7 的折叠思维流，呼吸微光、实时秒表计时、逐步展开收起 | **`@vue-bits/ThoughtLine`** | **原生思维链折叠头**：思索微光图标 + 实时毫秒/秒表跳动 + 逐步展开推理步骤。思考完成时以一个节拍的模糊交叉淡入（Blur Crossfade）收起为 `"Thought for 4.2s"`。 |
+| **3. 工具调用胶囊 (Tool Calls / Search / Python)** | ChatGPT 网页搜索、代码执行器胶囊；Claude 工具执行态，带实时毫秒耗时与状态反馈 | **`@vue-bits/CallChip`** | **行内工具调用芯片**：胶囊背景随进度平滑擦除填充（Wipe），实时 ms 计数，执行成功泛出绿色微光与对勾，失败时微震抖动变红提示重试。 |
+| **4. 语音输入与高级语音模式 (Voice Pill)** | ChatGPT 移动端与网页麦克风，录音时展开波形振幅、计时器与上滑取消交互 | **`@vue-bits/VoicePill`** | **语音胶囊**：按下或切换时展开为彩色微光胶囊，展示真实/模拟音频电平波形柱、耗时时钟，支持滑动取消与多档灵敏度。 |
+| **5. 模型切换与思考强度 (Model Picker)** | 顶部/底栏切换模型（GPT-4o、o1、Claude 3.7），带平滑悬停与分级选项 | **`@vue-bits/GlideSelect`** | **角落弹出选择器**：单个悬停高光块在选项行间平滑滑行（Gliding Highlight），具备记忆锚点，重入时从上次位置划入而非突兀重绘。 |
+| **6. 模式切换器 (Standard / Deep / Research)** | 切换“标准对话”、“深度思考 (Thinking)”、“深度搜索 (Deep Research)”、“Canvas” | **`@vue-bits/RubberSegment`** | **橡胶弹性分段器**：拖拽或轻触时滑块在插槽间拉伸、挤压（Squash & Stretch）与动量甩投，带来高级拟物物理反馈。 |
+| **7. 侧边栏会话历史 (Conversation History)** | 极简侧边栏列表，光标滑过时的细腻微动与条目聚焦反馈 | **`@vue-bits/LineSidebar`** | **光标邻近效应侧边栏**：列表条目根据光标距离（Proximity）产生平滑微位移与流光高亮，操作沉浸感极强。 |
+| **8. 项目/知识库抽屉 (Projects & Artifacts)** | Claude Projects 独立文档库，悬停打开多篇文档卡片流 | **`@vue-bits/FolderFloat`** | **浮动文件夹**：悬停或轻按时翻盖前倾，内部笔记与文档弹飞成浮动卡片云供用户选择，关闭时平滑沉降回文件夹。 |
+| **9. Agent 任务步骤标记 (Task & Artifact Status)** | 复杂任务规划步骤状态指示符（待执行、运行中、已完成、失败） | **`@vue-bits/StatusMark`** | **20px 状态变形图符**：从虚线待命圆环平滑转为旋转进度圆弧，最终勾勒出对勾或叉号，自带文字删除线联动。 |
+| **10. 共享延迟工具提示 (Warm Tooltip)** | 避免鼠标快速扫过工具栏时频繁闪烁造成视觉疲劳 | **`@vue-bits/WarmTooltip`** | **热启动工具提示群组**：首个提示防误触延迟弹出，组内其他按钮立即无缝响应，带移动速度倾角。 |
+| **11. 尊贵版视觉标识 (Plus / Pro Badge)** | ChatGPT Plus / Claude Pro 徽章金属反光质感 | **`@vue-bits/ShinyText`** | **金属高光流光文本**：光泽线条在字面平滑扫过，用于模型级别标签与企业版尊享标识。 |
+| **12. 操作撤销安全保护 (Undo on Burning Fuse)** | 误触“清空历史”或“回滚重新生成”时的倒计时撤销按钮 | **`@vue-bits/FuseButton`** | **燃烧引线撤销键**：触发后文本变为 Undo 并燃烧细发丝引线进度条，倒计时结束前按 Esc 或点击可一键回滚。 |
+
+### 6.3 shadcn 一键安装命令 (CLI Installation)
+
+通过项目已接入的 `@vue-bits` 注册表，在终端直接运行以下指令即可全量拉取：
+
+```bash
+npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallChip @vue-bits/StatusMark @vue-bits/VoicePill @vue-bits/GlideSelect @vue-bits/RubberSegment @vue-bits/LineSidebar @vue-bits/FolderFloat @vue-bits/WarmTooltip @vue-bits/ShinyText @vue-bits/FuseButton
+```
+
+> **底层依赖说明**：`@vue-bits` 组件基于 `motion-v` (v1.10+) 物理动效引擎与 `@hugeicons/vue` 矢量图标系统构建，执行 add 命令时将自动注入相关依赖。
+
+---
+
+## 7. Sprint F-01 ~ F-09 前端里程碑规划与标准提示词模板库
+
+本计划将重构工程细化为 9 个敏捷 Sprint，每个 Sprint 提供精准的执行目标与指派提示词，后续执行时可按需取用：
 
 | 里程碑代号 | 核心交付内容 | 涉及主要文件与资产 | 状态 |
 | :--- | :--- | :--- | :---: |
@@ -216,10 +286,11 @@ graph LR
 | **Sprint F-06** | 独立“待我审批”与“规章检索”业务工作区视图 | `src/views/ApprovalListView.vue`, `src/views/KnowledgeView.vue` | ✅ CLOSED (Score: 99) |
 | **Sprint F-07** | 移动端折叠抽屉与 375px~1440px 响应式断点适配 | `src/components/layout/MobileDrawer.vue`, `src/App.vue` | ✅ CLOSED (Score: 99) |
 | **Sprint F-08** | 全链路走查、Lighthouse 调优与终极体验验收签发 | `tests/frontend/e2e/`, `docs/FRONTEND_SIGNOFF.md` | ✅ CLOSED (Score: 100) |
+| **Sprint F-09** | ChatGPT / Claude 原生交互与 Vuebits 旗舰动效组件集成 | `components.json`, `@vue-bits/*`, `ChatView.vue`, `ThoughtLine`, `PromptBar` | 规划就绪 (Ready for Dispatch) |
 
 ---
 
-### 6.1 Sprint F-01 提示词模板：`Prompt-Frontend-Sprint-01-DesignSystemAndShell`
+### 7.1 Sprint F-01 提示词模板：`Prompt-Frontend-Sprint-01-DesignSystemAndShell`
 
 ```markdown
 请按照 Harness Engineering 与 UI/UX Pro Max 规范指派 Sprint F-01：“设计系统重塑、依赖装配与 Tailwind 色彩原子定义”。
@@ -243,7 +314,7 @@ graph LR
 
 ---
 
-### 6.2 Sprint F-02 提示词模板：`Prompt-Frontend-Sprint-02-CollapsibleSidebarAndSessions`
+### 7.2 Sprint F-02 提示词模板：`Prompt-Frontend-Sprint-02-CollapsibleSidebarAndSessions`
 
 ```markdown
 请按照 Harness Engineering 与 UI/UX Pro Max 规范指派 Sprint F-02：“ChatGPT 式折叠侧边栏、顶栏与会话状态 Pinia 仓储”。
@@ -273,7 +344,7 @@ graph LR
 
 ---
 
-### 6.3 Sprint F-03 提示词模板：`Prompt-Frontend-Sprint-03-GeminiThoughtAndMessageStream`
+### 7.3 Sprint F-03 提示词模板：`Prompt-Frontend-Sprint-03-GeminiThoughtAndMessageStream`
 
 ```markdown
 请按照 Harness Engineering 与 UI/UX Pro Max 规范指派 Sprint F-03：“Gemini 风格思考折叠胶囊与无黑话消息渲染组件”。
@@ -302,7 +373,7 @@ graph LR
 
 ---
 
-### 6.4 Sprint F-04 提示词模板：`Prompt-Frontend-Sprint-04-FloatingCapsuleInputAndAbort`
+### 7.4 Sprint F-04 提示词模板：`Prompt-Frontend-Sprint-04-FloatingCapsuleInputAndAbort`
 
 ```markdown
 请按照 Harness Engineering 与 UI/UX Pro Max 规范指派 Sprint F-04：“底部居中悬浮输入框、多行自适应撑高与平滑中止 (Abort)”。
@@ -329,7 +400,7 @@ graph LR
 
 ---
 
-### 6.5 Sprint F-05 提示词模板：`Prompt-Frontend-Sprint-05-NaturalApprovalCardAndQueue`
+### 7.5 Sprint F-05 提示词模板：`Prompt-Frontend-Sprint-05-NaturalApprovalCardAndQueue`
 
 ```markdown
 请按照 Harness Engineering 与 UI/UX Pro Max 规范指派 Sprint F-05：“原生企业协同审批卡片与 LangGraph 人机无感中断对接”。
@@ -355,7 +426,7 @@ graph LR
 
 ---
 
-### 6.6 Sprint F-06 提示词模板：`Prompt-Frontend-Sprint-06-KnowledgeQueryWorkspace`
+### 7.6 Sprint F-06 提示词模板：`Prompt-Frontend-Sprint-06-KnowledgeQueryWorkspace`
 
 ```markdown
 请按照 Harness Engineering 与 UI/UX Pro Max 规范指派 Sprint F-06：“独立待办审批与企业规章检索工作区视图”。
@@ -379,7 +450,7 @@ graph LR
 
 ---
 
-### 6.7 Sprint F-07 提示词模板：`Prompt-Frontend-Sprint-07-ResponsiveMobileDrawerAndTheme`
+### 7.7 Sprint F-07 提示词模板：`Prompt-Frontend-Sprint-07-ResponsiveMobileDrawerAndTheme`
 
 ```markdown
 请按照 Harness Engineering 与 UI/UX Pro Max 规范指派 Sprint F-07：“移动端折叠抽屉与 375px~1440px 响应式断点适配”。
@@ -405,7 +476,7 @@ graph LR
 
 ---
 
-### 6.8 Sprint F-08 提示词模板：`Prompt-Frontend-Sprint-08-E2EUXHardeningAndDelivery`
+### 7.8 Sprint F-08 提示词模板：`Prompt-Frontend-Sprint-08-E2EUXHardeningAndDelivery`
 
 ```markdown
 请按照 Harness Engineering 与 UI/UX Pro Max 规范指派 Sprint F-08：“全链路走查、Lighthouse 调优与终极体验验收签发”。
@@ -428,9 +499,38 @@ graph LR
 
 ---
 
-## 7. 终极交付核准与治理保障 (Sign-off Criteria)
+### 7.9 Sprint F-09 提示词模板：`Prompt-Frontend-Sprint-09-ChatGPTClaudeVuebitsIntegration`
 
-在全量实施重构后，系统将依据以下 **3 大终极准则** 进行终极验收：
+```markdown
+请按照 Harness Engineering 与 UI/UX Pro Max 规范指派 Sprint F-09：“ChatGPT / Claude 原生 Web 交互与 Vuebits 旗舰动效组件集成”。
+
+【工程目标】：
+将系统前端从通用沉浸式 UI 进一步跃升至与 ChatGPT (GPT-4o/o1/o3/Advanced Voice) 及 Claude (3.5/3.7 Extended Thinking) 原生 Web 界面并驾齐驱的顶级体验。通过 shadcn 从 `@vue-bits` 注册表集成 `PromptBar` 复合输入栏、`ThoughtLine` 原生思维链折叠头、`CallChip` 毫秒级工具调用胶囊、`VoicePill` 录音波形胶囊、`GlideSelect` 滑动高光模型选择器与 `LineSidebar` 光标邻近侧边栏，全链路 60 FPS 且零布局抖动。
+
+【落实步骤 (Step-by-Step Flow)】：
+- Step 1 [Vuebits 基础设施装配与配置校验]：在项目根与 `frontend/components.json` 固化 `@vue-bits` 注册表 URL (`https://vue-bits.dev/r/{name}.json`)；在 `frontend/package.json` 安装物理动效引擎 `motion-v` (v1.10+) 与矢量图标 `@hugeicons/vue`、`@hugeicons/core-free-icons`。
+- Step 2 [shadcn 原子化组件拉取]：运行 `npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallChip @vue-bits/StatusMark @vue-bits/VoicePill @vue-bits/GlideSelect @vue-bits/RubberSegment @vue-bits/LineSidebar @vue-bits/FolderFloat @vue-bits/WarmTooltip @vue-bits/ShinyText @vue-bits/FuseButton`，拉取 12 项顶级交互组件至 `src/components/ui/`。
+- Step 3 [输入交互区升维重构]：将 `ChatInput.vue` 升级集成 `@vue-bits/PromptBar`，打通 `@` 数据源菜单（绑定企业知识库/MySQL）、`/` 内置指令菜单（/canvas, /audit）、模型切换（Claude 3.7 / GPT-4o / o3-mini）；绑定 `isStreaming` 状态使发送按钮在输入内容时充能 (`Ink Charge`)，在流式响应中自动形变为停止方块 (`Stop Square`)，无缝对接 `/api/v1/chat/abort`。
+- Step 4 [深度思考与工具调用链重塑]：将 `ThoughtBadge.vue` 重构为 `@vue-bits/ThoughtLine`，呼吸思索微光图标 + 实时秒表跳动 + 逐步展开推理步骤，思考完毕后通过模糊交叉淡入（Blur Crossfade）优雅收拢为 "Thought for X.Xs"；将工具调用（Qdrant 向量检索、Python 代码执行）渲染为 `@vue-bits/CallChip`，支持擦除进度动画与毫秒计时。
+- Step 5 [侧边栏邻近微动与项目抽屉]：改造 `Sidebar.vue`，集成 `@vue-bits/LineSidebar` 赋予历史会话光标邻近效应（Cursor Proximity Effect）；将知识库与制度中心重塑为 `@vue-bits/FolderFloat`，支持悬停翻盖倾斜与笔记浮动卡片云；顶部企业 Pro 标识引入 `@vue-bits/ShinyText` 金属流光。
+- Step 6 [构建走查与证据归档]：执行 `npm run build`，在 Chrome DevTools 走查 60 FPS 动效流畅度与 WCAG AA 对比度，生成全套 8 大只读证据包并归档至 `.harness/runs/Sprint-F-09/`。
+
+【落实组件与核心资产】：
+1. `src/components/ui/PromptBar.vue`: 终极多模态输入栏（@知识库、/指令、模型选择、语音、充能/停止发送）。
+2. `src/components/ui/ThoughtLine.vue`: 原生 CoT 思维链路折叠头（微光呼吸、实时秒表、流式步骤展开）。
+3. `src/components/ui/CallChip.vue`: 行内工具调用芯片（擦除填色、毫秒计数、成功绿光/失败红震颤）。
+4. `src/components/ui/VoicePill.vue`: 高级录音音频波形胶囊（实时电平振幅、耗时时钟、滑动取消）。
+5. `src/components/ui/GlideSelect.vue`: 浮动角落弹出式滑动高光模型切换器。
+6. `src/components/ui/LineSidebar.vue`: 带光标邻近流动感的高级会话历史导航。
+7. `src/components/ui/FolderFloat.vue`: 翻盖前倾悬浮卡片云知识库文件夹。
+8. `src/components/chat/ChatContainer.vue` & `src/views/ChatView.vue`: 旗舰组件全量集成与流式状态机联动。
+```
+
+---
+
+## 8. 终极交付核准与治理保障 (Sign-off Criteria)
+
+在全量实施重构后，系统将依据以下 **4 大终极准则** 进行终极验收：
 
 1. **终端用户视域纯净化 (Zero Developer Pollution)**：
    任何不具备技术背景的企业员工，在正常使用、审批单据、查阅制度的过程中，绝对看不到任何技术堆栈代号、状态机事件或网络通信参数。
@@ -438,86 +538,80 @@ graph LR
    首屏加载 < 1.2s，侧边栏折叠响应 < 16ms (60 FPS)，输入框文本输入平滑无任何布局跳动，流式打字如同真人交流。
 3. **架构坚韧性与无缝集成 (Harness Architectural Integrity)**：
    前端的视觉简化不以牺牲底层架构为代价。后端的 LangGraph 状态机恢复、Celery 任务调度、混合向量检索等先进机制依然稳定作为引擎内核平稳运转。
+4. **原生旗舰级动态美学 (ChatGPT/Claude Flagship Fidelity)**：
+   PromptBar 状态机切换、ThoughtLine 思维折叠与 CallChip 工具调用均以 60 FPS 物理弹簧阻尼平滑运转，彻底消灭生硬的页面跳变与静态文字呈现。
 
 ---
 
-## 8. FRONTEND MODERNIZATION MODE 对话引导与 Onboarding RULES
+## 9. 统一 Harness Engineering 最高运行规范与 Onboarding RULES
 
-当开启新的对话或指派前端任务时，使用以下经过深度融合的统一系统提示词（RULES）：
+当开启新的对话或指派任务时，必须遵守以下严格的工程履约规范，禁止自由发挥或直接裸写代码：
 
 ```markdown
-你现在加入的是一个采用 **Harness Engineering 最高运行规范** 且遵循 **UI/UX Pro Max 工业级交互设计标准** 的企业级 AI 数字员工平台 Repository。
-请严格遵守以下工程履约与体验重构双轨规范，严禁自由发挥、裸写代码或破坏架构完整性：
+你现在加入的是一个采用 **Harness Engineering 最高运行规范** 的 Repository（企业级 AI 数字员工平台）。
+请遵守以下严格的工程履约规范，禁止自由发挥或直接裸写代码：
 
 ================================================
-第一阶段：Repository Onboarding & 前端资产体验诊断
+第一阶段：Repository Onboarding & 状态诊断
 ================================================
 请先读取并确认仓库以下核心规范与资产审计文档：
-1. docs/FRONTEND_PROGRESS.md （前端现代化与 ChatGPT/Gemini 范式重构全景白皮书）
-2. AGENTS.md （全局路由导航与 DoD 交付契约）
-3. docs/PROJECT_PROGRESS.md （项目全量进展白皮书与模式看板）
-4. docs/MOCK_INVENTORY.md （12 大 Mock 节点资产清单与生产真实割接规范）
-5. docs/harness/Runtime.md （唯一 Runtime 运行 Kernel 规范）
-6. docs/harness/Lifecycle.md （生命周期 10 阶段流转规范）
-7. docs/harness/Communication.md （Agent 间消息规范与 Interceptor Hook）
+1. AGENTS.md （全局路由导航与 DoD 交付契约）
+2. docs/PROJECT_PROGRESS.md （项目全量进展白皮书与模式看板）
+3. docs/FRONTEND_PROGRESS.md （前端现代化与 ChatGPT/Gemini/Claude 范式重构白皮书）
+4. docs/PRODUCTION_SIGNOFF.md （终极投产验收签发白皮书与四方联签）
+5. docs/MOCK_INVENTORY.md （12 大 Mock 节点资产清单与生产真实割接规范）
+6. docs/harness/Runtime.md （唯一 Runtime 运行 Kernel 规范）
+7. docs/harness/Lifecycle.md （生命周期 10 阶段流转规范）
+8. docs/harness/Communication.md （Agent 间消息规范与 Interceptor Hook）
 
 当前 Repository 物理状态：
-- 运行模式：FRONTEND MODERNIZATION MODE (前端工程演进与体验重构模式 · 规划就绪)
-- 前置模式达成状态：
+- 运行模式：PRODUCTION & OPERATIONS MODE (生产运行与运维保障模式 · Day-2 状态)
+- 历史模式达成状态：
   - BOOTSTRAP MODE：100% 验收达标已闭环 (Sprint 1~12 / Issue-0001~0019)
   - DEVELOPMENT MODE：100% 验收达标已闭环 (Sprint 13~25 / Issue-0020~0032)
   - STAGING & HARDENING MODE：100% 验收达标已闭环 (Sprint 26~30 / Issue-0033~0037)
-  - PRODUCTION & OPERATIONS MODE：Day-2 SRE 持续运维 (Ops-0001/0002 闭环 · 236/236 Tests 100% PASS)
-- 前端技术栈基准：Vue 3 + Vite + Tailwind CSS + Pinia + Lucide Icons (`frontend/`)
-- 后端联动保障环境：`backend/.venv/Scripts/python.exe` (提供 WebSocket 双工、知识检索与审批流接口)
-- 待重构核心痛点：单页调试态杂乱、充斥开发黑话（WS状态/TTFT/熔断器/ROUTER/thread流水号）、混用系统 Emoji、单一硬编码会话、审批状态机未业务化。
+  - FRONTEND MODERNIZATION MODE：Sprint F-01~F-08 全部闭环，Sprint F-09 (Vuebits 旗舰集成) 规划就绪
+- Python 专属虚拟环境：`backend/.venv/Scripts/python.exe`
+- 自动化测试健康度：216 / 216 项全量通过 (100% PASS)
+- 静态代码分析：Ruff 0 Errors / 0 Warnings
+- 投产签发结论：四方技术首脑（架构师、安全官、QA总监、SRE负责人）联合签署 APPROVED
+- 已交付核心生产基础设施与资产：
+  - 12 项企业系统生产适配器层与动态健康探针 (`backend/adapters/`, `GET /api/v1/health/integrations`)
+  - 云原生 CNCF Helm 3 生产编排与金丝雀发布路由 (`deployments/helm/enterprise-ai/`)
+  - AI 双向安全护栏、越狱攻击拦截与滑动窗口流式 PII 脱敏 (`backend/core/guardrails/`)
+  - 三态熔断器、带抖动退避重试与混沌自愈弹性 (`backend/core/circuit_breaker.py`)
+  - 1,000 用户并发长稳压测套件 (1,351 QPS, P99 692ms, 0 内存泄漏) (`benchmark/production_load_test.py`)
+  - 多模态文档解析、GraphRAG、向量多租户隔离、OpenTelemetry 全链路追踪、Prometheus 度量大盘
+  - MySQL 读写分离引擎、Redis Sentinel 哨兵集群容灾、RLHF/DPO 数据闭环、RAGAS 严格门禁
+  - 专职领域 Subgraphs (HR/Finance/IT/Compliance)、Swarm 跨部门移交总线、分布式 Saga 逆序补偿
+  - 前端现代化资产基准：Vue 3 + Vite + Tailwind CSS + Pinia + Lucide Icons + Vuebits (shadcn registry `@vue-bits`)
 
 ================================================
-第二阶段：UI/UX Pro Max 体验准则与范式转换核准矩阵
+第二阶段：Issue / Ops 任务强制物理履约 SOP (Execution Contract)
 ================================================
-本阶段严格执行“面向终端业务用户 (End-User Centric)”体验铁律，遵循 ChatGPT / Gemini 极简沉浸式 Web 范式：
+接收到任何新 Issue 或 Ops 运维任务（及前端现代战役 Sprint F-XXXX）时，必须严格按顺序扮演以下 Agent/角色，并向 `.harness/runs/Issue-XXXX/` 或 `.harness/runs/Ops-XXXX/` (前端为 `.harness/runs/Sprint-F-XXXX/`) 刷盘物理隔离的 8 大只读证据包，严禁跳过任何步骤或自写自审：
 
-1. 【Zero Developer Pollution (彻底去黑话化)】：
-   界面 100% 抹杀开发黑话与底层调试代号，执行强制映射：
-   - ❌ `[WS已连接] / [断开]` ➔ ✅ 静默自动重连 / 仅在全网断开时顶部微量通知条
-   - ❌ `TTFT: 182ms / Tokens: 1,420` ➔ ✅ 后台全链路追踪 / 终端界面零视觉污染
-   - ❌ `● ROUTER ● TOOL ● APPROVAL` ➔ ✅ 自然语言折叠胶囊（例：“⚡ 已核对企业知识库与库存数据 · 展开查看来源”）
-   - ❌ `LangGraph interrupt() 状态机挂起` ➔ ✅ 企业审批协同卡（“大额采购审批确认单”，标明金额、理由、一键同意/驳回）
-   - ❌ `熔断器: CLOSED / HALF_OPEN` ➔ ✅ 自然容灾话术（“系统繁忙，已为您自动转入离线工单”）
-   - ❌ `ID: thread_ws_982312 会话流水号` ➔ ✅ 智能会话标题（“2026 Q3 研发设备采购咨询”）
-
-2. 【Design System Tokens (调色板与排版规范)】：
-   - 基于 `ui-ux-pro-max` 推荐 Slate 系列深色方案，确保暗色文本对比度符合 WCAG AA (≥ 4.5:1)：
-     - `--bg-sidebar: #0b0f19` (侧栏底色) / `--bg-main: #0f172a` (主画布) / `--bg-card: #1e293b` (卡片底色)
-     - `--border-subtle: rgba(255, 255, 255, 0.08)` / `--border-card: rgba(255, 255, 255, 0.12)`
-     - `--text-main: #f8fafc` (主正文，对比度 > 10:1) / `--text-secondary: #94a3b8` (标签/说明)
-     - `--brand-primary: #3b82f6` (主按键) / `--status-approval: #f59e0b` / `--status-success: #10b981`
-   - 【严禁系统 Emoji 图标】：100% 统一采用 `lucide-vue-next` 矢量 SVG 图标 (`24x24 viewBox`)，尺寸统一 `w-4 h-4` 或 `w-5 h-5`。
-   - 【微交互与抗抖动】：操作元素必加 `cursor-pointer`；所有 Hover 采用 `transition-colors duration-150`，严禁 `scale` 变形导致重排抖动。
-
-3. 【三大现代视口交互模块】：
-   - 【ChatGPT 式弹性侧边栏】：支持一键平滑折叠展开 (`w-64` 至紧凑栏，200ms ease-out)，管理多会话分组（今天/昨天/前7天），提供“待我审批”独立入口与未读徽标。
-   - 【Gemini 风格思考胶囊】：检索中微动画提示，完成后折叠为优雅胶囊，点击平滑展开规章制度来源；保留平滑打字机光标动画 (`typing-cursor`)。
-   - 【底部居中悬浮输入框】：最大宽度居中 (`max-w-3xl`)，柔和浮动阴影，自适应 `<textarea>` (44px~200px 零滚动条跳动)，Enter 发送 / Shift+Enter 换行，流式输出时自动变身 `⏹ 停止生成` 按钮。
-   - 【多端响应式】：375px~1440px 断点适配，移动端汉堡菜单呼出全屏抽屉，点击热区 ≥ 44x44px。
+1. [Orchestrator]: 在 `.harness/runs/Issue-XXXX/` (或 Ops-XXXX / Sprint-F-XXXX) 下创建 `issue.md` 锁存原始需求与运维目标。
+2. [PlannerAgent]: 制定 Checkpoints 变动表，生成 `plan.md`，并同步更新 `docs/plans/sprint-active.md`。
+3. [DeveloperAgent]: 使用 `backend/.venv/Scripts/python.exe` 执行代码/脚本编写与自动化测试（前端执行 `npm run build`），将真实控制台测试日志刷入 `developer.md`。
+4. [ReviewerAgent]: 从架构、安全、性能、回滚机制等 11 个维度审计代码，计算 ReviewScore（需 ≥ 90），刷入 `review.md`。
+5. [DocumentationAgent]: 导出 API/配置变更，更新 API.md/Database.md/Runbook，生成 `documentation.md`。
+6. [VerifierAgent]: 进行物理文件存在性与锁定状态静态审计，生成 `verification.md`。
+7. [HarnessRecorder]: 刷盘元数据文件 `summary.json`、`timeline.md` 与 `runtime.log`，闭环关单并更新进度大盘。
 
 ================================================
-第三阶段：Harness 10 阶段 SOP 强制物理履约 (Execution Contract)
+第三阶段：Day-2 生产运维与前端现代化实战任务索引
 ================================================
-接收到任何前端重构 Sprint (Sprint F-01 ~ F-08) 任务时，必须严格按顺序扮演以下 7 大 Agent/角色，并向 `.harness/runs/Sprint-F-XXXX/` 刷盘物理隔离的 8 大只读证据包，严禁跳过任何步骤或自写自审：
+当前处于【生产运行与运维保障模式 (PRODUCTION & OPERATIONS MODE)】，待指派任务索引：
 
-1. [Orchestrator]: 在 `.harness/runs/Sprint-F-XXXX/` 下创建 `issue.md`，锁存本 Sprint 原始 UI/UX 目标、设计系统契约与交互指标。
-2. [PlannerAgent]: 制定 Checkpoints 变动表、Vue 组件树与 CSS Token 映射表，生成 `plan.md`，并同步更新 `docs/plans/sprint-active.md`。
-3. [DeveloperAgent]: 执行依赖安装、代码编写与组件构建，在 `frontend/` 下运行 `npm run build` (或 Vitest)，将真实控制台编译与测试日志刷入 `developer.md`。
-4. [ReviewerAgent]: 依据 Harness + UI/UX Pro Max 11 维标准进行全景审查（零黑话合规性、WCAG AA 对比度、0 布局抖动、Lucide 矢量规范、状态机幂等性等），计算 ReviewScore（需 ≥ 90），签发 APPROVED 并生成 `review.md`。
-5. [DocumentationAgent]: 导出组件 Props/Emits 接口、CSS 变量字典与操作指南，生成 `documentation.md`。
-6. [VerifierAgent]: 进行物理文件存在性、构建产物完整性与沙盒锁定审计，生成 `verification.md`。
-7. [HarnessRecorder]: 刷盘元数据文件 `summary.json`、`timeline.md` 与 `runtime.log`，更新项目进度大盘，闭环关单。
+1. Day-2 生产运维实战任务 (Ops-0001 ~ Ops-0005)：
+- Ops-0001：金丝雀发布流量权重调整与灰度验证 (Canary Rollout)
+- Ops-0002：生产突发故障排查、熔断降级审计与哨兵集群切换 (Emergency Disaster Recovery)
+- Ops-0003：生产级监控指标大盘巡检与告警阈值动态调优 (Telemetry Auditing & Alerting)
+- Ops-0004：生产大模型影子流量对比与零中断切流 (Model Shadow Cutover)
+- Ops-0005：敏感数据脱敏合规审计与红蓝安全渗透巡检 (Security Compliance Pen-Testing)
 
-================================================
-第四阶段：前端里程碑任务索引 (Sprint F-01 ~ F-08)
-================================================
-待指派的前端现代战役任务：
+2. 前端现代化进阶战役任务 (Sprint F-01 ~ F-09)：
 - Sprint F-01：设计系统重塑、依赖装配与 Tailwind 色彩原子定义 (Design System & Shell)
 - Sprint F-02：ChatGPT 式折叠侧边栏、顶栏与会话状态 Pinia 仓储 (Collapsible Sidebar & Sessions)
 - Sprint F-03：Gemini 风格思考折叠胶囊与无黑话消息渲染组件 (Gemini Thought & Clean Message Stream)
@@ -526,19 +620,28 @@ graph LR
 - Sprint F-06：独立“待我审批”与“规章检索”业务工作区视图 (Approval Queue & Knowledge Workspace)
 - Sprint F-07：移动端折叠抽屉与 375px~1440px 响应式断点适配 (Mobile Drawer & Responsive Hardening)
 - Sprint F-08：全链路走查、Lighthouse 调优与终极体验验收签发 (E2E UX Hardening & Frontend Sign-off)
+- Sprint F-09：ChatGPT / Claude 原生 Web 交互与 Vuebits 旗舰动效组件集成 (Vuebits Flagship Integration)
 
 ================================================
 红线禁令 (Strict Invariants)
 ================================================
-❌ 严禁直接写代码而不建立 `.harness/runs/Sprint-F-XXXX/` 沙盒证据包。
-❌ 严禁在界面使用任何系统 Emoji (💡/⚠️/⚙️) 充当业务图标，必须统一使用 `lucide-vue-next`。
-❌ 严禁在 UI 界面出现任何未经转换的开发调试黑话（WS状态、TTFT、Token数、ROUTER代号、熔断器、流水号）。
-❌ 严禁未运行实际 `npm run build` 或组件测试即宣称“构建通过”。
-❌ 严禁破坏现有深色主题的对比度基准（正文对比度必须 ≥ 4.5:1，符合 WCAG AA）。
-❌ 严禁破坏现有后端 236 项单元测试稳态，保证 LangGraph / WebSocket / 审批流后端无损对接。
+❌ 严禁直接修改业务代码而不建立 `.harness/runs/Issue-XXXX/` (或 `Ops-XXXX/` / `Sprint-F-XXXX/`) 沙盒证据包。
+❌ 严禁使用系统全局 Python，必须统一使用 `backend/.venv/Scripts/python.exe`。
+❌ 严禁未运行实际 pytest/unittest 测试命令即宣称“测试通过”。
+❌ 严禁破坏现有 216 项单元测试与 0 Ruff 告警的生产高可用稳态。
+❌ 严禁将证据文件写入仓库外的缓存区，必须落盘至项目根目录下的 `.harness/runs/` 路径。
 
-确认理解上述 Harness + UI/UX Pro Max 规范后，请输出你的 Onboarding 诊断结果，并等待我的下一个 Sprint 指派。
+确认理解上述 Harness 规范后，请输出你的 Onboarding 诊断结果，并等待我的下一个任务指派。
+
+---
+
+三、当前运行验证与健康度状态
+
+- 单元测试套件：backend/.venv/Scripts/python.exe -m pytest backend/tests/ -q ➔ 216 passed (100% PASS)
+- 代码静态质量：backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/ ➔ 0 errors, 0 warnings (All checks passed)
+- 生产系统状态：PRODUCTION & OPERATIONS MODE 就绪，随时可接收 Day-2 SRE 运维与生产演练任务！
 ```
 
 ---
-*全景背书白皮书已于 2026-09-22 升级优化，全面完成 Harness SOP 与 UI/UX Pro Max 双轨工程治理绑定。*
+*全景背书白皮书已于 2026-09-23 升级优化，全面完成 Harness SOP 与 UI/UX Pro Max 双轨工程治理绑定。*
+

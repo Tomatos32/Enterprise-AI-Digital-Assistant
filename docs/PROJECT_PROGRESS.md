@@ -1,727 +1,180 @@
-# Enterprise AI Digital Assistant - 项目进度与全量开发规划全景白皮书
+# Enterprise AI Digital Assistant - 项目进展与真实化落地攻坚路线图
+# Project Progress & Pragmatic Realization Roadmap
 
-> **项目名称**：基于 LangGraph + RAG + 混合检索 + 企业工作流的企业级 AI 数字员工平台  
-> **当前运行模式**：**PRODUCTION & OPERATIONS MODE (生产运行与运维保障模式 · Day-2 状态 · 100% 全量就绪)**  
-> **前序阶段**：BOOTSTRAP MODE (100% 已闭环) · DEVELOPMENT MODE (100% 已闭环) · STAGING & HARDENING MODE (100% 已闭环)  
-> **基准规范**：[docs/SPEC.MD](file:///g:/LLM_Learning/product/docs/SPEC.MD) · [AGENTS.md](file:///g:/LLM_Learning/product/AGENTS.md) · [Runtime.md](file:///g:/LLM_Learning/product/docs/harness/Runtime.md) · [MOCK_INVENTORY.md](file:///g:/LLM_Learning/product/docs/MOCK_INVENTORY.md) · [PRODUCTION_SIGNOFF.md](file:///g:/LLM_Learning/product/docs/PRODUCTION_SIGNOFF.md)  
-> **系统最后更新**：2026-09-22  
+> **项目名称**：基于 LangGraph + RAG + 混合检索 + 开源工作流的企业级 AI 数字员工平台  
+> **当前运行模式**：**PRAGMATIC REALIZATION & HARDENING MODE (务实真实化重构与交付攻坚模式)**  
+> **模式说明**：面向个人开发者真实可运行、可交付、可 Demo 体验视角，卸除虚假宣传与不可及的企业假设，主攻核心链路真闭环  
+> **基准规范**：[docs/MOCK_INVENTORY.md](file:///g:/LLM_Learning/product/docs/MOCK_INVENTORY.md) · [AGENTS.md](file:///g:/LLM_Learning/product/AGENTS.md) · [docs/SPEC.MD](file:///g:/LLM_Learning/product/docs/SPEC.MD)  
+> **系统最后更新**：2026-09-23  
 
 ---
 
-## 1. 全局进度与模式升级全景看板 (Master Progress Dashboard)
+## 1. 全局真实现状诊断与纠偏看板 (Reality-Check Master Dashboard)
 
 ```text
 ====================================================================================================
-[BOOTSTRAP MODE]             ████████████████████████████████ 100% (Sprint 1~12 / Issue 0001~0019 已闭环)
-[DEVELOPMENT MODE]           ████████████████████████████████ 100% (Sprint 13~25 / Issue 0020~0032 已闭环)
-[STAGING & HARDENING MODE]   ████████████████████████████████ 100% (Sprint 26~30 / Issue 0033~0037 已闭环)
-[PRODUCTION & OPERATIONS]    🚀 READY & ARMED (投产运行中 · Ops-0001/0002 双闭环 · 236/236 Tests 100% PASS)
+【核心基础设施与前端界面】       ████████████████████████████████ 100% (Vue3 现代界面/路由框架/测试基础设施已交付)
+【核心业务链路真实性差距】       ██████████░░░░░░░░░░░░░░░░░░░░ 30% (存在假Embedding/硬编码生成/缺失会话表)
+【目标模式：个人高保真真闭环】   ████████████████░░░░░░░░░░░░░░░░ 50% (全面转向个人可及技术栈：LLM/Qdrant/Dify/N8N)
 ====================================================================================================
 ```
 
-| 治理维度 | 当前指标 / 状态 | 评估与合规性 |
+| 治理维度 | 物理排查结论与真实现状 | 纠偏决策与整改目标 |
 | :--- | :--- | :--- |
-| **Harness 运行模式** | **`PRODUCTION & OPERATIONS MODE`** (生产运行与运维保障模式) | ✅ 战役一至战役五 100% 验收闭环 · Day-2 SRE 持续运维中 |
-| **已闭环 Issue / Ops 总数** | **37 项 Issue (Issue-0001 ~ Issue-0037) + 2 项 Ops (Ops-0001, Ops-0002)** | ✅ 100% 具备 `.harness/runs/` 8 大证据包 |
-| **自动化测试通过率** | **236 / 236 项 (100% PASS)** | ✅ `backend/.venv/` 物理隔离执行全部通过 |
-| **代码静态质量分析** | **`Ruff 0 Errors / 0 Warnings`** | ✅ 严格符合 PEP 8 与项目工程编码标准 |
-| **金丝雀平滑放量与自动回滚** | **Ops-0001 梯度放量 (10%->50%->100%) + 500 混沌自愈回滚 100% PASS** | ✅ 5 阶段巡检全量通过，0 服务中断，归档 Ops-0001/ |
-| **突发故障容灾与哨兵切换** | **Ops-0002 503 快速失败 + Saga 逆序补偿 + Sentinel 主从故障转移 100% PASS** | ✅ 3 大容灾演练场景全量通过，数据 100% 幂等，归档 Ops-0002/ |
-| **终极投产验收签发** | **四方联合签署 APPROVED (`docs/PRODUCTION_SIGNOFF.md`)** | ✅ 准予生产环境正式部署上线 |
-| **前端终端体验现代化 (ChatGPT/Gemini 范式)** | **Vue 3 + Tailwind + Lucide + 零黑话 + 移动端视口 + 终极白皮书 (`docs/FRONTEND_SIGNOFF.md`)** | ✅ Sprint F-01 ~ F-08 全部闭环 100% PASS |
-| **全链路长稳压力测试** | **1,000 用户并发 + 1,351 QPS + P99 692ms + 0 内存泄漏** | ✅ Issue-0037 单元测试与压测套件 100% PASS |
-| **混沌工程与熔断自愈弹性** | **三态 CircuitBreaker + 错误率 > 50% 熔断 + 半开自愈 + Saga 逆序补偿联动** | ✅ Issue-0036 单元测试与 8 大证据包闭环 100% PASS |
-| **AI 内容安全与 PII DLP 护栏** | **双向安全护栏 + Prompt Injection / 越狱 100% 拦截 + 流式 Token 滑动窗口脱敏** | ✅ Issue-0035 单元测试与 8 大证据包闭环 100% PASS |
-| **云原生 K8s & 金丝雀发布**| **CNCF Helm 3 Chart + 双轨健康探针 + HPA 弹性伸缩 + Ingress 金丝雀路由** | ✅ Issue-0034 单元测试与 8 大证据包闭环 100% PASS |
-| **企业真实系统适配器** | **统一 Adapter 抽象层 + 工厂模式 + HTTP 连接池 + 指数退避重试** | ✅ Issue-0033 单元测试与 8 大证据包闭环 100% PASS |
-| **外部集成健康探测** | **`GET /api/v1/health/integrations` 外部系统动态状态与延迟矩阵** | ✅ Issue-0033 验收通过 |
-| **分布式长事务 Saga 补偿** | **Orchestrator-based LIFO 逆序补偿 + ERP/财务/OA 幂等回滚** | ✅ Issue-0032 单元测试与 8 大证据包闭环 100% PASS |
-| **Swarm 协同与 Handoff 总线** | **多 Agent 跨部门移交 + 双轨状态隔离 (Shared / Private)** | ✅ Issue-0031 单元测试与 SOP 闭环 100% PASS |
-| **专职 Subgraph 体系解耦** | **HR / Finance / IT / Compliance 4 大专职子图与专属工具白名单** | ✅ Issue-0030 单元测试 100% PASS |
-| **模型 A/B Testing 与影子部署** | **确定性哈希分流比 + 异步非阻塞 Shadow 模式 + Redis 指标** | ✅ Issue-0029 单元测试 100% PASS |
-| **MySQL 读写分离引擎** | **`RoutingSession` 主从分流 + 连接池高并发调优** | ✅ Issue-0026 压测与单元测试 100% PASS |
-| **Redis Sentinel 容灾** | **哨兵集群主从切换 + Standalone 优雅回退** | ✅ Issue-0026 单元测试 100% PASS |
-| **RLHF / DPO 反馈闭环** | **`FeedbackRecord` 表 + PII 隐私脱敏 + DPO JSONL 抽取** | ✅ Issue-0027 单元测试 100% PASS |
-| **RAGAS CI/CD 质量门禁** | **`--strict-gate` 严格双阈值阻断 + 坏例 Markdown 报告** | ✅ Issue-0028 单元测试与 GitHub Actions 就绪 |
-| **RAG 准确率评估** | **Faithfulness > 0.94 / Context Recall > 0.91** | ✅ 满足 RAGAS 0.90 / 0.88 门禁要求 |
-| **多模态与排版解析** | **PDF 双栏重构 / 跨页表格合并 / Excel 多级表头** | ✅ Issue-0020 单元测试 100% PASS |
-| **全局 Mock 资产审计与记忆** | **12 项核心 Mock 节点全面入册，提供环境变量无感割接方案** | ✅ `docs/MOCK_INVENTORY.md` 审计归档 PASS |
-| **知识图谱与 Graph RAG** | **实体抽取 / 拓扑子图扩展 / 向量+图双路融合** | ✅ Issue-0022 单元测试 100% PASS |
-| **向量多租户安全热隔离** | **Qdrant Payload Filter / 租户数据硬物理隔离** | ✅ Issue-0023 单元测试 100% PASS |
-| **OpenTelemetry 分布式追踪** | **`@trace_span` / TTFT 首字延迟 / X-Trace-ID 透传** | ✅ Issue-0024 单元测试 100% PASS |
-| **Prometheus & Grafana 监控** | **Token/TTFT/WS/Celery 指标 / 5 大看板 / GET /metrics** | ✅ Issue-0025 单元测试 100% PASS |
-| **端到端数字化闭环** | **用户提问 ➔ Router ➔ RAG ➔ 审批中断 ➔ ERP ➔ 企微卡片** | ✅ E2E 演示脚本验证无异常 |
+| **数据库持久化** | 🔴 **严重缺失**：仅有 User/Inventory/Ticket/Approval，**完全缺少**会话表（`chat_sessions`）与历史消息表（`chat_messages`）；LangGraph 仅用内存 `MemorySaver` | 🎯 **Sprint R-01 攻坚**：新建 `ChatSession` 与 `ChatMessage` 表，提供分页历史查询 API 与持久化存储，前端支持历史会话回显与切换 |
+| **向量库与 Embedding** | 🔴 **伪算法与黑盒**：`get_embedding` 采用 `sha256 + sin` 计算伪 1024 维向量；Qdrant 掉线静默退化到内存；每次检索临时读文件临时 upsert；开发者无法得知库内现状 | 🎯 **Sprint R-02 攻坚**：替换为真实轻量级 Embedding（`fastembed` / BGE / API）；编写一键切片入库脚本 `scripts/ingest_knowledge.py`；新增 `/api/v1/knowledge/status` 探针 |
+| **RAG 检索与生成链路** | 🔴 **假回显无真实 LLM**：`generate_node.py` 将检索前 150 字符硬编码拼装为假文本；无真实模型调用；无语义 Rerank 与检索自校验机制 | 🎯 **Sprint R-03 攻坚**：重构 `generate_node`，接入真实 LLM 流式生成（打字机效果）；增加相关性阈值过滤与无上下文时的优雅自校验反思 |
+| **大模型推理引擎 (LLM)** | 🟡 **调用层空置**：`llm_gateway.py` 为模拟休眠与假字符串生成，未真正接入任何 API 提供商或本地推理服务 | 🎯 **Sprint R-03/04 攻坚**：封装统一的通用 OpenAI 兼容客户端，一键配置商用 API（DeepSeek / Qwen / OpenAI）或本地推理引擎（vLLM / Ollama） |
+| **开源工作流平台 (Dify/n8n)**| 🟡 **内存伪事件**：`workflow.py` 仅在内存列表记录事件，未真正与外部自动化工作流对接 | 🎯 **Sprint R-04 攻坚**：主攻个人可自建部署的 **Dify**（Workflow/Agent API）与 **N8N**（Webhook 自动化编排），实现真实的双向事件联动 |
+| **外部企业系统 (HR/ERP/OA)**| 🟢 **定位纠偏**：飞书人事、SAP ERP、泛微 OA 等企业专有系统个人无账号无内网，强行割接不现实 | 🎯 **保持高质量标准化模拟桩**：保留本地 REST API 模拟桩（完整覆盖员工、库存、采购、工单读写与单据流转），无需采购商业软件 |
+| **前端终端体验** | 🟢 **100% 验收就绪**：Vue 3 + Tailwind + Lucide + 零黑话，支持流式对话卡片、审批卡片、移动端视口适配 | 🎯 **持续保持**：与后端新持久化 API 对接，打通历史会话抽屉与多轮对话连续性 |
 
 ---
 
-## 2. BOOTSTRAP 阶段 100% 验收核对矩阵 (Bootstrap Exit Criteria Verification)
+## 2. 用户视角实操痛点归因与差距分析 (Gap Analysis)
 
-依据 `BOOTSTRAP.md` 与 `docs/harness/Runtime.md` 的规定，系统已全量通过以下 **8 项退出门禁 (100% PASS)**，具备正式切换至完整开发模式的物理条件：
-
-```mermaid
-graph LR
-    subgraph Bootstrap_Checklist [BOOTSTRAP 退出硬性门禁 100% 达标]
-        C1[1. FastAPI 启动与 Health 探针<br/>GET /api/v1/health: 200 OK]
-        C2[2. Docker 一键编排<br/>MySQL/Redis/Qdrant 容器 Healthy]
-        C3[3. Vue3 前端 UI<br/>响应式流式对话与卡片交互]
-        C4[4. MySQL 业务持久化<br/>SQLAlchemy ORM + Alembic 迁移]
-        C5[5. Redis 缓存与 Broker<br/>Prompt Hash + Celery 任务队列]
-        C6[6. Qdrant 向量底座<br/>BGE-M3 Dense + BM25 混合检索]
-        C7[7. LangGraph 状态机<br/>Human-in-the-loop 中断与恢复]
-        C8[8. 外部工作流联动<br/>Webhook 触发 + 企微 Bot 通知]
-    end
-    Bootstrap_Checklist --> ModeSwitch((正式升级进入<br/>DEVELOPMENT MODE))
-```
-
-| 门禁项 | 对应模块 / Issue | 验证方法与控制台证据 | 状态 |
-| :--- | :--- | :--- | :---: |
-| **1. [Backend Health]** | `api/v1/health.py` (Issue-0002) | 运行 `test_infra.py`，`/api/v1/health` 稳定返回 `{"status": "healthy"}` | ✅ PASS |
-| **2. [Docker Compose]** | `docker-compose.yml` (Issue-0002) | 包含 MySQL 8.0, Redis 7.0, Qdrant 1.8, FastAPI 服务定义与持久化卷 | ✅ PASS |
-| **3. [Frontend UI]** | `frontend/` (Issue-0015) | Vue 3 + TailwindCSS 实现 WebSocket 双工流式通信与 Markdown 卡片渲染 | ✅ PASS |
-| **4. [MySQL DB]** | `models/` (Issue-0005, 0013) | `User`, `Inventory`, `Ticket`, `Purchase`, `Approval` 数据模型就绪 | ✅ PASS |
-| **5. [Redis & Broker]** | `core/redis.py` (Issue-0002, 0016) | Redis 客户端单例正常，支持 Prompt 缓存与 Celery Broker 消息投递 | ✅ PASS |
-| **6. [Qdrant & Vector]** | `core/vector_store.py` (Issue-0004, 0008) | 6 篇多主题企业规章完成切片、Embedding 入库与 RRF 混合检索打通 | ✅ PASS |
-| **7. [LangGraph State]** | `graph/workflow.py` (Issue-0001, 0011, 0014) | StateGraph 拓扑完整，支持审批金额 > 5,000 元自动 `interrupt()` 挂起 | ✅ PASS |
-| **8. [Webhook & WeCom]** | `api/v1/workflow.py` (Issue-0019) | `POST /api/v1/webhook/event` 调通，支持 n8n/Dify 联动与企微卡片广播 | ✅ PASS |
-
----
-
-## 3. DEVELOPMENT MODE 阶段 100% 验收核对矩阵 (Development Mode Exit Criteria Verification)
-
-依据 `Runtime.md` 与工程生命周期规范，系统已全量通过以下 **12 项硬性退出门禁 (100% PASS)**，具备由 Development Mode 正式升级至 **STAGING & HARDENING MODE (生产就绪与投产硬化模式)** 的物理条件：
+在真实 Demo 使用过程中暴露的四大核心短板与物理成因：
 
 ```mermaid
 graph TD
-    subgraph Dev_Exit_Gates [DEVELOPMENT MODE 12 大硬性退出门禁 100% 达标]
-        D1[1. 自动化测试套件<br/>140/140 项 100% PASS]
-        D2[2. 静态代码分析<br/>Ruff 0 错误 / 0 警告]
-        D3[3. 证据链沙盒<br/>Issue-0001~0032 8 大证据包就绪]
-        D4[4. 多模态文档解析<br/>双栏重构/跨页表格合并]
-        D5[5. 全局 Mock 资产审计<br/>MOCK_INVENTORY.md 规范]
-        D6[6. 企业知识图谱<br/>Graph RAG 拓扑多跳推理]
-        D7[7. 向量多租户隔离<br/>Payload 物理过滤拦截]
-        D8[8. 分布式链路追踪<br/>OpenTelemetry + Jaeger]
-        D9[9. 生产度量监控大盘<br/>Prometheus /metrics + Grafana]
-        D10[10. 高并发集群架构<br/>MySQL 读写分离 + Sentinel]
-        D11[11. 持续微调与评测<br/>RLHF/DPO + RAGAS 门禁]
-        D12[12. 多 Agent 协同网格<br/>Subgraphs + Swarm + Saga]
+    subgraph Reality_Gaps [四大核心物理脱节成因]
+        G1[痛点 1: 刷新页面历史全无<br/>· 缺少 chat_sessions / chat_messages 表<br/>· MemorySaver 内存状态易失]
+        G2[痛点 2: 向量检索语义失效且黑盒<br/>· sha256 + sin 伪数学向量<br/>· 检索时临时 upsert 内存<br/>· 无集合状态与点数探针]
+        G3[痛点 3: RAG 没有真实大模型参与<br/>· generate_node 截取 150 字拼装假响应<br/>· 缺乏语义 Rerank 与检索自校验<br/>· WebSocket 未触发真实 Token 流]
+        G4[痛点 4: 外部系统脱离个人实际<br/>· 盲目规划飞书/SAP/泛微<br/>· 忽视个人可及的 vLLM/Dify/N8N]
     end
-    Dev_Exit_Gates --> ModeUpgrade((正式升级进入<br/>STAGING & HARDENING MODE))
+    Reality_Gaps --> Refocus[系统性纠偏与落地路线图]
 ```
 
-| 门禁项 | 对应模块 / Issue | 验证方法与控制台证据 | 状态 |
-| :--- | :--- | :--- | :---: |
-| **1. [自动化测试全通]** | 全量单元与集成测试 | `pytest backend/tests/` 全部执行通过 (140/140 PASS) | ✅ PASS |
-| **2. [代码规范零告警]** | PEP 8 与工程规范 | `ruff check backend/` 报告 0 errors / 0 warnings | ✅ PASS |
-| **3. [Harness 证据链]** | `.harness/runs/` 归档 | Issue-0001 至 Issue-0032 均包含完整的 8 大只读证据包 | ✅ PASS |
-| **4. [多模态解析基线]** | `multimodal_parser.py` (Issue-0020) | 双栏排版流式重构、跨页表格合并与 Excel 多级表头解析测试 PASS | ✅ PASS |
-| **5. [Mock 资产清单]** | `docs/MOCK_INVENTORY.md` (Issue-0021) | 12 项 Mock 节点入册，定义环境变量无感割接与适配器规范 | ✅ PASS |
-| **6. [知识图谱 Graph RAG]** | `graph_rag.py` (Issue-0022) | 实体抽取、图拓扑子图扩展与向量+图谱双路召回测试 PASS | ✅ PASS |
-| **7. [多租户向量隔离]** | `security_filter.py` (Issue-0023) | 基于部门/角色的 Qdrant Payload Filter 物理越权拦截 PASS | ✅ PASS |
-| **8. [分布式链路追踪]** | `telemetry.py` (Issue-0024) | `@trace_span` 装饰器、TTFT 首字延迟统计与 `X-Trace-ID` 透传 PASS | ✅ PASS |
-| **9. [Prometheus 监控]** | `metrics.py` (Issue-0025) | Token 统计、Prompt 命中率、队列深度与 Grafana 5 大看板就绪 | ✅ PASS |
-| **10. [数据库读写分离]** | `database.py` (Issue-0026) | `RoutingSession` 读从写主分流与 100 并发压测通过 | ✅ PASS |
-| **11. [LLMOps 持续闭环]** | `feedback.py`, `eval_ragas.py` (Issue-0027, 0028, 0029) | DPO 偏好数据抽取、RAGAS 双阈值阻断与 A/B 影子网关全量通过 | ✅ PASS |
-| **12. [多 Agent 协同网格]** | `subgraphs/`, `swarm_router.py`, `saga_orchestrator.py` (Issue-0030~0032) | HR/财务/IT/合规专职子图、Swarm 跨部门委托与 Saga LIFO 逆序回滚 PASS | ✅ PASS |
+### 痛点 1：数据库遗漏会话历史与工单审批上下文孤岛
+- **现象**：用户在前端发消息聊天后，刷新页面聊天记录无法找回；工单和审批记录散落在单点接口中，未与特定会话线程强绑定。
+- **成因**：前序设计侧重于单次请求的单元测试通过率，仅在 LangGraph 中使用了内存型的 `MemorySaver()`，未在 SQLAlchemy 中建立 `chat_sessions` 和 `chat_messages` 实体表。
+
+### 痛点 2：向量库黑盒且使用伪向量算法
+- **现象**：开发者在本地启动项目后，完全不知道 Qdrant 有没有部署、规章制度文档有没有切片入库、检索到底有没有命中。
+- **成因**：`backend/rag/vector_store.py` 内部使用 `hashlib.sha256 + sin` 计算假向量，无法度量语义相似度；每次查询时重新扫描本地文件插入内存，缺乏持久化的知识库离线构建管道。
+
+### 痛点 3：RAG 全链路无真实大模型流式生成与自校验
+- **现象**：用户提问任何规章制度，系统返回的都是一段机械的 `[RAG Answer]: Based on corporate knowledge base...` 开头的截取文本。
+- **成因**：`generate_node.py` 中写死了纯字符串拼接逻辑，完全没有通过 LangChain 或 SDK 调用真实大模型（OpenAI/DeepSeek 等）；也缺少判断检索内容是否相关的自校验（Self-Correction）机制。
+
+### 痛点 4：对接方向脱离个人实际
+- **现象**：文档中规划了大量“无感割接到飞书、SAP ERP、泛微 OA、企业微信”，但个人开发者既无企业凭证也无企业内网，造成大量代码空置。
+- **成因**：规划初期直接套用了大型外企架构蓝图。纠偏后，应坚决将企业系统降级为**本地高质量模拟桩**，将精力聚焦于个人完全可玩转的 **OpenAI兼容大模型 / 本地 vLLM / Ollama** 以及 **开源自建工作流平台 Dify / N8N**。
 
 ---
 
-## 4. STAGING & HARDENING MODE 阶段 100% 验收核对矩阵 (Staging & Hardening Exit Criteria Verification)
+## 3. 务实攻坚路线图与阶段规划 (Pragmatic Sprint Plan)
 
-依据 `Runtime.md`、`Lifecycle.md` 与工程硬化验收规范，系统已全量通过以下 **5 大投产硬性退出门禁 (100% PASS)**，具备由 Staging & Hardening Mode 正式升级至 **PRODUCTION & OPERATIONS MODE (生产运行与运维保障模式)** 的物理条件：
-
-```mermaid
-graph TD
-    subgraph Staging_Hardening_Exit_Gates [STAGING & HARDENING 5 大终极投产门禁 100% 达标]
-        H1[门禁 1: 业务系统无感割接<br/>Adapter Layer + Health Probes<br/>Issue-0033 100% PASS]
-        H2[门禁 2: 云原生 K8s 与金丝雀<br/>Helm 3 + HPA + Ingress Canary<br/>Issue-0034 100% PASS]
-        H3[门禁 3: AI 双向安全与 PII DLP<br/>Input Guard + Token 流式脱敏<br/>Issue-0035 100% PASS]
-        H4[门禁 4: 混沌韧性与自愈弹性<br/>三态 CircuitBreaker + Saga 联动<br/>Issue-0036 100% PASS]
-        H5[门禁 5: 1000 并发长稳与投产签发<br/>1351 QPS + P99 692ms + 四方签署<br/>Issue-0037 100% PASS]
-    end
-    Staging_Hardening_Exit_Gates --> ProductionReady((正式晋升进入<br/>PRODUCTION & OPERATIONS MODE))
-```
-
-| 门禁项 | 对应模块 / Issue | 验证方法与控制台证据 | 状态 |
-| :--- | :--- | :--- | :---: |
-| **1. [业务系统无感割接]** | `backend/adapters/` (Issue-0033) | 抽象基类 + 工厂模式，`USE_MOCK_SYSTEMS=False` 动态切换，`GET /api/v1/health/integrations` 外部矩阵连通性探针全通 | ✅ PASS |
-| **2. [云原生编排与金丝雀]** | `deployments/helm/enterprise-ai/` (Issue-0034) | CNCF Helm 3 生产 Chart、liveness/readiness 探针、HPA 2~10 副本伸缩、NGINX Ingress 金丝雀权重流量分流 Lint 校验 PASS | ✅ PASS |
-| **3. [AI 安全护栏与 PII]** | `backend/core/guardrails/` (Issue-0035) | 越狱攻击/Prompt Injection 100% 规则拦截，手机号/身份证/银行卡流式滑动窗口正则脱敏，20+ 组测试 100% PASS | ✅ PASS |
-| **4. [混沌工程与熔断自愈]** | `backend/core/circuit_breaker.py` (Issue-0036) | 状态机 `CLOSED`->`OPEN`->`HALF_OPEN`，超时失败率 > 50% 快速熔断防雪崩，恢复后自动半开自愈，Saga LIFO 补偿一致性 PASS | ✅ PASS |
-| **5. [1000 并发与投产签发]** | `benchmark/production_load_test.py`, `docs/PRODUCTION_SIGNOFF.md` (Issue-0037) | 1,000 用户并发全链路长稳压测（1,351 QPS, P99 692ms, TTFT P95 248ms, 0 内存泄漏），全仓 216 项测试 PASS，四方技术首脑联签 APPROVED | ✅ PASS |
-
----
-
-## 5. Sprint 1 ~ 30 全量历史里程碑交付物与提示词全集归档 (Historical Milestones Sprint 1~30)
-
-| 里程碑 (Sprint) | 核心功能与技术实现 | 对应 Issue 证据链 | 关键交付文件 |
-| :--- | :--- | :--- | :--- |
-| **Sprint 1: 基础设施** | FastAPI 路由框架、JWT 鉴权、RBAC 权限守门、Docker Compose | [Issue-0002](file:///.harness/runs/Issue-0002/)<br/>[Issue-0005](file:///.harness/runs/Issue-0005/) | `backend/core/config.py`<br/>`backend/api/v1/auth.py` |
-| **Sprint 2: 知识库建设** | 6 篇多格式企业规章数据生成、多格式 Loader、Qdrant 向量入库 | [Issue-0004](file:///.harness/runs/Issue-0004/)<br/>[Issue-0010](file:///.harness/runs/Issue-0010/) | `docs/sample_kb/*.md`<br/>`backend/core/vector_store.py` |
-| **Sprint 3: 混合检索** | BM25 稀疏检索 + Qdrant 密集向量检索 + RRF 融合与重排算法 | [Issue-0008](file:///.harness/runs/Issue-0008/) | `backend/core/retrieval.py` |
-| **Sprint 4: 状态机引擎** | LangGraph StateGraph 拓扑构建、意图分类路由与条件边流转 | [Issue-0001](file:///.harness/runs/Issue-0001/)<br/>[Issue-0011](file:///.harness/runs/Issue-0011/) | `backend/graph/workflow.py`<br/>`backend/graph/nodes/*.py` |
-| **Sprint 5: 工具注册器** | Function Calling 工具注册器与 5 大核心工具 (`tool_node`) | [Issue-0012](file:///.harness/runs/Issue-0012/) | `backend/tools/registry.py`<br/>`backend/tools/impl/*.py` |
-| **Sprint 6: 企业系统 Mock** | HR/ERP/OA 三大系统 Mock REST 接口与 MySQL ORM 读写打通 | [Issue-0013](file:///.harness/runs/Issue-0013/) | `backend/api/v1/mock/*.py`<br/>`backend/models/*.py` |
-| **Sprint 7: 人机协同审批** | 采购超额审批 LangGraph `interrupt()`、三层 AI 输出中断机制 | [Issue-0014](file:///.harness/runs/Issue-0014/) | `backend/api/v1/approval.py`<br/>`backend/api/v1/chat.py` |
-| **Sprint 8: 双工流式通道** | WebSocket 双工长连接、`astream_events` 实时流式响应与 Vue3 UI | [Issue-0015](file:///.harness/runs/Issue-0015/) | `backend/api/v1/chat_ws.py`<br/>`frontend/src/` |
-| **Sprint 9: 异步任务队列** | Celery 异步 Worker、大文件离线解析与任务状态轮询 API | [Issue-0016](file:///.harness/runs/Issue-0016/) | `backend/core/celery_app.py`<br/>`backend/api/v1/tasks.py` |
-| **Sprint 10: AI 网关设施** | LLMGateway 网关、Prompt SHA-256 哈希缓存、Token/成本监控与降级 | [Issue-0017](file:///.harness/runs/Issue-0017/) | `backend/core/llm_gateway.py` |
-| **Sprint 11: 质量评估门禁** | RAGAS 30 组企业评测集、Faithfulness/Recall 评测与 0.90 门禁阻断 | [Issue-0018](file:///.harness/runs/Issue-0018/) | `benchmark/eval_ragas.py`<br/>`benchmark/test-dataset.json` |
-| **Sprint 12: 数字化转型** | Webhook 事件路由、n8n/Dify 节点对接、企微 Bot 卡片推送与 E2E 闭环 | [Issue-0019](file:///.harness/runs/Issue-0019/) | `backend/api/v1/workflow.py`<br/>`backend/scripts/demo_e2e.py` |
-| **Sprint 13: 多模态解析** | 复杂排版多模态文档解析器、双栏重构、跨页表格合并与 Excel 多级表头 | [Issue-0020](file:///.harness/runs/Issue-0020/) | `backend/core/multimodal_parser.py`<br/>`backend/tasks/ingestion_tasks.py` |
-| **Sprint 14: Mock资产审计** | 全局企业 Mock 系统（HR/ERP/OA/采购/审批）资产清单审计与真实系统替换规范 | [Issue-0021](file:///.harness/runs/Issue-0021/) | `docs/MOCK_INVENTORY.md`<br/>`backend/tests/unit/test_mock_inventory.py` |
-| **Sprint 15: 知识图谱与GraphRAG** | 企业实体抽取、图拓扑子图扩展、向量+图谱双路检索融合与重排引擎 | [Issue-0022](file:///.harness/runs/Issue-0022/) | `backend/core/graph_rag.py`<br/>`backend/rag/retriever.py` |
-| **Sprint 16: 向量多租户隔离** | 动态多租户与 RBAC 向量安全热隔离、Qdrant Payload 物理过滤拦截 | [Issue-0023](file:///.harness/runs/Issue-0023/) | `backend/rag/vector_store.py`<br/>`backend/tests/unit/test_vector_security.py` |
-| **Sprint 17: 分布式全链路追踪** | OpenTelemetry + Jaeger 分布式全链路追踪、`@trace_span`、TTFT 首字延迟与 `X-Trace-ID` 透传 | [Issue-0024](file:///.harness/runs/Issue-0024/) | `backend/core/telemetry.py`<br/>`backend/tests/unit/test_telemetry.py` |
-| **Sprint 18: 生产度量监控看板** | Prometheus 指标收集器 (Token/TTFT/Cache/WS/Celery)、FastAPI `/metrics`、Grafana 5 大看板 | [Issue-0025](file:///.harness/runs/Issue-0025/) | `backend/core/metrics.py`<br/>`monitoring/` |
-| **Sprint 19: 读写分离与集群** | MySQL `RoutingSession` 动态读写分离、高并发连接池调优、Redis Sentinel 容灾 | [Issue-0026](file:///.harness/runs/Issue-0026/) | `backend/core/database.py`<br/>`backend/core/redis.py` |
-| **Sprint 20: 人类反馈与DPO** | `FeedbackRecord` 反馈表、点赞/纠错捕获、敏感脱敏与 DPO JSONL 提炼管道 | [Issue-0027](file:///.harness/runs/Issue-0027/) | `backend/models/feedback.py`<br/>`backend/scripts/extract_dpo_dataset.py` |
-| **Sprint 21: 定时巡检CI/CD** | RAGAS `--strict-gate` 质量门禁阻断、Markdown 坏例分析、GitHub Actions 自动化 | [Issue-0028](file:///.harness/runs/Issue-0028/) | `benchmark/eval_ragas.py`<br/>`.github/workflows/eval_pipeline.yml` |
-| **Sprint 22: 模型A/B与影子部署** | 用户 Hash 确定性流量分流、异步非阻塞 Shadow 流量复制、Redis 表现指标 | [Issue-0029](file:///.harness/runs/Issue-0029/) | `backend/core/llm_gateway.py`<br/>`backend/tests/unit/test_ab_testing.py` |
-| **Sprint 23: 专职 Subgraph 解耦** | HR/Finance/IT/Compliance 4 大领域子图、专属工具白名单与独立提示词 | [Issue-0030](file:///.harness/runs/Issue-0030/) | `backend/graph/subgraphs/`<br/>`backend/tests/unit/test_subgraphs.py` |
-| **Sprint 24: Swarm 协同总线** | LangGraph Swarm 跨部门移交、Handoff 上下文传递、新员工入职复合长流程 | [Issue-0031](file:///.harness/runs/Issue-0031/) | `backend/graph/swarm_router.py`<br/>`backend/tests/unit/test_swarm_collaboration.py` |
-| **Sprint 25: 分布式 Saga 事务** | Orchestrator 逆序补偿机制、ERP/财务/OA 幂等回滚、跨系统故障恢复 | [Issue-0032](file:///.harness/runs/Issue-0032/) | `backend/core/saga_orchestrator.py`<br/>`backend/tests/unit/test_saga_rollback.py` |
-| **Sprint 26: 真实系统适配器** | 统一 Adapter 抽象层、工厂自动装配、外部 HTTP 探针 `/api/v1/health/integrations` | [Issue-0033](file:///.harness/runs/Issue-0033/) | `backend/adapters/`<br/>`backend/tests/unit/test_production_adapters.py` |
-| **Sprint 27: 云原生 K8s 与金丝雀** | CNCF Helm 3 Chart、双健康探针、HPA 水平伸缩、NGINX Ingress 权重分流 | [Issue-0034](file:///.harness/runs/Issue-0034/) | `deployments/helm/enterprise-ai/`<br/>`backend/tests/unit/test_k8s_templates.py` |
-| **Sprint 28: AI 内容安全与 PII** | 越狱攻击防御、Prompt Injection 拦截、流式滑动窗口 Token 脱敏 | [Issue-0035](file:///.harness/runs/Issue-0035/) | `backend/core/guardrails/`<br/>`backend/tests/unit/test_guardrails.py` |
-| **Sprint 29: 混沌工程与熔断自愈** | 三态 CircuitBreaker 状态机、带抖动退避重试、Saga 补偿自愈联动 | [Issue-0036](file:///.harness/runs/Issue-0036/) | `backend/core/circuit_breaker.py`<br/>`backend/tests/unit/test_chaos_resilience.py` |
-| **Sprint 30: 生产压测与投产签发** | 1,000 用户并发长稳压测 (1351 QPS, P99 692ms)、四方联合签署终极签发白皮书 | [Issue-0037](file:///.harness/runs/Issue-0037/) | `benchmark/production_load_test.py`<br/>`docs/PRODUCTION_SIGNOFF.md` |
-
-<details>
-<summary><b>📂 点击展开查看 Sprint 1 ~ 30 全量历史 Issue 提示词归档模板库</b></summary>
-
-#### Sprint 7 历史提示词模板：`Prompt-Sprint-07-HumanInTheLoopAndAbort`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0014：实现 Sprint 7 “Human-in-the-loop 人机协同审批流与三层 AI 中断响应机制”。
-【核心交付】：LangGraph interrupt() 采购拦截、POST /api/v1/approval/action 恢复、三层中断取消机制。
-```
-
-#### Sprint 8 历史提示词模板：`Prompt-Sprint-08-WebSocketUI`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0015：实现 Sprint 8 “WebSocket 双工流式通道与前端 Vue3 对话 UI”。
-【核心交付】：astream_events 流式推送、Vue3 Markdown 对话卡片与中止生成按钮。
-```
-
-#### Sprint 9 历史提示词模板：`Prompt-Sprint-09-CeleryTasks`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0016：实现 Sprint 9 “Celery 异步任务队列与大文件离线处理”。
-【核心交付】：Redis Broker 连接、async_ingest_document 任务、GET /api/v1/tasks/{task_id}/status 进度查询。
-```
-
-#### Sprint 10 历史提示词模板：`Prompt-Sprint-10-AIInfra`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0017：实现 Sprint 10 “AI Infra 基础设施：Prompt Cache、Token Monitor 与 Fallback”。
-【核心交付】：LLMGateway 调度、Prompt SHA-256 哈希缓存、Token/成本监控与降级切换。
-```
-
-#### Sprint 11 历史提示词模板：`Prompt-Sprint-11-RAGASEval`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0018：实现 Sprint 11 “RAGAS 自动化质量评估与回归测试套件”。
-【核心交付】：30 组 test-dataset.json、Faithfulness/Recall 评测与 0.90 门禁阻断。
-```
-
-#### Sprint 12 历史提示词模板：`Prompt-Sprint-12-DigitalDemo`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0019：实现 Sprint 12 “数字化转型 Demo 与 n8n / Dify Webhook 工作流集成”。
-【核心交付】：POST /api/v1/webhook/event、企微 Bot 卡片推送与 E2E 演示脚本。
-```
-
-#### Sprint 13 历史提示词模板：`Prompt-Issue-0020-MultimodalParser`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0020：实现 Sprint 13 “复杂排版多模态文档解析器与表格结构化提取”。
-【核心交付】：MultimodalDocumentParser 统一接口、双栏重构、跨页表格识别合并、Excel 多级表头解析。
-```
-
-#### Sprint 14 历史提示词模板：`Prompt-Issue-0021-MockInventoryAudit`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0021：实现 Sprint 14 “全局 Mock 资产清单审计、记忆与生产环境真实数据对接替换规范”。
-【核心交付】：docs/MOCK_INVENTORY.md 建立、USE_MOCK_SYSTEMS 环境变量契约规范化、test_mock_inventory.py。
-```
-
-#### Sprint 15 历史提示词模板：`Prompt-Issue-0022-GraphRAG`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0022：实现 Sprint 15 “企业知识图谱构建与 Graph RAG 拓扑推理引擎”。
-【核心交付】：EnterpriseKnowledgeGraph 三元组抽取、多跳图拓扑推理、向量+图谱双路召回融合。
-```
-
-#### Sprint 16 历史提示词模板：`Prompt-Issue-0023-RBACVectorFilter`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0023：实现 Sprint 16 “动态多租户与 RBAC 向量安全热隔离”。
-【核心交付】：Qdrant Payload Filter 安全构建器、入库元数据注入、越权检索 100% 物理阻断。
-```
-
-#### Sprint 17 历史提示词模板：`Prompt-Issue-0024-OpenTelemetry`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0024：实现 Sprint 17 “OpenTelemetry & Jaeger 分布式全链路追踪”。
-【核心交付】：全局 trace_id 注入、X-Trace-ID 响应头透传、@trace_span 装饰器、TTFT 首字延迟统计。
-```
-
-#### Sprint 18 历史提示词模板：`Prompt-Issue-0025-PrometheusMetrics`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0025：实现 Sprint 18 “Prometheus + Grafana 深度度量监控看板”。
-【核心交付】：Prometheus 指标收集器、GET /metrics 暴露、Grafana 5 大核心监控面板 JSON。
-```
-
-#### Sprint 19 历史提示词模板：`Prompt-Issue-0026-HighConcurrency`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0026：实现 Sprint 19 “MySQL 读写分离与 Redis 高并发高可用架构”。
-【核心交付】：RoutingSession 读写分离引擎、连接池 100+ 并发优化、Redis Sentinel 哨兵自动容灾。
-```
-
-#### Sprint 20 历史提示词模板：`Prompt-Issue-0027-DPOPipeline`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0027：实现 Sprint 20 “人类反馈 (RLHF/DPO) 数据闭环收集与自动清洗提炼管道”。
-【核心交付】：FeedbackRecord 表、POST /api/v1/chat/feedback 收集端点、extract_dpo_dataset.py 样本生成。
-```
-
-#### Sprint 21 历史提示词模板：`Prompt-Issue-0028-NightlyRAGAS`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0028：实现 Sprint 21 “Nightly 定时巡检 CI/CD 与 RAGAS 自动化质量防退化流水线”。
-【核心交付】：eval_ragas.py --strict-gate 严格门禁阻断、bad cases Markdown 报告、GitHub Actions 工作流。
-```
-
-#### Sprint 22 历史提示词模板：`Prompt-Issue-0029-ABTesting`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0029：实现 Sprint 22 “模型 A/B Testing 流量分流与 Shadow 影子部署网关”。
-【核心交付】：ABTestingGateway 用户哈希分流、Shadow Mode 异步影子流量复制、Redis 表现指标度量。
-```
-
-#### Sprint 23 历史提示词模板：`Prompt-Issue-0030-SubAgentSpecialization`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0030：实现 Sprint 23 “专职领域 Sub-Agent 体系解耦与专属工具集绑定”。
-【核心交付】：HR/Finance/IT/Compliance 4 大领域子图、专属工具函数白名单隔离、独立 System Prompt。
-```
-
-#### Sprint 24 历史提示词模板：`Prompt-Issue-0031-SwarmHandoff`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0031：实现 Sprint 24 “LangGraph Swarm 协同协议与跨部门 Handoff 消息总线”。
-【核心交付】：Swarm 主拓扑路由、handoff_to_agent 控制权移交、全局共享/私有双轨上下文、新员工入职长事务编排。
-```
-
-#### Sprint 25 历史提示词模板：`Prompt-Issue-0032-SagaCompensation`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0032：实现 Sprint 25 “长事务分布式 Saga 补偿机制与多系统单据回滚”。
-【核心交付】：SagaOrchestrator 编排器、正向步骤与补偿动作注册栈、逆序 LIFO 幂等回滚、ERP/OA/财务模拟系统故障自愈。
-```
-
-#### Sprint 26 历史提示词模板：`Prompt-Issue-0033-ProductionCutoverAdapters`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0033：实现 Sprint 26 “企业业务真实系统无感割接适配器与动态健康探测”。
-【核心交付】：backend/adapters/ 抽象层与生产实现、适配器工厂根据 USE_MOCK_SYSTEMS 切换、GET /api/v1/health/integrations 动态连通性探针。
-```
-
-#### Sprint 27 历史提示词模板：`Prompt-Issue-0034-K8sCanaryDeployment`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0034：实现 Sprint 27 “云原生 Kubernetes 编排标准、Helm Chart 与金丝雀发布”。
-【核心交付】：deployments/helm/enterprise-ai/ 完整 Chart、Deployment/HPA/Service/Secret 规范、NGINX Ingress 金丝雀分流路由。
-```
-
-#### Sprint 28 历史提示词模板：`Prompt-Issue-0035-SecurityGuardrailsPII`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0035：实现 Sprint 28 “AI 内容安全合规护栏、敏感数据脱敏与 PII 防护”。
-【核心交付】：backend/core/guardrails/ 双向安全护栏、Prompt Injection/越狱拦截、手机号/身份证/银行卡流式滑动窗口脱敏。
-```
-
-#### Sprint 29 历史提示词模板：`Prompt-Issue-0036-ChaosResilience`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0036：实现 Sprint 29 “混沌工程故障注入、熔断降级与自愈弹性测试”。
-【核心交付】：backend/core/circuit_breaker.py 三态熔断器、指数退避重试 (with Jitter)、混沌故障注入测试、Saga 补偿联动。
-```
-
-#### Sprint 30 历史提示词模板：`Prompt-Issue-0037-E2EProductionHardening`
-```markdown
-请按照 Harness Engineering 规范指派 Issue-0037：实现 Sprint 30 “全链路生产级压力测试、灾备演练与终极投产验收”。
-【核心交付】：benchmark/production_load_test.py 1000 并发长稳压测套件、docs/PRODUCTION_SIGNOFF.md 终极验收签发白皮书、全量回归验证 100% 闭环。
-```
-</details>
-
----
-
-## 6. PRODUCTION & OPERATIONS MODE 全量规划与 Day-2 SRE 运维提示词模板库 (Master Production & Day-2 SRE Prompts)
-
-在正式切换进入 **PRODUCTION & OPERATIONS MODE (生产运行与运维保障模式 · Day-2 状态)** 后，核心目标由架构演进全面转向**生产环境高可用保障、金丝雀平滑放量、多活容灾切换、模型性能与安全态势持续巡检**。以下为 Day-2 SRE 运维提示词模板库：
+为了面向用户视角彻底打通真实的端到端体验，制定以下四个真实化攻坚 Sprint：
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│             PRODUCTION & OPERATIONS MODE: Day-2 SRE 运维保障与生产实战索引 (Operations Playbook)       │
-├───────────────────┬───────────────────┬────────────────────┬───────────────────┬───────────────────────┤
-│ Ops-0001          │ Ops-0002          │ Ops-0003           │ Ops-0004          │ Ops-0005              │
-├───────────────────┼───────────────────┼────────────────────┼───────────────────┼───────────────────────┤
-│ 金丝雀平滑放量    │ 生产突发故障排查  │ 全链路指标大盘巡检 │ 模型影子流量评估  │ 敏感数据与内容合规    │
-│ 与探针自动回滚    │ 与哨兵容灾切换    │ 与告警阈值动态调优 │ 与主模型平滑割接  │ 周期性安全渗透巡检    │
-│ (Canary Rollout)  │ (Disaster Recovery)│ (Telemetry Audit)  │ (Shadow Cutover)  │ (Security Compliance) │
-└───────────────────┴───────────────────┴────────────────────┴───────────────────┴───────────────────────┘
+│                        PRAGMATIC REALIZATION: 4 大真实化攻坚 Sprint 规划                               │
+├───────────────────┬───────────────────┬────────────────────┬───────────────────────────────────────────┤
+│ Sprint R-01       │ Sprint R-02       │ Sprint R-03        │ Sprint R-04                               │
+├───────────────────┼───────────────────┼────────────────────┼───────────────────────────────────────────┤
+│ 数据库与会话持久化 │ 真实向量库与构建探针 │ 真实 RAG 与 LLM 生成│ 个人工作流与引擎集成                      │
+│ (Chat Persistence)│ (Real Vector KB)  │ (Real RAG Pipeline)│ (vLLM / Dify / N8N Integration)           │
+│                   │                   │                    │                                           │
+│ · 新增 Session 表 │ · 真实 Embedding  │ · 接入真实大模型   │ · 适配 OpenAI / DeepSeek / vLLM / Ollama  │
+│ · 新增 Message 表 │ · 离线切片入库脚本│ · 重构生成节点     │ · Dify Workflow API 真实调用              │
+│ · 历史列表与回显  │ · 向量状态监控探针│ · 检索自校验反思   │ · N8N Webhook 真实事件通知                │
+│ · 状态机持久化    │ · 语义相似度测试  │ · 真实流式 Token   │ · 完善个人一键启动部署指南                │
+└───────────────────┴───────────────────┴────────────────────┴───────────────────────────────────────────┘
 ```
 
 ---
 
-### 6.1 Ops-0001: 金丝雀发布流量权重调整与灰度验证 (Canary Rollout & Automated Rollback)
+### 3.1 Sprint R-01: 数据库与会话持久化真身落地 (Chat & Session Persistence)
 
-* **运维目标**：执行生产环境金丝雀发布计划，动态调节 NGINX Ingress 权重（10% ➔ 50% ➔ 100%），持续监听 `/api/v1/health` 及业务错误率，一旦错误率 > 1% 或 TTFT > 1.2s 自动触发零停机瞬时回滚。
-* **涉及资产**：`deployments/helm/enterprise-ai/templates/ingress-canary.yaml`, `backend/ops/canary_controller.py`, `benchmark/canary_rollout_inspector.py`。
-* **履约状态**：✅ **100% 验收关闭** (Closed at 2026-09-22) · ReviewScore 99.2 (APPROVED) · 5 阶段灰度放量与混沌 500 回滚验证 100% PASS · 全套 8 大证据包归档于 `.harness/runs/Ops-0001/`。
-
-> #### 📋 运维提示词模板：`Prompt-Ops-0001-CanaryRollout`
-> ```markdown
-> 请按照 Harness Engineering 生产运维 SOP 执行 Ops-0001：“金丝雀发布流量权重调整与灰度验证”。
-> 
-> 【运维目标】：
-> 针对生产环境 Helm Chart 执行金丝雀逐步放量操作，对金丝雀版本进行流量分流（10% -> 50% -> 100%），并校验各阶段稳定性指标。
-> 
-> 【具体要求】：
-> 1. 检查 `deployments/helm/enterprise-ai/templates/ingress-canary.yaml` 的权重配置与标头规则。
-> 2. 编写/执行金丝雀放量巡检脚本，模拟不同阶段的请求并校验金丝雀 Pod 与 Baseline Pod 的响应状态。
-> 3. 验证自动回滚逻辑：注入模拟 500 异常时，流量能够立即切回 Baseline 稳定版本。
-> 4. 使用 `backend/.venv/Scripts/python.exe` 运行测试套件，确保 100% PASS，Ruff 0 警告。
-> 5. 记录运维执行报告并归档到 `.harness/runs/Ops-0001/`。
-> ```
+* **攻坚目标**：补齐数据库中缺失的对话实体表，打通会话历史持久化，使前端支持刷新后多轮历史回显与多会话管理。
+* **交付内容**：
+  1. **新建 SQLAlchemy 模型**（`backend/models/chat.py`）：
+     - `ChatSession`：会话唯一标识 `session_id`、用户 ID、会话标题 `title`、创建与更新时间、软删除标记。
+     - `ChatMessage`：消息 ID、关联 `session_id`、角色 `role`（user / assistant / system / tool）、消息文本 `content`、检索引用的源文件元数据 `sources`、时间戳。
+  2. **会话管理 REST API**（`backend/api/v1/chat.py`）：
+     - `GET /api/v1/chat/sessions`：获取当前用户的历史会话列表（分页、按最新更新时间倒序）。
+     - `GET /api/v1/chat/sessions/{session_id}/messages`：获取指定会话的历史消息记录。
+     - `DELETE /api/v1/chat/sessions/{session_id}`：删除指定会话及其消息。
+     - `PUT /api/v1/chat/sessions/{session_id}/title`：修改会话标题。
+  3. **WebSocket 与状态机持久化联动**：
+     - 用户通过 WebSocket 发送消息时，自动创建/更新 `ChatSession`，并向 `ChatMessage` 插入用户提问。
+     - LLM 生成回答完毕后，自动向 `ChatMessage` 插入助手回复与引用溯源。
+     - 前端左侧历史会话抽屉对接上述 API，点击历史会话即可无缝加载上下文。
 
 ---
 
-### 6.2 Ops-0002: 生产突发故障排查、熔断降级审计与哨兵集群切换 (Emergency Disaster Recovery & Sentinel Failover)
+### 3.2 Sprint R-02: 真实向量库底座与知识库离线构建全可观测 (Real Vector & Ingestion)
 
-* **运维目标**：模拟真实生产中外部 ERP/HR 系统突发宕机或网络中断，检验 Circuit Breaker 熔断隔离、带抖动的指数退避重试、Redis Sentinel 主从自动切换与 Saga 逆序补偿的一致性。
-* **涉及资产**：`backend/core/circuit_breaker.py`, `backend/core/redis.py`, `backend/core/saga_orchestrator.py`, `backend/ops/disaster_recovery.py`, `benchmark/disaster_recovery_drill.py`。
-* **履约状态**：✅ **100% 验收关闭** (Closed at 2026-09-22) · ReviewScore 99.4 (APPROVED) · 3 大容灾演练场景（503 快速失败、Saga 逆序补偿、Sentinel 主备切换）100% PASS · 全套 8 大证据包归档于 `.harness/runs/Ops-0002/`。
-
-> #### 📋 运维提示词模板：`Prompt-Ops-0002-EmergencyDisasterRecovery`
-> ```markdown
-> 请按照 Harness Engineering 生产运维 SOP 执行 Ops-0002：“生产突发故障排查、熔断降级审计与哨兵集群切换”。
-> 
-> 【运维目标】：
-> 演练外部关键系统（如 SAP ERP / 飞书人事）突发中断下的系统自愈弹性，确保熔断器状态机正常触发、快速失败，并验证 Redis Sentinel 主节点下线后的无缝平滑故障转移。
-> 
-> 【具体要求】：
-> 1. 触发外部集成系统连续超时与 503 故障，审计 `CircuitBreaker` 由 `CLOSED` 跃迁为 `OPEN` 的实时表现。
-> 2. 校验分布式长事务在故障阶段正确调用 Saga 逆序补偿（释放库存、解冻预算），确保数据库状态 100% 幂等一致。
-> 3. 校验 Redis Sentinel 哨兵故障转移机制，主节点宕机后读写连接池自动切换至新 Master。
-> 4. 使用 `backend/.venv/Scripts/python.exe` 运行混沌与容灾测试，确保 100% PASS，Ruff 0 警告。
-> 5. 记录演练证据包归档至 `.harness/runs/Ops-0002/`。
-> ```
+* **攻坚目标**：彻底消灭伪哈希向量算法，接入真实轻量级 Embedding，提供一键离线切片入库工具与向量库运行状态探针。
+* **交付内容**：
+  1. **真实 Embedding 引擎接入**（`backend/rag/embeddings.py`）：
+     - 引入轻量级、免本地复杂 GPU 环境的 `fastembed`（默认载入 `BAAI/bge-small-zh-v1.5`，CPU 秒级运行，纯本地推理零成本），或支持配置 OpenAI 兼容的远程 Embedding API。
+  2. **一键离线切片入库脚本**（`backend/scripts/ingest_knowledge.py`）：
+     - 递归读取 `docs/sample_kb/` 及自定义知识库目录下的 Markdown、PDF、Excel、TXT 文件。
+     - 按照递归字符/语义规则分块（Chunking），提取元数据（部门、分类、安全密级）。
+     - 批量调用真实 Embedding 并持久化写入 Qdrant 集合中。
+     - 控制台打印明晰日志：解析文件数、切片 Chunk 数、写入 Point 数、耗时，并自动运行 1 道测试 Query 验证召回正确性。
+  3. **知识库状态可观测探针**（`backend/api/v1/knowledge.py`）：
+     - `GET /api/v1/knowledge/status`：返回 Qdrant 运行状态、当前集合 Point 总数、向量维度与度量方式、已入库文件清单与切片分布。
 
 ---
 
-### 6.3 Ops-0003: 生产级监控指标大盘巡检与告警阈值动态调优 (Telemetry Auditing & Dynamic Alerting)
+### 3.3 Sprint R-03: 端到端真实 RAG 闭环与大模型流式生成 (Real RAG Pipeline & LLM)
 
-* **运维目标**：对 Prometheus 抓取的 Token 消耗量、Cache 命中率、P99 延迟、TTFT 首字延迟、Celery 队列深度与 WebSocket 活动连接数进行深度巡检，优化 Grafana 告警规则阈值。
-* **涉及资产**：`backend/core/metrics.py`, `monitoring/grafana/dashboards/`, `prometheus.yml`。
-
-> #### 📋 运维提示词模板：`Prompt-Ops-0003-TelemetryAlerting`
-> ```markdown
-> 请按照 Harness Engineering 生产运维 SOP 执行 Ops-0003：“生产级监控指标大盘巡检与告警阈值动态调优”。
-> 
-> 【运维目标】：
-> 巡检生产全链路可观测体系，对 Prometheus 采集的核心指标与 Grafana 5 大监控看板进行基线对齐，调优高负载下的告警触发灵敏度。
-> 
-> 【具体要求】：
-> 1. 抓取当前 `/metrics` 端点全量输出，审计核心 Gauge 与 Histogram 统计准确性。
-> 2. 检查 TTFT 首字延迟基线（< 800ms）与 P99 延迟基线（< 1.5s）的告警阈值与防抖策略。
-> 3. 验证 Celery 任务积压与 WebSocket 断线重连率的异常告警通道触发机制。
-> 4. 使用 `backend/.venv/Scripts/python.exe` 运行可观测性单元测试，确保 100% PASS，Ruff 0 警告。
-> 5. 输出监控巡检与告警基线优化报告，归档至 `.harness/runs/Ops-0003/`。
-> ```
+* **攻坚目标**：重构生成节点，接入真实大模型进行语义理解与内容生成，实现真正的打字机流式输出、检索自校验与引用溯源。
+* **交付内容**：
+  1. **统一大模型调用层**（`backend/core/llm.py`）：
+     - 封装 `get_chat_llm()`，提供通用 OpenAI 兼容协议支持。
+     - 用户只需在 `.env` 中配置 `OPENAI_API_BASE`、`OPENAI_API_KEY` 与 `LLM_MODEL`，即可零代码接入 DeepSeek、通义千问 Qwen、OpenAI 或本地部署的 vLLM / Ollama。
+  2. **重构生成节点**（`backend/graph/nodes/generate_node.py`）：
+     - 注入系统角色设定（System Prompt）：企业数字员工助理，基于知识库真实严谨作答。
+     - 将检索到的候选 Context 与历史对话注入 Prompt，调用真实模型完成回答合成。
+     - 对接 WebSocket 的 `on_chat_model_stream` 事件，实现真正的逐字 Token 流式推送。
+  3. **检索质量自校验与反思机制 (Self-Correction)**：
+     - 引入相似度阈值过滤（如 Rerank/Vector 得分 < 0.25 的切片自动过滤）。
+     - 若未检索到高相关性内容，触发自校验优雅反思：“在当前企业知识库中未找到与您问题直接匹配的制度条款，建议咨询 HR/IT 相关负责人或调整提问关键词”，杜绝模型凭空编造。
+  4. **精确引用溯源**：在回复末尾清晰标注文档名与对应章节（如 `[参考: 采购审批管理制度.md (第 3 章 审批权限)]`）。
 
 ---
 
-### 6.4 Ops-0004: 生产大模型影子流量对比与零中断切流 (Model Shadow Evaluation & Zero-Downtime Cutover)
+### 3.4 Sprint R-04: 个人可及的开源工作流集成与部署指南 (Workflows & Runbook)
 
-* **运维目标**：针对新微调或新版本大模型（如新一代开源模型或专属微调权重），利用 `ABTestingGateway` 开启 100% 异步影子流量（Shadow Traffic），持续对比 Faithfulness、Latency 与 Token 成本，在确认优于基准模型后执行原子化零停机主模型切换。
-* **涉及资产**：`backend/core/llm_gateway.py`, `backend/core/redis.py`, `benchmark/eval_ragas.py`。
-
-> #### 📋 运维提示词模板：`Prompt-Ops-0004-ModelShadowCutover`
-> ```markdown
-> 请按照 Harness Engineering 生产运维 SOP 执行 Ops-0004：“生产大模型影子流量对比与零中断切流”。
-> 
-> 【运维目标】：
-> 基于 LLM 网关的 Shadow 模式，将线上真实流量异步镜像至备选候选模型，采集 1,000+ 样本的表现数据，生成对比评估报告并在达标后无感切换为主模型。
-> 
-> 【具体要求】：
-> 1. 配置 `LLMGateway` 影子模式参数，确保影子请求执行为非阻塞协程，零增加主请求延迟。
-> 2. 采集主备模型的输出相似度、RAGAS 忠实度（Faithfulness）、耗时与 Token 单价指标。
-> 3. 执行动态配置更新，在零服务重启前提下平滑切换生产默认模型。
-> 4. 使用 `backend/.venv/Scripts/python.exe` 运行测试套件，确保 100% PASS，Ruff 0 警告。
-> 5. 输出模型影子评估与割接记录，归档至 `.harness/runs/Ops-0004/`。
-> ```
+* **攻坚目标**：打通自建开源工作流平台（Dify、N8N）的真实调用，收拢规范 HR/ERP/OA 本地模拟桩，提供个人一键启动与使用白皮书。
+* **交付内容**：
+  1. **N8N 真实 Webhook 联动**：
+     - 当系统触发采购审批、报修工单时，真正通过 HTTP POST 向用户配置的 N8N Webhook 发送 JSON 载荷，验证 N8N 自动化流的触发与执行。
+  2. **Dify Workflow API 联动**：
+     - 编写 Dify 客户端适配器，支持向本地或云端部署的 Dify 发起任务请求并解析结构化返回。
+  3. **HR / ERP / OA 本地标准化模拟桩固化**：
+     - 明确其作为“开箱即用优质模拟桩”的定位，确保即使在完全离线无外部企业账号的情况下，员工查询、库存增减、采购单创建、工单流转也 100% 能够自闭环运行。
+  4. **个人高保真部署与运行指南**（`docs/PERSONAL_RUNBOOK.md`）：
+     - 提供极简的一键环境拉起（Docker 运行 Qdrant/MySQL，或单机免 Docker 的 SQLite+本地Embedding+商用API）。
+     - 提供保姆级 `.env` 配置说明与常见问题排查指南。
 
 ---
 
-### 6.5 Ops-0005: 敏感数据脱敏合规审计与红蓝安全渗透巡检 (Security Compliance & Guardrails Pen-Testing)
+## 4. 历史阶段已交付稳态资产 (Preserved Foundations)
 
-* **运维目标**：针对生产会话日志与向量知识库发起自动化红蓝对抗安全巡检，测试各类新型越狱攻击（Direct/Indirect Injection、多语言混淆注入），并审计流式 Token 与数据库中个人身份信息（PII）的脱敏覆盖率。
-* **涉及资产**：`backend/core/guardrails/`, `backend/tests/unit/test_guardrails.py`, `backend/models/feedback.py`。
+前序开发中已经沉淀的扎实工程骨架将被 100% 继承并作为坚实底座：
 
-> #### 📋 运维提示词模板：`Prompt-Ops-0005-SecurityAuditCompliance`
-> ```markdown
-> 请按照 Harness Engineering 生产运维 SOP 执行 Ops-0005：“敏感数据脱敏合规审计与红蓝安全渗透巡检”。
-> 
-> 【运维目标】：
-> 对生产环境输入安全护栏与流式输出脱敏执行深度合规渗透测试，确保符合 GDPR / 企业数据安全规范，杜绝任何敏感数据外泄。
-> 
-> 【具体要求】：
-> 1. 构建包含 50+ 组最新 Prompt Injection、越狱提示词与混淆攻击的红蓝测试集，检验输入防御率（目标 100%）。
-> 2. 审计 WebSocket 与 HTTP 流式通道输出，校验手机号、中国居民身份证、银行卡及内部 API Key 的实时脱敏。
-> 3. 检查 RLHF 反馈表 `feedback_records` 中的历史数据是否完成 PII 净化。
-> 4. 使用 `backend/.venv/Scripts/python.exe` 运行安全单元测试，确保 100% PASS，Ruff 0 警告。
-> 5. 导出合规渗透测试报告，归档至 `.harness/runs/Ops-0005/`。
-> ```
+1. **前端 ChatGPT / Gemini 现代化终端体验 (100% 交付)**：
+   - Vue 3 + Tailwind CSS + Lucide 图标库；
+   - 响应式侧边栏、移动端抽屉、Markdown 实时渲染、流式打字机视觉组件；
+   - 采购与审批人机协同卡片交互。
+2. **LangGraph 状态机拓扑与核心骨架 (100% 交付)**：
+   - 完整的 StateGraph 意图路由节点、条件边流转、工具调用节点（Tool Node）以及中断挂起（Interrupt）机制。
+3. **工程合规与测试框架 (100% 交付)**：
+   - `ruff check` 0 告警代码质量控制；
+   - 模块化单测套件与自动化测试基线；
+   - 统一配置管理 `backend/core/config.py` 与异常处理基类。
 
 ---
 
-## 7. 生产级运维、监控与持续交付规范 (SRE & Operations Standards)
+## 5. 总结与下一步行动
 
-1. **容器化与 Kubernetes 编排标准**：
-   - 提供生产级 `Dockerfile`（多阶段构建，镜像体积 < 300MB）与 Helm Chart，支持 K8s HPA 依据 CPU/GPU 利用率与 WebSocket 活动连接自动水平伸缩。
-2. **灰度发布与健康探针标准**：
-   - 实施金丝雀发布策略（Canary Release）：10% -> 50% -> 100%，健康探针 `/api/v1/health` 与 `/api/v1/health/integrations` 连续 5 次 200 OK 方可全量放行。
-3. **安全合规与敏感数据脱敏**：
-   - 输入输出护栏：集成企业级输入防御模式与流式滑动窗口脱敏引擎，在 Prompt 提交及 Token 推送前自动将手机号、身份证号、银行卡号脱敏为占位符。
-4. **灾难恢复与分布式事务回滚**：
-   - 外部调用全面受 `CircuitBreaker` 保护，超时失败率 > 50% 自动熔断；长业务流使用 `SagaOrchestrator` 逆序 LIFO 补偿，确保单据状态严格一致。
-
----
-
-## 8. “三层 AI 输出中断响应机制” 架构固化 (Three-Layer Cancellation Architecture)
-
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│ 第一层：前端/传输层 (Client Transport Layer)                           │
-│ ├─ Vue3 / JS AbortController.abort() 发送中断信号                       │
-│ └─ WebSocket / SSE 发送 {"type": "abort", "thread_id": "..."}          │
-└──────────────────────────────────┬─────────────────────────────────────┘
-                                   │
-                                   ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ 第二层：服务端/分发层 (Server Dispatcher Layer)                          │
-│ ├─ FastAPI 检测 request.is_disconnected() / Redis PubSub 中断通道       │
-│ └─ 触发 Python asyncio.Task.cancel() 终止流式 Generator 协程            │
-└──────────────────────────────────┬─────────────────────────────────────┘
-                                   │
-                                   ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ 第三层：LangGraph 引擎与工具副作用防护层 (Engine & Side-Effect Guard)    │
-│ ├─ 终止 LLM HTTP Streaming 链接 (即刻停止 Token 消耗)                   │
-│ ├─ 保存当前快照至 LangGraph Checkpointer (标记 state.status = CANCELLED) │
-│ └─ 工具副作用护栏：读工具即刻释放；写工具 (如采购/工单) 校验事务与回滚状态   │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 9. 提示词使用说明与一键复制指令指南 (Operator Instructions)
-
-当在 **PRODUCTION & OPERATIONS MODE** 下执行日常生产运维、应急演练或后续巡检任务时，只需按如下标准方式操作：
-
-1. **查找对应运维模块提示词**：在第 6 节中找到对应 Ops 任务（如金丝雀发布的 `Prompt-Ops-0001-CanaryRollout` 或容灾演练的 `Prompt-Ops-0002-EmergencyDisasterRecovery`）。
-2. **复制并在新会话中发送**：直接将该 Markdown 代码块内的内容粘贴给 AI 助手。
-3. **自动化履约流转**：AI 助手将严格按照 **Harness 10-Stage SDLC** 流程，自动创建 `.harness/runs/Ops-XXXX/` 沙盒、更新 `plan.md`、运行虚拟环境测试、完成 Review 审查与证据包闭环归档！
-
-
- 你现在加入的是一个采用 Harness Engineering 最高运行规范 的 Repository（企业级 AI 数字员工平台）。
-  请遵守以下严格的工程履约规范，禁止自由发挥或直接裸写代码：
-
-  ================================================
-  第一阶段：Repository Onboarding & 状态诊断
-  ================================================
-  请先读取并确认仓库以下核心规范与资产审计文档：
-  1. AGENTS.md （全局路由导航与 DoD 交付契约）
-  2. docs/PROJECT_PROGRESS.md （项目全量进展白皮书与模式看板）
-  3. docs/PRODUCTION_SIGNOFF.md （终极投产验收签发白皮书与四方联签）
-  4. docs/MOCK_INVENTORY.md （12 大 Mock 节点资产清单与生产真实割接规范）
-  5. docs/harness/Runtime.md （唯一 Runtime 运行 Kernel 规范）
-  6. docs/harness/Lifecycle.md （生命周期 10 阶段流转规范）
-  7. docs/harness/Communication.md （Agent 间消息规范与 Interceptor Hook）
-
-  当前 Repository 物理状态：
-  - 运行模式：PRODUCTION & OPERATIONS MODE (生产运行与运维保障模式 · Day-2 状态)
-  - 历史模式达成状态：
-    - BOOTSTRAP MODE：100% 验收达标已闭环 (Sprint 1~12 / Issue-0001~0019)
-    - DEVELOPMENT MODE：100% 验收达标已闭环 (Sprint 13~25 / Issue-0020~0032)
-    - STAGING & HARDENING MODE：100% 验收达标已闭环 (Sprint 26~30 / Issue-0033~0037)
-  - Python 专属虚拟环境：backend/.venv/Scripts/python.exe
-  - 自动化测试健康度：216 / 216 项全量通过 (100% PASS)
-  - 静态代码分析：Ruff 0 Errors / 0 Warnings
-  - 投产签发结论：四方技术首脑（架构师、安全官、QA总监、SRE负责人）联合签署 APPROVED
-  - 已交付核心生产基础设施与资产：
-    - 12 项企业系统生产适配器层与动态健康探针 (backend/adapters/, GET /api/v1/health/integrations)
-    - 云原生 CNCF Helm 3 生产编排与金丝雀发布路由 (deployments/helm/enterprise-ai/)
-    - AI 双向安全护栏、越狱攻击拦截与滑动窗口流式 PII 脱敏 (backend/core/guardrails/)
-    - 三态熔断器、带抖动退避重试与混沌自愈弹性 (backend/core/circuit_breaker.py)
-    - 1,000 用户并发长稳压测套件 (1,351 QPS, P99 692ms, 0 内存泄漏) (benchmark/production_load_test.py)
-    - 多模态文档解析、GraphRAG、向量多租户隔离、OpenTelemetry 全链路追踪、Prometheus 度量大盘
-    - MySQL 读写分离
-  ================================================
-  第二阶段：Issue / Ops 任务强制物理履约 SOP (Execution Contract)
-  ================================================
-  接收到任何新 Issue 或 Ops 运维任务时，必须严格按顺序扮演以下 Agent/角色，并向 .harness/runs/Issue-XXXX/ 或 .harness/runs/Ops-XXXX/ 刷盘物理隔离的 8 大只读证据包，严禁跳过任何步骤或自写自审：
-
-  1. [Orchestrator]: 在 .harness/runs/Issue-XXXX/ (或 Ops-XXXX) 下创建 issue.md 锁存原始需求与运维目标。
-  2. [PlannerAgent]: 制定 Checkpoints 变动表，生成 plan.md，并同步更新 docs/plans/sprint-active.md。
-  3. [DeveloperAgent]: 使用 backend/.venv/Scripts/python.exe 执行代码/脚本编写与自动化测试，将真实控制台测试日志刷入 developer.md。
-  4. [ReviewerAgent]: 从架构、安全、性能、回滚机制等 11 个维度审计代码，计算 ReviewScore（需 ≥ 90），刷入 review.md。
-  5. [DocumentationA
-  - Ops-0005：敏感数据脱敏合规审计与红蓝安全渗透巡检 (Security Compliance Pen-Testing)
-
-  ================================================
-  红线禁令 (Strict Invariants)
-  ================================================
-  ❌ 严禁直接修改业务代码而不建立 .harness/runs/Issue-XXXX/ (或 Ops-XXXX/) 沙盒证据包。
-  ❌ 严禁使用系统全局 Python，必须统一使用 backend/.venv/Scripts/python.exe。
-  ❌ 严禁未运行实际 pytest/unittest 测试命令即宣称“测试通过”。
-  ❌ 严禁破坏现有 216 项单元测试与 0 Ruff 告警的生产高可用稳态。
-  ❌ 严禁将证据文件写入仓库外的缓存区，必须落盘至项目根目录下的 .harness/runs/ 路径。
-
-  确认理解上述 Harness 规范后，请输出你的 Onboarding 诊断结果，并等待我的下一个任务指派。
-
-  ---
-
-  三、当前运行验证与健康度状态
-
-  - 单元测试套件：backend/.venv/Scripts/python.exe -m pytest backend/tests/ -q ➔ 216 passed (100% PASS)
-  - 代码静态质量：backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/ ➔ 0 errors, 0 warnings (All checks passed)
-  - 生产系统状态：PRO
-▎ 诊断结论：ONBOARDING 100% 合规通过 · 核心规范与资产审计确认完毕 · 物理稳态基线健康
-
----
-
-一、核心规范与资产审计文档核对结果 (Core Specs & Artifacts Verification)
-
-已完成对仓库指定 7 大核心规范与资产文档的全面读取与物理校验，确认对所有技术要求与约束具有完全理解：
-
-┌─────┬────────────────────────────┬─────────┬────────────────────────────────────────────────────────────────┐
-│ 序  │    核心规范 / 资产文档     │ 审计结  │                       核心约束与契约提要                       │
-│ 号  │                            │   论    │                                                                │
-├─────┼────────────────────────────┼─────────┼────────────────────────────────────────────────────────────────┤
-│     │                            │         │ 全局路由导航与 DoD 交付契约：明确权限矩阵（禁止篡改核心规则文  │
-│  1  │ AGENTS.md                  │ ✅ PASS │ 档）、文档读取优先级（Level 1~6）及关单 8 大 DoD 门禁（Ruff    │
-│     │                            │         │ 0、Pytest 100%、ReviewScore ≥ 90、8 大证据包刷盘等）。         │
-├─────┼────────────────────────────┼─────────┼────────────────────────────────────────────────────────────────┤
-│     │                            │         │ 全量进展白皮书与模式看板：Bootstrap (Sprint 1~12)、Development │
-│  2  │ docs/PROJECT_PROGRESS.md   │ ✅ PASS │  (Sprint 13~25) 与 Staging & Hardening (Sprint 26~30) 全量 37  │
-│     │                            │         │ 项 Issue 100% 验收闭环，系统处于生产保障 Day-2 模式。          │
-├─────┼────────────────────────────┼─────────┼────────────────────────────────────────────────────────────────┤
-│     │                            │         │ 终极生产验收签发白皮书：架构师、安全官、QA总监、SRE负责人四方  │
-│  3  │ docs/PRODUCTION_SIGNOFF.md │ ✅ PASS │ 联签 APPROVED，生产长稳压测达标（1,351 QPS, P99 692ms, TTFT    │
-│     │                            │         │ P95 248ms, 0 内存泄漏）。                                      │
-├─────┼────────────────────────────┼─────────┼────────────────────────────────────────────────────────────────┤
-│     │                            │         │ 12 大 Mock 节点资产清单与生产真实割接规范：涵盖                │
-│  4  │ docs/MOCK_INVENTORY.md     │ ✅ PASS │ HR/ERP/OA/企微/Dify/MySQL/Qdrant/LLM/Subgraph/Swarm/Saga 12    │
-│     │                            │         │ 大节点，通过 backend/adapters/ 统一抽象层与                    │
-│     │                            │         │ USE_MOCK_SYSTEMS=False 环境变量实现生产无感割接。              │
-├─────┼────────────────────────────┼─────────┼────────────────────────────────────────────────────────────────┤
-│     │                            │         │ 最高运行时 Kernel 规范：确立不可逾越的物理流水线、防范 Context │
-│  5  │ docs/harness/Runtime.md    │ ✅ PASS │  Drift、严禁直接编码、强制第三方评审、Harness Recorder         │
-│     │                            │         │ 失败物理 Fail-Fast 阻断契约。                                  │
-├─────┼────────────────────────────┼─────────┼────────────────────────────────────────────────────────────────┤
-│     │                            │         │ 生命周期 10 阶段流转规范：从 Issue                             │
-  - Python 专属虚拟环境：backend/.venv/Scripts/python.exe
-  - 自动化测试健康度：216 / 216 项全量通过 (100% PASS)
-  - 静态代码分析：Ruff 0 Errors / 0 Warnings
-  - 投产签发结论：四方技术首脑（架构师、安全官、QA总监、SRE负责人）联合签署 APPROVED
-  - 已交付核心生产基础设施与资产：
-    - 12 项企业系统生产适配器层与动态健康探针 (backend/adapters/, GET /api/v1/health/integrations)
-    - 云原生 CNCF Helm 3 生产编排与金丝雀发布路由 (deployments/helm/enterprise-ai/)
-    - AI 双向安全护栏、越狱攻击拦截与滑动窗口流式 PII 脱敏 (backend/core/guardrails/)
-    - 三态熔断器、带抖动退避重试与混沌自愈弹性 (backend/core/circuit_breaker.py)
-    - 1,000 用户并发长稳压测套件 (1,351 QPS, P99 692ms, 0 内存泄漏) (benchmark/production_load_test.py)
-    - 多模态文档解析、GraphRAG、向量多租户隔离、OpenTelemetry 全链路追踪、Prometheus 度量大盘
-    - MySQL 读写分离引擎、Redis Sentinel 哨兵集群容灾、RLHF/DPO 数据闭环、RAGAS 严格门禁
-    - 专职领域 Subgraphs (HR/Finance/IT/Compliance)、Swarm 跨部门移交总线、分布式 Saga 逆序补偿
-
-  ================================================
-  第二阶段：Issue / Ops 任务强制物理履约 SOP (Execution Contract)
-  ================================================
-  接收到任何新 Issue 或 Ops 运维任务时，必须严格按顺序扮演以下 Agent/角色，并向 .harness/runs/Issue-XXXX/ 或 .harness/runs/Ops-XXXX/ 刷盘物理隔离的 8 大只读证据包，严禁跳过任何步骤或自写自审：
-
-  1. [Orchestrator]: 在 .harness/runs/Issue-XXXX/ (或 Ops-XXXX) 下创建 issue.md 锁存原始需求与运维目标。
-  2. [PlannerAgent]: 制定 Checkpoints 变动表，生成 plan.md，并同步更新 docs/plans/sprint-active.md。
-  3. [DeveloperAgent]: 使用 backend/.venv/Scripts/python.exe 执行代码/脚本编写与自动化测试，将真实控制台测试日志刷入 developer.md。
-  4. [ReviewerAgent]: 从架构、安全、性能、回滚机制等 11 个维度审计代码，计算 ReviewScore（需 ≥ 90），刷入 review.md。
-  5. [DocumentationAgent]: 导出 API/配置变更，更新 API.md/Database.md/Runbook，生成 documentation.md。
-  6. [VerifierAgent]: 进行物理文件存在性与锁定状态静态审计，生成 verification.md。
-  7. [HarnessRecorder]: 刷盘元数据文件 summary.json、timeline.md 与 runtime.log，闭环关单并更新进度大盘。
-
-  ================================================
-  第三阶段：Day-2 生产运维实战任务索引 (Ops-0001 ~ Ops-0005)
-  ================================================
-  当前处于【生产运行与运维保障模式 (PRODUCTION & OPERATIONS MODE)】，待指派 Day-2 任务索引：
-  - Ops-0001：金丝雀发布流量权重调整与灰度验证 (Canary Rollout)
-  - Ops-0002：生产突发故障排查、熔断降级审计与哨兵集群切换 (Emergency Disaster Recovery)
-  - Ops-0003：生产级监控指标大盘巡检与告警阈值动态调优 (Telemetry Auditing & Alerting)
-  - Ops-0004：生产大模型影子流量对比与零中断切流 (Model Shadow Cutover)
-  - Ops-0005：敏感数据脱敏合规审计与红蓝安全渗透巡检 (Security Compliance Pen-Testing)
-
-  ================================================
- 你现在加入的是一个采用 Harness Engineering 最高运行规范 的 Repository（企业级 AI 数字员工平台）。
-  请遵守以下严格的工程履约规范，禁止自由发挥或直接裸写代码：
-
-  ================================================
-  第一阶段：Repository Onboarding & 状态诊断
-  ================================================
-  请先读取并确认仓库以下核心规范与资产审计文档：
-  1. AGENTS.md （全局路由导航与 DoD 交付契约）
-  2. docs/PROJECT_PROGRESS.md （项目全量进展白皮书与模式看板）
-  3. docs/PRODUCTION_SIGNOFF.md （终极投产验收签发白皮书与四方联签）
-  4. docs/MOCK_INVENTORY.md （12 大 Mock 节点资产清单与生产真实割接规范）
-  5. docs/harness/Runtime.md （唯一 Runtime 运行 Kernel 规范）
-  6. docs/harness/Lifecycle.md （生命周期 10 阶段流转规范）
-  7. docs/harness/Communication.md （Agent 间消息规范与 Interceptor Hook）
-
-  当前 Repository 物理状态：
-  - 运行模式：PRODUCTION & OPERATIONS MODE (生产运行与运维保障模式 · Day-2 状态)
-  - 历史模式达成状态：
-    - BOOTSTRAP MODE：100% 验收达标已闭环 (Sprint 1~12 / Issue-0001~0019)
-    - DEVELOPMENT MODE：100% 验收达标已闭环 (Sprint 13~25 / Issue-0020~0032)
-    - STAGING & HARDENING MODE：100% 验收达标已闭环 (Sprint 26~30 / Issue-0033~0037)
-  - Python 专属虚拟环境：backend/.venv/Scripts/python.exe
-  - 自动化测试健康度：216 / 216 项全量通过 (100% PASS)
-  - 静态代码分析：Ruff 0 Errors / 0 Warnings
-  - 投产签发结论：四方技术首脑（架构师、安全官、QA总监、SRE负责人）联合签署 APPROVED
-  - 已交付核心生产基础设施与资产：
-    - 12 项企业系统生产适配器层与动态健康探针 (backend/adapters/, GET /api/v1/health/integrations)
-    - 云原生 CNCF Helm 3 生产编排与金丝雀发布路由 (deployments/helm/enterprise-ai/)
-    - AI 双向安全护栏、越狱攻击拦截与滑动窗口流式 PII 脱敏 (backend/core/guardrails/)
-    - 三态熔断器、带抖动退避重试与混沌自愈弹性 (backend/core/circuit_breaker.py)
-    - 1,000 用户并发长稳压测套件 (1,351 QPS, P99 692ms, 0 内存泄漏) (benchmark/production_load_test.py)
-    - 多模态文档解析、GraphRAG、向量多租户隔离、OpenTelemetry 全链路追踪、Prometheus 度量大盘
-    - MySQL 读写分离引擎、Redis Sentinel 哨兵集群容灾、RLHF/DPO 数据闭环、RAGAS 严格门禁
-    - 专职领域 Subgraphs (HR/Finance/IT/Compliance)、Swarm 跨部门移交总线、分布式 Saga 逆序补偿
-
-  ================================================
-  第二阶段：Issue / Ops 任务强制物理履约 SOP (Execution Contract)
-  ================================================
-  接收到任何新 Issue 或 Ops 运维任务时，必须严格按顺序扮演以下 Agent/角色，并向 .harness/runs/Issue-XXXX/ 或 .harness/runs/Ops-XXXX/ 刷盘物理隔离的 8 大只读证据包，严禁跳过任何步骤或自写自审：
-
-  1. [Orchestrator]: 在 .harness/runs/Issue-XXXX/ (或 Ops-XXXX) 下创建 issue.md 锁存原始需求与运维目标。
-  2. [PlannerAgent]: 制定 Checkpoints 变动表，生成 plan.md，并同步更新 docs/plans/sprint-active.md。
-  3. [DeveloperAgent]: 使用 backend/.venv/Scripts/python.exe 执行代码/脚本编写与自动化测试，将真实控制台测试日志刷入 developer.md。
-  4. [ReviewerAgent]: 从架构、安全、性能、回滚机制等 11 个维度审计代码，计算 ReviewScore（需 ≥ 90），刷入 review.md。
-  5. [DocumentationAgent]: 导出 API/配置变更，更新 API.md/Database.md/Runbook，生成 documentation.md。
-  6. [VerifierAgent]: 进行物理文件存在性与锁定状态静态审计，生成 verification.md。
-  7. [HarnessRecorder]: 刷盘元数据文件 summary.json、timeline.md 与 runtime.log，闭环关单并更新进度大盘。
-
-  ================================================
-  第三阶段：Day-2 生产运维实战任务索引 (Ops-0001 ~ Ops-0005)
-  ================================================
-  当前处于【生产运行与运维保障模式 (PRODUCTION & OPERATIONS MODE)】，待指派 Day-2 任务索引：
-  - Ops-0001：金丝雀发布流量权重调整与灰度验证 (Canary Rollout)
-  - Ops-0002：生产突发故障排查、熔断降级审计与哨兵集群切换 (Emergency Disaster Recovery)
-  - Ops-0003：生产级监控指标大盘巡检与告警阈值动态调优 (Telemetry Auditing & Alerting)
-  - Ops-0004：生产大模型影子流量对比与零中断切流 (Model Shadow Cutover)
-  - Ops-0005：敏感数据脱敏合规审计与红蓝安全渗透巡检 (Security Compliance Pen-Testing)
-
-  ================================================
-  红线禁令 (Strict Invariants)
-  ================================================
-  ❌ 严禁直接修改业务代码而不建立 .harness/runs/Issue-XXXX/ (或 Ops-XXXX/) 沙盒证据包。
-  ❌ 严禁使用系统全局 Python，必须统一使用 backend/.venv/Scripts/python.exe。
-  ❌ 严禁未运行实际 pytest/unittest 测试命令即宣称“测试通过”。
-  ❌ 严禁破坏现有 216 项单元测试与 0 Ruff 告警的生产高可用稳态。
-  ❌ 严禁将证据文件写入仓库外的缓存区，必须落盘至项目根目录下的 .harness/runs/ 路径。
-
-  确认理解上述 Harness 规范后，请输出你的 Onboarding 诊断结果，并等待我的下一个任务指派。
-  ================================================
-  红线禁令 (Strict Invariants)
-  ================================================
-  ❌ 严禁直接修改业务代码而不
-▎ Python 专属环境：backend/.venv/Scripts/python.exe
-▎ 诊断时间：2026-09-22
+通过本次重整：
+- 我们坦诚直面了前序阶段在**会话持久化、向量化有效性、真实大模型接入与可及性边界**上的差距；
+- 确立了以**“个人可运行、高保真、真闭环”**为核心指导思想的 4 个真实化攻坚 Sprint（R-01 ~ R-04）；
+- 接下来即可依据此路线图，逐项落地真实代码与数据库表结构，将企业级 AI 数字员工平台打造成真正经得起用户深度实操的优质产品！
