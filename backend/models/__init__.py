@@ -6,6 +6,7 @@ from backend.models.ticket import Ticket
 from backend.models.purchase import Purchase
 from backend.models.approval import Approval
 from backend.models.feedback import FeedbackRecord
+from backend.models.chat import ChatSession, ChatMessage
 
 __all__ = [
     "User",
@@ -14,4 +15,6 @@ __all__ = [
     "Purchase",
     "Approval",
     "FeedbackRecord",
+    "ChatSession",
+    "ChatMessage",
 ]

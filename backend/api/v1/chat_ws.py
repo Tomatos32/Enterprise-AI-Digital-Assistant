@@ -1,16 +1,22 @@
-"""WebSocket Duplex Streaming Route for Enterprise AI Digital Assistant."""
+"""WebSocket Duplex Streaming Route for Enterprise AI Digital Assistant with DB Persistence."""
 
-import json
 import asyncio
-from typing import Dict
+from datetime import datetime
+import json
+import logging
+from typing import Dict, List, Optional
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.errors import GraphInterrupt
 
-from backend.graph.workflow import graph
-from backend.graph.state import AgentState
+from backend.core.guardrails import StreamingSanitizer, sanitize_text, validate_input
 from backend.core.task_manager import task_manager
-from backend.core.guardrails import validate_input, sanitize_text, StreamingSanitizer
+from backend.db.session import SessionLocal
+from backend.graph.state import AgentState
+from backend.graph.workflow import graph
+from backend.models.chat import ChatMessage, ChatSession
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="", tags=["WebSocket Chat"])
 
@@ -37,6 +43,94 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
+def _ensure_session_and_record_user_message(
+    session_id: str,
+    user_id: str,
+    user_message: str,
+) -> List[BaseMessage]:
+    """Ensures ChatSession exists in DB, writes user ChatMessage,
+
+    and loads prior conversation history as LangChain BaseMessage objects.
+    """
+    history_messages: List[BaseMessage] = []
+    try:
+        with SessionLocal() as db:
+            session = (
+                db.query(ChatSession)
+                .filter(ChatSession.session_id == session_id, ChatSession.is_deleted == False)  # noqa: E712
+                .first()
+            )
+            if not session:
+                title = user_message[:30].strip() or "新对话"
+                session = ChatSession(
+                    session_id=session_id,
+                    user_id=user_id,
+                    title=title,
+                )
+                db.add(session)
+                db.commit()
+
+            # Load prior messages for multi-turn conversational context (limit 20)
+            prior_records = (
+                db.query(ChatMessage)
+                .filter(ChatMessage.session_id == session_id)
+                .order_by(ChatMessage.created_at.desc())
+                .limit(20)
+                .all()
+            )
+            prior_records.reverse()
+
+            for rec in prior_records:
+                if rec.role == "user":
+                    history_messages.append(HumanMessage(content=rec.content))
+                elif rec.role == "assistant":
+                    history_messages.append(AIMessage(content=rec.content))
+
+            # Record current user turn
+            user_msg_record = ChatMessage(
+                session_id=session_id,
+                role="user",
+                content=user_message,
+            )
+            db.add(user_msg_record)
+            session.updated_at = datetime.utcnow()
+            db.commit()
+
+    except Exception as e:
+        logger.warning(f"[ChatWS] Failed to persist user message to DB: {e}")
+
+    # Append current message to state
+    history_messages.append(HumanMessage(content=user_message))
+    return history_messages
+
+
+def _record_assistant_message(
+    session_id: str,
+    assistant_message: str,
+    sources: Optional[str] = None,
+) -> None:
+    """Persists assistant completion message to database."""
+    if not assistant_message:
+        return
+    try:
+        with SessionLocal() as db:
+            assistant_record = ChatMessage(
+                session_id=session_id,
+                role="assistant",
+                content=assistant_message,
+                sources=sources,
+            )
+            db.add(assistant_record)
+
+            session = db.query(ChatSession).filter(ChatSession.session_id == session_id).first()
+            if session:
+                session.updated_at = datetime.utcnow()
+
+            db.commit()
+    except Exception as e:
+        logger.warning(f"[ChatWS] Failed to persist assistant response to DB: {e}")
+
+
 async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dict):
     """Processes chat request over WebSocket and streams events in real-time."""
     user_message = data.get("message", "").strip()
@@ -45,21 +139,35 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
     session_id = data.get("session_id", f"s_ws_{client_id}")
     metadata = data.get("metadata", {})
     metadata["thread_id"] = thread_id
+    metadata["session_id"] = session_id
 
     # 0. Input Security & Guardrail Check (OWASP LLM01 Prompt Injection / Jailbreak)
     guard_result = validate_input(user_message)
     if not guard_result.is_valid:
-        await websocket.send_text(json.dumps({
-            "type": "error",
-            "status": 400,
-            "thread_id": thread_id,
-            "message": f"400 Bad Request: Policy Violation - {guard_result.reason} ({guard_result.category})",
-            "category": guard_result.category,
-        }, ensure_ascii=False))
+        await websocket.send_text(
+            json.dumps(
+                {
+                    "type": "error",
+                    "status": 400,
+                    "thread_id": thread_id,
+                    "session_id": session_id,
+                    "message": f"400 Bad Request: Policy Violation - {guard_result.reason} ({guard_result.category})",
+                    "category": guard_result.category,
+                },
+                ensure_ascii=False,
+            )
+        )
         return
 
+    # 1. Database Persistence: Ensure session & persist user message with multi-turn history
+    full_conversation_messages = _ensure_session_and_record_user_message(
+        session_id=session_id,
+        user_id=user_id,
+        user_message=user_message,
+    )
+
     initial_state: AgentState = {
-        "messages": [HumanMessage(content=user_message)],
+        "messages": full_conversation_messages,
         "user_id": user_id,
         "session_id": session_id,
         "current_step": "init",
@@ -71,11 +179,17 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
     sanitizer = StreamingSanitizer()
 
     # Send Initial Handshake Response
-    await websocket.send_text(json.dumps({
-        "type": "start",
-        "thread_id": thread_id,
-        "status": "PROCESSING"
-    }, ensure_ascii=False))
+    await websocket.send_text(
+        json.dumps(
+            {
+                "type": "start",
+                "thread_id": thread_id,
+                "session_id": session_id,
+                "status": "PROCESSING",
+            },
+            ensure_ascii=False,
+        )
+    )
 
     try:
         async for event in graph.astream_events(initial_state, config=config, version="v2"):
@@ -84,11 +198,17 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
 
             # 1. Node Execution Transition Events
             if kind == "on_chain_start" and name in ["router", "retrieve", "tool", "approval", "generate"]:
-                await websocket.send_text(json.dumps({
-                    "type": "node_start",
-                    "node": name,
-                    "thread_id": thread_id
-                }, ensure_ascii=False))
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "type": "node_start",
+                            "node": name,
+                            "thread_id": thread_id,
+                            "session_id": session_id,
+                        },
+                        ensure_ascii=False,
+                    )
+                )
 
             # 2. LLM Streaming Tokens
             elif kind == "on_chat_model_stream":
@@ -96,60 +216,96 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
                 if chunk and hasattr(chunk, "content") and chunk.content:
                     safe_token = sanitizer.process_chunk(chunk.content)
                     if safe_token:
-                        await websocket.send_text(json.dumps({
-                            "type": "token",
-                            "content": safe_token,
-                            "thread_id": thread_id
-                        }, ensure_ascii=False))
+                        await websocket.send_text(
+                            json.dumps(
+                                {
+                                    "type": "token",
+                                    "content": safe_token,
+                                    "thread_id": thread_id,
+                                    "session_id": session_id,
+                                },
+                                ensure_ascii=False,
+                            )
+                        )
 
             # 3. Tool Execution Logs
             elif kind == "on_tool_start":
                 tool_name = event.get("name")
                 tool_input = event.get("data", {}).get("input")
-                await websocket.send_text(json.dumps({
-                    "type": "tool_log",
-                    "status": "started",
-                    "tool": tool_name,
-                    "input": tool_input,
-                    "thread_id": thread_id
-                }, ensure_ascii=False))
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "type": "tool_log",
+                            "status": "started",
+                            "tool": tool_name,
+                            "input": tool_input,
+                            "thread_id": thread_id,
+                            "session_id": session_id,
+                        },
+                        ensure_ascii=False,
+                    )
+                )
 
             elif kind == "on_tool_end":
                 tool_name = event.get("name")
                 tool_output = event.get("data", {}).get("output")
-                await websocket.send_text(json.dumps({
-                    "type": "tool_log",
-                    "status": "completed",
-                    "tool": tool_name,
-                    "output": sanitize_text(str(tool_output)),
-                    "thread_id": thread_id
-                }, ensure_ascii=False))
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "type": "tool_log",
+                            "status": "completed",
+                            "tool": tool_name,
+                            "output": sanitize_text(str(tool_output)),
+                            "thread_id": thread_id,
+                            "session_id": session_id,
+                        },
+                        ensure_ascii=False,
+                    )
+                )
 
         # Flush any remaining tokens from streaming sanitizer buffer
         flush_token = sanitizer.flush()
         if flush_token:
-            await websocket.send_text(json.dumps({
-                "type": "token",
-                "content": flush_token,
-                "thread_id": thread_id
-            }, ensure_ascii=False))
+            await websocket.send_text(
+                json.dumps(
+                    {
+                        "type": "token",
+                        "content": flush_token,
+                        "thread_id": thread_id,
+                        "session_id": session_id,
+                    },
+                    ensure_ascii=False,
+                )
+            )
 
     except GraphInterrupt:
         # LangGraph Interrupt Caught (e.g. High-value Purchase Approval required)
         pass
     except asyncio.CancelledError:
-        await websocket.send_text(json.dumps({
-            "type": "cancelled",
-            "thread_id": thread_id,
-            "message": "Chat generation cancelled by user"
-        }, ensure_ascii=False))
+        await websocket.send_text(
+            json.dumps(
+                {
+                    "type": "cancelled",
+                    "thread_id": thread_id,
+                    "session_id": session_id,
+                    "message": "Chat generation cancelled by user",
+                },
+                ensure_ascii=False,
+            )
+        )
         return
     except Exception as e:
-        await websocket.send_text(json.dumps({
-            "type": "error",
-            "thread_id": thread_id,
-            "message": str(e)
-        }, ensure_ascii=False))
+        await websocket.send_text(
+            json.dumps(
+                {
+                    "type": "error",
+                    "thread_id": thread_id,
+                    "session_id": session_id,
+                    "message": str(e),
+                },
+                ensure_ascii=False,
+            )
+        )
         return
 
     # Check Graph State Post-Stream for Interrupt or Final Result
@@ -160,23 +316,55 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
         if state_snapshot.tasks and state_snapshot.tasks[0].interrupts:
             interrupt_val = state_snapshot.tasks[0].interrupts[0].value
 
-        await websocket.send_text(json.dumps({
-            "type": "interrupt",
-            "thread_id": thread_id,
-            "approval_data": interrupt_val
-        }, ensure_ascii=False))
+        await websocket.send_text(
+            json.dumps(
+                {
+                    "type": "interrupt",
+                    "thread_id": thread_id,
+                    "session_id": session_id,
+                    "approval_data": interrupt_val,
+                },
+                ensure_ascii=False,
+            )
+        )
     else:
         # State completed
         final_values = state_snapshot.values if state_snapshot else {}
         messages = final_values.get("messages", [])
         last_text = messages[-1].content if messages else ""
+        sanitized_answer = sanitize_text(last_text)
 
-        await websocket.send_text(json.dumps({
-            "type": "complete",
-            "thread_id": thread_id,
-            "final_answer": sanitize_text(last_text),
-            "current_step": final_values.get("current_step", "completed")
-        }, ensure_ascii=False))
+        # Extract sources from context if available
+        context_docs = final_values.get("context", [])
+        sources_str = None
+        if context_docs:
+            source_list = [
+                doc.get("metadata", {}).get("filename") or doc.get("metadata", {}).get("source", "Doc")
+                for doc in context_docs
+                if isinstance(doc, dict)
+            ]
+            if source_list:
+                sources_str = json.dumps(list(set(source_list)), ensure_ascii=False)
+
+        # Persist assistant answer to database
+        _record_assistant_message(
+            session_id=session_id,
+            assistant_message=sanitized_answer,
+            sources=sources_str,
+        )
+
+        await websocket.send_text(
+            json.dumps(
+                {
+                    "type": "complete",
+                    "thread_id": thread_id,
+                    "session_id": session_id,
+                    "final_answer": sanitized_answer,
+                    "current_step": final_values.get("current_step", "completed"),
+                },
+                ensure_ascii=False,
+            )
+        )
 
 
 @router.websocket("/ws/chat/{client_id}")
@@ -189,10 +377,12 @@ async def websocket_chat_endpoint(websocket: WebSocket, client_id: str):
             try:
                 data = json.loads(raw_data)
             except json.JSONDecodeError:
-                await websocket.send_text(json.dumps({
-                    "type": "error",
-                    "message": "Invalid JSON format"
-                }, ensure_ascii=False))
+                await websocket.send_text(
+                    json.dumps(
+                        {"type": "error", "message": "Invalid JSON format"},
+                        ensure_ascii=False,
+                    )
+                )
                 continue
 
             thread_id = data.get("thread_id", f"ws_thread_{client_id}")
