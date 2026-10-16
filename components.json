@@ -1,0 +1,22 @@
+{
+  "$schema": "https://shadcn-vue.com/schema.json",
+  "style": "default",
+  "typescript": false,
+  "tailwind": {
+    "config": "frontend/tailwind.config.js",
+    "css": "frontend/src/index.css",
+    "baseColor": "slate",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/utils",
+    "ui": "@/components/ui",
+    "lib": "@/lib",
+    "hooks": "@/composables"
+  },
+  "registries": {
+    "@shadcn": "https://ui.shadcn.com/r/{name}.json",
+    "@vue-bits": "https://vue-bits.dev/r/{name}.json"
+  }
+}

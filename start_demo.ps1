@@ -64,13 +64,13 @@ if ($Mode -eq "web") {
     Write-Host "[1/2] 正在新窗口启动 FastAPI 后端服务 (Port 8000)..." -ForegroundColor Cyan
     Start-Process powershell.exe -ArgumentList "-NoExit", "-Command", "cd '$RootDir'; `$env:PYTHONPATH='.'; [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Write-Host 'FastAPI Backend Running on http://127.0.0.1:8000' -ForegroundColor Green; & '$UvicornExe' backend.main:app --host 127.0.0.1 --port 8000 --reload"
 
-    Write-Host "[2/2] 正在新窗口启动 Vue3 前端界面 (Port 3000)..." -ForegroundColor Cyan
-    Start-Process powershell.exe -ArgumentList "-NoExit", "-Command", "cd '$RootDir\frontend'; [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Write-Host 'Vue3 Frontend Running on http://localhost:3000' -ForegroundColor Green; npm.cmd run dev"
+    Write-Host "[2/2] 正在新窗口启动 Vue3 前端界面 (Port 5173)..." -ForegroundColor Cyan
+    Start-Process powershell.exe -ArgumentList "-NoExit", "-Command", "cd '$RootDir\frontend'; [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Write-Host 'Vue3 Frontend Running on http://localhost:5173' -ForegroundColor Green; npm.cmd run dev"
 
     Write-Host ""
     Write-Host "=================================================================" -ForegroundColor Green
     Write-Host "🎉 交互环境已在新窗口中成功启动！" -ForegroundColor Green
-    Write-Host "👉 请在浏览器中打开: http://localhost:3000" -ForegroundColor Yellow
+    Write-Host "👉 请在浏览器中打开: http://localhost:5173" -ForegroundColor Yellow
     Write-Host "👉 后端 API 文档:    http://127.0.0.1:8000/docs" -ForegroundColor Yellow
     Write-Host "=================================================================" -ForegroundColor Green
     Write-Host "提示: 关闭弹出的两个 PowerShell 窗口即可停止服务。" -ForegroundColor Gray

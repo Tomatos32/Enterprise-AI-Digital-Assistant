@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import ChatContainer from '../components/ChatContainer.vue';
+import ChatView from '../views/ChatView.vue';
 
 const routes = [
   {
     path: '/',
     name: 'Chat',
-    component: ChatContainer,
+    component: ChatView,
     meta: { title: '企业数字员工 - AI Copilot Studio' },
   },
   {

@@ -40,3 +40,9 @@ logs/
 *.sqlite
 *.sqlite3
 
+# Environment Variables & Secrets
+.env
+.env.*
+*.env
+*.env.*
+
