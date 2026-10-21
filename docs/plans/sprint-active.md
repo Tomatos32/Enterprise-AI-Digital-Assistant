@@ -51,6 +51,12 @@
   - [ ] Checkpoint 3: 优化 `useChatStream.js`，动态透传 activeSessionId，并在新建会话与异常时强制复位 `isStreaming` 发送锁
   - [ ] Checkpoint 4: 增强大模型网关 502 容错，完善未拉起本地 Ollama 时的交互引导提示
 
+- [x] **Issue-0042: 跨平台 Windows 原生运维启停脚本套件治理、字符集修复与 Docker 守护进程自愈唤醒 (Ops-0003) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 将全部 4 个批处理脚本重构转换为 Windows 原生 ANSI/GBK 编码与标准 CRLF (`\r\n`) 换行符
+  - [x] Checkpoint 2: 消除 `if-else` 中小括号提前截断语法错误，改用安全标签跳转 (`goto`) 并移除多字节 Emoji 干扰
+  - [x] Checkpoint 3: 增加 Docker 守护进程连通性探活 (`docker info`)、Docker Desktop 自动唤醒与 45s 渐进式轮询重试机制
+  - [x] Checkpoint 4: 完善安全释放脚本 `stop_app.bat` 与 `stop_ai_service.bat` 的防御性检测与资源清理
+
 ---
 
 ## Historical Achievements (已交付稳态资产):
