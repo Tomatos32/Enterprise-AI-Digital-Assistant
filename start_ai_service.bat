@@ -1,32 +1,23 @@
 @echo off
-chcp 65001 >nul
-title å¯åŠ¨ AI åº•åº§æœåŠ¡ (Ollama + Dify)
+title Æô¶¯ AI µ××ù·şÎñ - Ollama Óë Dify
 echo =================================================================
-echo   ğŸš€ æ­£åœ¨æ‹‰èµ·æœ¬åœ° AI ç®—åŠ›åº•åº§ (Ollama qwen3.5:2b + Dify å®¹å™¨)...
+echo   ÕıÔÚÆô¶¯±¾µØ AI ËãÁ¦µ××ù [Ollama + Dify Docker]
 echo =================================================================
 echo.
 
-:: 1. é…ç½® Ollama ç¯å¢ƒå˜é‡ï¼ˆç¡®ä¿è·¨å®¹å™¨/è·¨åŸŸé€šä¿¡ç•…é€šï¼‰
-set OLLAMA_HOST=0.0.0.0:11434
-set OLLAMA_ORIGINS=*
-set OLLAMA_KEEP_ALIVE=-1
+echo [*] [1/2] ÕıÔÚĞÂ´°¿ÚÆô¶¯ Ollama ÔËĞĞ qwen3.5:2b...
+start "Ollama-Engine" cmd /k "cd /d G:\Ollama_1\Ollama && set OLLAMA_HOST=0.0.0.0:11434 && set OLLAMA_ORIGINS=* && set OLLAMA_KEEP_ALIVE=-1 && echo ÕıÔÚ¼ÓÔØ qwen3.5:2b Ä£ĞÍ... && ollama run qwen3.5:2b"
 
-:: 2. æ‹‰èµ· Ollama å¹¶åŠ è½½ qwen3.5:2b æ¨¡å‹
-echo [*] [1/2] æ­£åœ¨æ–°çª—å£å¯åŠ¨ Ollama å¹¶è¿è¡Œ qwen3.5:2b æ¨¡å‹...
-start "AI-Engine: Ollama (qwen3.5:2b)" cmd /k "chcp 65001 >nul && cd /d G:\Ollama_1\Ollama && set OLLAMA_HOST=0.0.0.0:11434 && set OLLAMA_ORIGINS=* && set OLLAMA_KEEP_ALIVE=-1 && echo æ­£åœ¨åŠ è½½æ¨¡å‹ qwen3.5:2b... && ollama.exe run qwen3.5:2b"
-
-:: 3. åˆ‡æ¢è‡³ Dify docker ç›®å½•å¯åŠ¨å®¹å™¨ç¼–æ’
-echo [*] [2/2] æ­£åœ¨å¯åŠ¨ Dify Docker ç¼–æ’é›†ç¾¤ (docker compose up -d)...
+echo [*] [2/2] ÕıÔÚÆô¶¯ Dify Docker ±àÅÅ¼¯Èº [docker compose up -d]...
 cd /d "G:\dify\docker"
 docker compose up -d
 
 echo.
 echo =================================================================
-echo   ğŸ‰ AI åº•åº§æœåŠ¡å¯åŠ¨å®Œæ¯•ï¼
-echo   ğŸ‘‰ Dify æ§åˆ¶å°: http://localhost
-echo   ğŸ‘‰ Dify WebApp: http://localhost/chat/wG0kGeUGzYwpQ8uw
-echo   ğŸ‘‰ Ollama ç«¯ç‚¹: http://localhost:11434
+echo   AI µ××ù·şÎñÆô¶¯Íê±Ï£¡
+echo   - Dify ¿ØÖÆÌ¨: http://localhost
+echo   - Ollama ¶Ëµã: http://localhost:11434
 echo =================================================================
-echo æç¤º: å¦‚éœ€åœæ­¢æœåŠ¡ï¼Œè¯·ç›´æ¥è¿è¡ŒåŒç›®å½•ä¸‹çš„ stop_ai_service.bat
+echo ÌáÊ¾: ÈçĞèÍ£Ö¹·şÎñ£¬ÇëÔËĞĞÍ¬Ä¿Â¼ÏÂµÄ stop_ai_service.bat
 echo.
 pause

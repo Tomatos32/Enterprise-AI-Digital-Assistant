@@ -1,25 +1,22 @@
 @echo off
-chcp 65001 >nul
-title 停止 AI 底座服务 (Ollama + Dify)
+title ֹͣ AI �������� - Ollama �� Dify
 echo =================================================================
-echo   🛑 正在停止 AI 算力底座 (Dify 容器集群 + Ollama 引擎)...
+echo   ����ֹͣ AI �������� [Dify ������Ⱥ + Ollama ����]...
 echo =================================================================
 echo.
 
-:: 1. 停止并释放 Dify Docker 容器
-echo [*] [1/2] 正在停止 Dify Docker 容器集群 (docker compose down)...
+echo [*] [1/2] ����ֹͣ Dify Docker ������Ⱥ [docker compose down]...
 cd /d "G:\dify\docker"
 docker compose down
 
-:: 2. 卸载 Ollama 模型显存占用并关闭进程
-echo [*] [2/2] 正在释放 Ollama 显存并关闭会话窗口...
+echo [*] [2/2] �����ͷ� Ollama �Դ沢�ر��ն˴���...
 cd /d "G:\Ollama_1\Ollama"
-ollama.exe stop qwen3.5:2b 2>nul
-taskkill /f /fi "WINDOWTITLE eq AI-Engine: Ollama (qwen3.5:2b)*" 2>nul
+ollama stop qwen3.5:2b 2>nul
+taskkill /f /fi "WINDOWTITLE eq Ollama-Engine*" 2>nul
 
 echo.
 echo =================================================================
-echo   [√] Dify 容器集群已安全停止，Ollama 模型显存已成功卸载！
+echo   Dify ������Ⱥ�Ѱ�ȫֹͣ��Ollama �Դ����ͷţ�
 echo =================================================================
 echo.
 pause
