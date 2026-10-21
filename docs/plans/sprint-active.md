@@ -45,6 +45,12 @@
   - [ ] Checkpoint 3: 固化 HR / ERP / OA 本地开箱即用模拟桩，确保无外部网络与商业账号下系统自闭环运行
   - [ ] Checkpoint 4: 编写个人高保真部署与运行指南 `docs/PERSONAL_RUNBOOK.md`
 
+- [ ] **Issue-0041: 前端多会话真实历史拉取、状态解绑与大模型 502 阻断自愈 (Session Persistence & Frontend Hardening) - [ACTIVE IN PROGRESS]**
+  - [ ] Checkpoint 1: 改造 `chatStore.js` 对接后端 `/api/v1/chat/sessions` 与历史消息拉取 API
+  - [ ] Checkpoint 2: 修复 `ChatContainer.vue` 会话切换消息丢失问题，实现历史消息真实回显
+  - [ ] Checkpoint 3: 优化 `useChatStream.js`，动态透传 activeSessionId，并在新建会话与异常时强制复位 `isStreaming` 发送锁
+  - [ ] Checkpoint 4: 增强大模型网关 502 容错，完善未拉起本地 Ollama 时的交互引导提示
+
 ---
 
 ## Historical Achievements (已交付稳态资产):
