@@ -124,9 +124,14 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
     try:
         response = await llm.ainvoke(prompt_messages)
         answer_text = response.content if hasattr(response, "content") else str(response)
+        if not answer_text or not answer_text.strip():
+            logger.warning("[GenerateNode] LLM returned empty content. Using domain fallback synthesis.")
+            from backend.core.llm import LocalEnterpriseChatModel
+            answer_text = LocalEnterpriseChatModel()._synthesize_response(prompt_messages)
     except Exception as exc:
         logger.warning(f"[GenerateNode] LLM invocation failed ({exc}). Using direct fallback.")
-        answer_text = f"[Chat Answer]: 您好！我是企业 AI 数字员工，已处理您的请求：'{last_query}'"
+        from backend.core.llm import LocalEnterpriseChatModel
+        answer_text = LocalEnterpriseChatModel()._synthesize_response(prompt_messages)
 
     # Enforce standard answer tag for test compatibility & UI formatting
     if intent == "retrieve" and "[RAG Answer]" not in answer_text:

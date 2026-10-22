@@ -6,7 +6,7 @@ Self-Correction Reflection, and Token Streaming.
 import pytest
 from langchain_core.messages import HumanMessage
 
-from backend.core.llm import get_chat_llm, get_llm_info
+from backend.core.llm import LocalEnterpriseChatModel, get_chat_llm, get_llm_info
 from backend.graph.nodes.generate_node import generate_node
 from backend.graph.state import AgentState
 from backend.graph.workflow import graph
@@ -29,7 +29,7 @@ def test_llm_factory_and_telemetry():
 @pytest.mark.asyncio
 async def test_local_enterprise_chat_model_domains():
     """Validates domain-specific knowledge synthesis in LocalEnterpriseChatModel."""
-    llm = get_chat_llm()
+    llm = LocalEnterpriseChatModel()
 
     # 1. Travel expense query
     travel_res = await llm.ainvoke(

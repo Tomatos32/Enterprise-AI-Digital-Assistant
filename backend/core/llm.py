@@ -12,6 +12,7 @@ import asyncio
 import logging
 import re
 from typing import Any, AsyncIterator, Dict, List, Optional
+import httpx
 
 from langchain_core.callbacks import AsyncCallbackManagerForLLMRun, CallbackManagerForLLMRun
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -139,7 +140,7 @@ class LocalEnterpriseChatModel(BaseChatModel):
 
         # 3. 普通对话 (Chat Intent)
         return (
-            f"[Chat Answer]: Hello! I have processed your message: '{query}'. 您好！我是企业 AI 数字员工助手。\n\n"
+            "[Chat Answer]: 您好！我是企业 AI 数字员工助手。\n\n"
             "我可以协助您：\n"
             "- 检索并解读企业各项规章制度（财务报销标准、采购权限门禁、考勤休假规定等）；\n"
             "- 处理行政与IT运维工单、发起人机协同审批流；\n"
@@ -216,7 +217,8 @@ class ResilientChatModel(BaseChatModel):
     ) -> ChatResult:
         if self.primary_model is not None:
             try:
-                return self.primary_model._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
+                msg = self.primary_model.invoke(messages, stop=stop, **kwargs)
+                return ChatResult(generations=[ChatGeneration(message=msg)])
             except Exception as exc:
                 logger.warning(
                     "[LLM] Primary ChatModel _generate failed: %s. Falling back to LocalEnterpriseChatModel.",
@@ -233,7 +235,8 @@ class ResilientChatModel(BaseChatModel):
     ) -> ChatResult:
         if self.primary_model is not None:
             try:
-                return await self.primary_model._agenerate(messages, stop=stop, run_manager=run_manager, **kwargs)
+                msg = await self.primary_model.ainvoke(messages, stop=stop, **kwargs)
+                return ChatResult(generations=[ChatGeneration(message=msg)])
             except Exception as exc:
                 logger.warning(
                     "[LLM] Primary ChatModel _agenerate failed: %s. Falling back to LocalEnterpriseChatModel.",
@@ -251,11 +254,13 @@ class ResilientChatModel(BaseChatModel):
         if self.primary_model is not None:
             try:
                 streamed = False
-                async for chunk in self.primary_model._astream(
-                    messages, stop=stop, run_manager=run_manager, **kwargs
-                ):
-                    streamed = True
-                    yield chunk
+                async for chunk in self.primary_model.astream(messages, stop=stop, **kwargs):
+                    if chunk and hasattr(chunk, "content") and chunk.content:
+                        streamed = True
+                        gen_chunk = ChatGenerationChunk(message=chunk)
+                        if run_manager:
+                            await run_manager.on_llm_new_token(chunk.content, chunk=gen_chunk)
+                        yield gen_chunk
                 if streamed:
                     return
             except Exception as exc:
@@ -296,9 +301,13 @@ def get_chat_llm(
     if effective_provider == "deepseek" and not effective_base:
         effective_base = "https://api.deepseek.com/v1"
     elif effective_provider == "ollama" and not effective_base:
-        effective_base = "http://localhost:11434/v1"
+        effective_base = "http://127.0.0.1:11434/v1"
     elif effective_provider == "vllm" and not effective_base:
-        effective_base = "http://localhost:8000/v1"
+        effective_base = "http://127.0.0.1:8000/v1"
+
+    # Normalize localhost to 127.0.0.1 for robust Windows local loopback
+    if effective_base and "localhost" in effective_base:
+        effective_base = effective_base.replace("localhost", "127.0.0.1")
 
     # Only instantiate remote ChatOpenAI if explicit settings/parameters are configured
     if effective_key or effective_base or effective_provider in ["openai", "deepseek", "vllm", "ollama"]:
@@ -308,12 +317,25 @@ def get_chat_llm(
                 effective_model,
                 effective_base,
             )
+            # Disable system proxy inheritance for local loopback to avoid 502 Bad Gateway from local proxy tools (e.g. Clash/V2Ray)
+            is_local = any(h in (effective_base or "") for h in ["127.0.0.1", "localhost", "0.0.0.0"])
+            custom_async_client = httpx.AsyncClient(
+                trust_env=not is_local,
+                timeout=httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0),
+            )
+            custom_sync_client = httpx.Client(
+                trust_env=not is_local,
+                timeout=httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0),
+            )
+
             chat_openai = ChatOpenAI(
                 model=effective_model,
-                api_key=effective_key or "sk-dummy-local",
+                api_key=effective_key or "ollama",
                 base_url=effective_base,
                 temperature=effective_temp,
                 streaming=effective_stream,
+                http_async_client=custom_async_client,
+                http_client=custom_sync_client,
             )
             return ResilientChatModel(
                 primary_model=chat_openai,

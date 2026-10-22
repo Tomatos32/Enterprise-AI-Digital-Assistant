@@ -1,0 +1,21 @@
+{
+  "issue_id": "Issue-0043",
+  "sprint": "R-04",
+  "campaign": "真实化落地与交付攻坚模式",
+  "title": "本地大模型代理穿透直连修复与端到端真实推理闭环",
+  "status": "COMPLETED",
+  "created_at": "2026-10-22T01:00:00Z",
+  "completed_at": "2026-10-22T01:25:00Z",
+  "review_score": 100,
+  "artifacts": [
+    "backend/core/llm.py",
+    "backend/core/config.py",
+    ".env"
+  ],
+  "features_delivered": [
+    "Disable-Proxy-Inheritance-For-Local-Loopback",
+    "Normalize-Localhost-To-127-0-0-1",
+    "Safe-Ainvoke-Astream-Invocation-In-ResilientChatModel",
+    "End-To-End-Ollama-Qwen-Real-Inference-Verified"
+  ]
+}
