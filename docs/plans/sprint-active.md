@@ -57,6 +57,18 @@
   - [x] Checkpoint 3: 增加 Docker 守护进程连通性探活 (`docker info`)、Docker Desktop 自动唤醒与 45s 渐进式轮询重试机制
   - [x] Checkpoint 4: 完善安全释放脚本 `stop_app.bat` 与 `stop_ai_service.bat` 的防御性检测与资源清理
 
+- [x] **Issue-0043: 本地大模型代理穿透直连修复与端到端真实推理闭环 (Real Model Connectivity) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 在 `backend/core/llm.py` 中禁用本地回环系统代理继承 (`trust_env=False`)，彻底根除 502 错误
+  - [x] Checkpoint 2: 规范大模型端点地址，将 `localhost` 自动转为 `127.0.0.1` 规避 Windows IPv6 解析异常
+  - [x] Checkpoint 3: 重构 `ResilientChatModel` 底层调用封装，修复 LangChain 私有 `_agenerate` 异常
+  - [x] Checkpoint 4: 实测验证本地 Ollama `qwen3.5:2b` 端到端自然推理生成通过
+
+- [x] **Issue-0044: 前端输入框交互净化与无套话纯净流式生成 (UI Cleanup & Clean Streaming) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 从 `PromptBar.vue` 彻底移除冗余的 `GlideSelect` 模型选择组件与多余依赖
+  - [x] Checkpoint 2: 净化 `LocalEnterpriseChatModel`，彻底消除 `Hello! I have processed your message` 机械套话
+  - [x] Checkpoint 3: 在 `StreamingSanitizer` 与 WebSocket `complete` 帧发送层自动过滤 `[Chat Answer]: ` 等技术代号
+  - [x] Checkpoint 4: 增强 `generate_node.py` 防御机制，模型生成为空时自动触发高质量领域兜底合成
+
 ---
 
 ## Historical Achievements (已交付稳态资产):

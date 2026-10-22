@@ -125,6 +125,7 @@ class StreamingSanitizer:
         """
         self.window_size = window_size
         self._buffer: str = ""
+        self._prefix_cleaned: bool = False
 
     def process_chunk(self, chunk: str) -> str:
         """
@@ -135,6 +136,13 @@ class StreamingSanitizer:
             return ""
 
         self._buffer += chunk
+
+        # Clean architectural debug prefixes on stream start
+        if not self._prefix_cleaned and len(self._buffer) >= 16:
+            self._buffer = re.sub(r"^\[(?:Chat|RAG|Tool)\s*Answer\]:\s*", "", self._buffer, flags=re.IGNORECASE)
+            self._buffer = re.sub(r"^Hello!\s*I have processed your message:\s*['\"].*?['\"]\.\s*", "", self._buffer, flags=re.IGNORECASE)
+            self._prefix_cleaned = True
+
         sanitized = sanitize_text(self._buffer)
 
         if len(sanitized) > self.window_size:
@@ -152,6 +160,11 @@ class StreamingSanitizer:
         if not self._buffer:
             return ""
 
+        if not self._prefix_cleaned:
+            self._buffer = re.sub(r"^\[(?:Chat|RAG|Tool)\s*Answer\]:\s*", "", self._buffer, flags=re.IGNORECASE)
+            self._buffer = re.sub(r"^Hello!\s*I have processed your message:\s*['\"].*?['\"]\.\s*", "", self._buffer, flags=re.IGNORECASE)
+            self._prefix_cleaned = True
+
         final_chunk = sanitize_text(self._buffer)
         self._buffer = ""
         return final_chunk
@@ -159,3 +172,4 @@ class StreamingSanitizer:
     def reset(self) -> None:
         """Resets the internal buffer state."""
         self._buffer = ""
+        self._prefix_cleaned = False

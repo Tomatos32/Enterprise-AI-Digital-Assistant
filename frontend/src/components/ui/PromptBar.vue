@@ -78,15 +78,9 @@
 
       <!-- Normal Input Layout -->
       <div v-else class="space-y-2">
-        <!-- Top Toolbar inside PromptBar: Model Selector, Tags & Actions -->
+        <!-- Top Toolbar inside PromptBar: Tags & Actions -->
         <div class="flex items-center justify-between px-1">
           <div class="flex items-center space-x-1.5 sm:space-x-2">
-            <!-- Model GlideSelect -->
-            <GlideSelect
-              v-model="selectedModel"
-              :options="modelOptions"
-            />
-
             <!-- Quick Data Source Trigger (@) -->
             <button
               type="button"
@@ -215,11 +209,8 @@ import {
   FileText,
   Search,
   CheckCircle,
-  HelpCircle,
-  Cpu,
-  Brain
+  HelpCircle
 } from 'lucide-vue-next';
-import GlideSelect from './GlideSelect.vue';
 import VoicePill from './VoicePill.vue';
 
 const props = defineProps({
@@ -244,32 +235,6 @@ const attachedSource = ref('');
 
 const showAtMenu = ref(false);
 const showSlashMenu = ref(false);
-
-const selectedModel = ref('claude-3-7-thinking');
-
-const modelOptions = [
-  {
-    id: 'claude-3-7-thinking',
-    label: 'Claude 3.7 Thinking',
-    desc: '深度扩展思考、架构规划与严格自校验',
-    badge: 'Extended CoT',
-    icon: Brain,
-  },
-  {
-    id: 'gpt-4o-enterprise',
-    label: 'GPT-4o Enterprise',
-    desc: '高吞吐全模态意图路由与业务协同',
-    badge: 'Flagship',
-    icon: Sparkles,
-  },
-  {
-    id: 'o3-mini-reasoning',
-    label: 'o3-mini Reasoning',
-    desc: '高精度 STEM 逻辑、Saga 逆序事务与代码校验',
-    badge: 'High Precision',
-    icon: Cpu,
-  },
-];
 
 const dataSources = [
   { id: 'kb_all', name: '全量企业规章制度库', desc: '包含差旅、采购、固定资产管理制度', icon: BookOpen },
@@ -365,7 +330,6 @@ const handleSend = () => {
   emit('send', {
     text,
     source: attachedSource.value,
-    model: selectedModel.value,
   });
   inputContent.value = '';
   emit('update:modelValue', '');

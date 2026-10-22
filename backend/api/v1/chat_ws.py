@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime
 import json
 import logging
+import re
 from typing import Dict, List, Optional
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
@@ -129,6 +130,15 @@ def _record_assistant_message(
             db.commit()
     except Exception as e:
         logger.warning(f"[ChatWS] Failed to persist assistant response to DB: {e}")
+
+
+def strip_internal_answer_tags(text: str) -> str:
+    """Strips internal architectural debugging tags like [Chat Answer]: or [RAG Answer]: from user-facing text."""
+    if not text or not isinstance(text, str):
+        return text
+    cleaned = re.sub(r"^\[(?:Chat|RAG|Tool)\s*Answer\]:\s*", "", text, flags=re.IGNORECASE)
+    cleaned = re.sub(r"^Hello!\s*I have processed your message:\s*['\"].*?['\"]\.\s*", "", cleaned, flags=re.IGNORECASE)
+    return cleaned.strip()
 
 
 async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dict):
@@ -332,7 +342,7 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
         final_values = state_snapshot.values if state_snapshot else {}
         messages = final_values.get("messages", [])
         last_text = messages[-1].content if messages else ""
-        sanitized_answer = sanitize_text(last_text)
+        sanitized_answer = strip_internal_answer_tags(sanitize_text(last_text))
 
         # Extract sources from context if available
         context_docs = final_values.get("context", [])

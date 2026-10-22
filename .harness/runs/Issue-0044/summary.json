@@ -1,0 +1,23 @@
+{
+  "issue_id": "Issue-0044",
+  "sprint": "R-04",
+  "campaign": "真实化落地与交付攻坚模式",
+  "title": "前端输入框交互净化与无套话纯净流式生成",
+  "status": "COMPLETED",
+  "created_at": "2026-10-22T01:30:00Z",
+  "completed_at": "2026-10-22T01:50:00Z",
+  "review_score": 100,
+  "artifacts": [
+    "frontend/src/components/ui/PromptBar.vue",
+    "backend/core/llm.py",
+    "backend/graph/nodes/generate_node.py",
+    "backend/core/guardrails/output_sanitizer.py",
+    "backend/api/v1/chat_ws.py"
+  ],
+  "features_delivered": [
+    "Remove-Model-Select-Dropdown-From-PromptBar",
+    "Eliminate-Mechanical-English-Boilerplate-From-Chat-Model",
+    "Sanitize-Internal-Answer-Tags-On-WebSocket-Stream",
+    "Graceful-LLM-Empty-Output-Domain-Fallback-Protection"
+  ]
+}
