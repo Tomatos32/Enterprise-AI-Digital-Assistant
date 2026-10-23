@@ -11,13 +11,13 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000" ^| findstr "LISTENING
     taskkill /f /pid %%a 2>nul
 )
 
-echo [*] 正在停止前端端口 5173 对应进程...
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5173" ^| findstr "LISTENING" 2^>nul') do (
+echo [*] 正在停止前端端口 3000 对应进程...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3000" ^| findstr "LISTENING" 2^>nul') do (
     echo     正在终止前端进程 PID: %%a
     taskkill /f /pid %%a 2>nul
 )
 
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3000" ^| findstr "LISTENING" 2^>nul') do (
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5173" ^| findstr "LISTENING" 2^>nul') do (
     taskkill /f /pid %%a 2>nul
 )
 
@@ -27,7 +27,7 @@ taskkill /f /fi "WINDOWTITLE eq Frontend-Vue3*" 2>nul
 
 echo.
 echo =================================================================
-echo   前后端服务进程已全部停止，端口 8000 与 5173 已释放！
+echo   前后端服务进程已全部停止，端口 8000 与 3000 已释放！
 echo =================================================================
 echo.
 pause

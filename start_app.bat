@@ -32,13 +32,13 @@ echo.
 echo [*] [1/2] 正在新窗口启动 FastAPI 后端服务 [端口: 8000]...
 start "Backend-FastAPI" cmd /k "cd /d %ROOT_DIR% && set PYTHONPATH=. && %ROOT_DIR%\backend\.venv\Scripts\uvicorn.exe backend.main:app --host 127.0.0.1 --port 8000 --reload"
 
-echo [*] [2/2] 正在新窗口启动 Vue3 前端服务 [端口: 5173]...
+echo [*] [2/2] 正在新窗口启动 Vue3 前端服务 [端口: 3000]...
 start "Frontend-Vue3" cmd /k "cd /d %ROOT_DIR%\frontend && %FRONTEND_CMD%"
 
 echo.
 echo =================================================================
 echo   前后端服务已在新窗口中成功拉起！
-echo   - 前端访问地址:   http://localhost:5173
+echo   - 前端访问地址:   http://localhost:3000
 echo   - 后端 API 文档:  http://127.0.0.1:8000/docs
 echo =================================================================
 echo 提示: 如需停止前后端服务，请运行同目录下的 stop_app.bat
