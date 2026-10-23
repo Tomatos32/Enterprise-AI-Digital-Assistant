@@ -103,7 +103,7 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
     else:
         system_prompt = (
             "你是一位专业、亲切的企业 AI 数字员工助手。\n"
-            "请在回答首行标注 `[Chat Answer]: `。\n"
+            "请直接针对用户的问题进行自然、真诚的解答。\n"
             "简明介绍你能协助用户处理的业务范围（解读规章制度、审批门禁指引、工单流转与协同处理等）。"
         )
 
@@ -138,8 +138,6 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
         answer_text = f"[RAG Answer]: {answer_text}"
     elif intent == "tool" and "[Tool Answer]" not in answer_text:
         answer_text = f"[Tool Answer]: {answer_text}"
-    elif intent == "chat" and "[Chat Answer]" not in answer_text:
-        answer_text = f"[Chat Answer]: {answer_text}"
 
     return {
         "messages": [AIMessage(content=answer_text)],

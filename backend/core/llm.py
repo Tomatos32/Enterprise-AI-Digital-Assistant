@@ -140,7 +140,7 @@ class LocalEnterpriseChatModel(BaseChatModel):
 
         # 3. 普通对话 (Chat Intent)
         return (
-            "[Chat Answer]: 您好！我是企业 AI 数字员工助手。\n\n"
+            "您好！我是企业 AI 数字员工助手。\n\n"
             "我可以协助您：\n"
             "- 检索并解读企业各项规章制度（财务报销标准、采购权限门禁、考勤休假规定等）；\n"
             "- 处理行政与IT运维工单、发起人机协同审批流；\n"
@@ -257,10 +257,7 @@ class ResilientChatModel(BaseChatModel):
                 async for chunk in self.primary_model.astream(messages, stop=stop, **kwargs):
                     if chunk and hasattr(chunk, "content") and chunk.content:
                         streamed = True
-                        gen_chunk = ChatGenerationChunk(message=chunk)
-                        if run_manager:
-                            await run_manager.on_llm_new_token(chunk.content, chunk=gen_chunk)
-                        yield gen_chunk
+                        yield ChatGenerationChunk(message=chunk)
                 if streamed:
                     return
             except Exception as exc:

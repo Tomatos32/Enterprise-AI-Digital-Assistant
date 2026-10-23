@@ -1,5 +1,11 @@
 """Main FastAPI Application Entry Point."""
 
+import os
+# Protect against OpenBLAS memory allocation abort in high-memory environments (Docker/Ollama)
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from backend.core.config import settings

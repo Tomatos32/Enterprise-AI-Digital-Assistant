@@ -30,7 +30,7 @@ echo [*] 已选择前端模式: %MODE_NAME%
 echo.
 
 echo [*] [1/2] 正在新窗口启动 FastAPI 后端服务 [端口: 8000]...
-start "Backend-FastAPI" cmd /k "cd /d %ROOT_DIR% && set PYTHONPATH=. && %ROOT_DIR%\backend\.venv\Scripts\uvicorn.exe backend.main:app --host 127.0.0.1 --port 8000 --reload"
+start "Backend-FastAPI" cmd /k "cd /d %ROOT_DIR% && set PYTHONPATH=. && set OPENBLAS_NUM_THREADS=1 && set OMP_NUM_THREADS=1 && set MKL_NUM_THREADS=1 && %ROOT_DIR%\backend\.venv\Scripts\uvicorn.exe backend.main:app --host 127.0.0.1 --port 8000 --reload"
 
 echo [*] [2/2] 正在新窗口启动 Vue3 前端服务 [端口: 3000]...
 start "Frontend-Vue3" cmd /k "cd /d %ROOT_DIR%\frontend && %FRONTEND_CMD%"

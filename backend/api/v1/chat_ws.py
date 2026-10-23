@@ -222,6 +222,9 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
 
             # 2. LLM Streaming Tokens
             elif kind == "on_chat_model_stream":
+                # Deduplicate nested ChatOpenAI stream events when wrapped in ResilientChatModel
+                if event.get("name") == "ChatOpenAI":
+                    continue
                 chunk = event.get("data", {}).get("chunk")
                 if chunk and hasattr(chunk, "content") and chunk.content:
                     safe_token = sanitizer.process_chunk(chunk.content)
@@ -409,5 +412,6 @@ async def websocket_chat_endpoint(websocket: WebSocket, client_id: str):
 
     except WebSocketDisconnect:
         manager.disconnect(client_id)
-    except Exception:
+    except Exception as exc:
+        logger.error(f"[ChatWS] Unexpected WebSocket error for client '{client_id}': {exc}", exc_info=True)
         manager.disconnect(client_id)
