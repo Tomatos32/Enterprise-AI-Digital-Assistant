@@ -12,35 +12,50 @@ start "Ollama-Engine" cmd /k "cd /d G:\Ollama_1\Ollama && set OLLAMA_HOST=0.0.0.
 :: 2. 检查 Docker 守护进程连通性
 echo [*] [2/2] 正在检查 Docker 引擎运行状态...
 docker info >nul 2>nul
-if %errorlevel% equ 0 goto DOCKER_READY
+if %errorlevel% equ 0 goto DOCKER_ALREADY_RUNNING
 
 echo [*] 检测到 Docker 守护进程未启动，正在尝试唤醒 Docker Desktop...
-if exist "C:\Program Files\Docker\Docker\Docker Desktop.exe" (
-    start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe"
-    echo [*] 已向系统发出 Docker Desktop 启动指令，正在等待 Docker 引擎就绪...
-    echo [*] (首次启动通常需要 15~35 秒，请耐心稍候)
-) else (
-    echo [-] 未在默认路径发现 Docker Desktop，请确保已安装 Docker。
-)
+if not exist "C:\Program Files\Docker\Docker\Docker Desktop.exe" goto DOCKER_NOT_FOUND
 
-:: 轮询等待 Docker 就绪 (最多等待 45 秒)
+start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+echo [*] 已向系统发出 Docker Desktop 启动指令，正在等待 Docker 引擎就绪...
+echo [*] 首次启动冷拉起通常需要 15 到 35 秒，请耐心稍候...
+goto WAIT_DOCKER_INIT
+
+:DOCKER_NOT_FOUND
+echo [-] 未在默认路径发现 Docker Desktop，请确保已安装并启动 Docker。
+goto WAIT_DOCKER_INIT
+
+:WAIT_DOCKER_INIT
 set WAIT_COUNT=0
+
 :WAIT_DOCKER_LOOP
 timeout /t 3 /nobreak >nul
 set /a WAIT_COUNT+=3
 docker info >nul 2>nul
-if %errorlevel% equ 0 (
-    echo [√] Docker 引擎已成功就绪！(耗时约 %WAIT_COUNT% 秒)
-    goto DOCKER_READY
-)
-if %WAIT_COUNT% geq 45 goto DOCKER_TIMEOUT
-echo [*] Docker 正在初始化中... 已等待 %WAIT_COUNT% 秒 / 45 秒
+if %errorlevel% equ 0 goto DOCKER_SUCCESS
+if %WAIT_COUNT% geq 60 goto DOCKER_TIMEOUT
+echo [*] Docker 正在后台初始化中... 已等待 %WAIT_COUNT% 秒 / 60 秒
 goto WAIT_DOCKER_LOOP
+
+:DOCKER_SUCCESS
+echo [*] Docker 引擎已成功就绪！耗时约 %WAIT_COUNT% 秒。
+goto DOCKER_DEPLOY
+
+:DOCKER_ALREADY_RUNNING
+echo [*] Docker 引擎已处于就绪运行状态。
+goto DOCKER_DEPLOY
+
+:DOCKER_DEPLOY
+echo [*] 正在启动 Dify Docker 编排集群 [docker compose up -d]...
+cd /d "G:\dify\docker"
+docker compose up -d
+goto SUMMARY
 
 :DOCKER_TIMEOUT
 echo.
 echo =================================================================
-echo   [-] 警告: Docker 引擎等待超时 (45秒)。
+echo   [-] 警告: Docker 引擎等待超时 (60秒)。
 echo   可能的原因：
 echo   1. Docker Desktop 仍在后台初始化中；
 echo   2. 本地虚拟化引擎 (WSL2 / Hyper-V) 启动较慢。
@@ -50,11 +65,6 @@ echo =================================================================
 echo.
 pause
 goto SUMMARY
-
-:DOCKER_READY
-echo [*] 正在启动 Dify Docker 编排集群 [docker compose up -d]...
-cd /d "G:\dify\docker"
-docker compose up -d
 
 :SUMMARY
 echo.

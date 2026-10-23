@@ -1,4 +1,4 @@
-﻿# Enterprise AI Digital Assistant - Interactive Demo Launcher (PowerShell)
+# Enterprise AI Digital Assistant - Interactive Demo Launcher (PowerShell)
 param(
     [string]$Mode = ""
 )
@@ -75,4 +75,3 @@ if ($Mode -eq "web") {
     Write-Host "=================================================================" -ForegroundColor Green
     Write-Host "提示: 关闭弹出的两个 PowerShell 窗口即可停止服务。" -ForegroundColor Gray
 }
-
