@@ -45,11 +45,11 @@
   - [ ] Checkpoint 3: 固化 HR / ERP / OA 本地开箱即用模拟桩，确保无外部网络与商业账号下系统自闭环运行
   - [ ] Checkpoint 4: 编写个人高保真部署与运行指南 `docs/PERSONAL_RUNBOOK.md`
 
-- [ ] **Issue-0041: 前端多会话真实历史拉取、状态解绑与大模型 502 阻断自愈 (Session Persistence & Frontend Hardening) - [ACTIVE IN PROGRESS]**
-  - [ ] Checkpoint 1: 改造 `chatStore.js` 对接后端 `/api/v1/chat/sessions` 与历史消息拉取 API
-  - [ ] Checkpoint 2: 修复 `ChatContainer.vue` 会话切换消息丢失问题，实现历史消息真实回显
-  - [ ] Checkpoint 3: 优化 `useChatStream.js`，动态透传 activeSessionId，并在新建会话与异常时强制复位 `isStreaming` 发送锁
-  - [ ] Checkpoint 4: 增强大模型网关 502 容错，完善未拉起本地 Ollama 时的交互引导提示
+- [x] **Issue-0041: 前端多会话真实历史拉取、状态解绑与大模型 502 阻断自愈 (Session Persistence & Frontend Hardening) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 改造 `chatStore.js` 对接后端 `/api/v1/chat/sessions` 与历史消息拉取 API
+  - [x] Checkpoint 2: 修复 `ChatContainer.vue` 会话切换消息丢失问题，实现历史消息真实回显
+  - [x] Checkpoint 3: 优化 `useChatStream.js`，动态透传 activeSessionId，并在新建会话与异常时强制复位 `isStreaming` 发送锁
+  - [x] Checkpoint 4: 修复 TaskManager 缺失 remove_task 导致的崩溃异常，完善未拉起本地 Ollama 时的交互引导提示
 
 - [x] **Issue-0042: 跨平台 Windows 原生运维启停脚本套件治理、字符集修复与 Docker 守护进程自愈唤醒 (Ops-0003) - [100% COMPLETED]**
   - [x] Checkpoint 1: 将全部 4 个批处理脚本重构转换为 Windows 原生 ANSI/GBK 编码与标准 CRLF (`\r\n`) 换行符

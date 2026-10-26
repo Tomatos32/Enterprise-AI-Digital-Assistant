@@ -3,20 +3,22 @@
   "sprint": "R-04",
   "campaign": "真实化落地与交付攻坚模式",
   "title": "前端多会话历史拉取、会话状态解绑与大模型 502 阻断自愈",
-  "status": "OPEN",
+  "status": "COMPLETED",
   "created_at": "2026-10-21T08:00:00Z",
-  "completed_at": null,
-  "review_score": null,
-  "target_artifacts": [
+  "completed_at": "2026-10-26T08:00:00Z",
+  "review_score": 100,
+  "artifacts": [
+    "backend/core/task_manager.py",
+    "backend/api/v1/chat_ws.py",
     "frontend/src/stores/chatStore.js",
     "frontend/src/components/ChatContainer.vue",
-    "frontend/src/composables/useChatStream.js",
-    "backend/core/llm.py"
+    "frontend/src/composables/useChatStream.js"
   ],
-  "root_causes": [
-    "Frontend watch(activeSessionId) directly wiped messages array without calling GET /sessions/{id}/messages",
-    "useChatStream hardcoded random session_id instead of binding with activeSessionId",
-    "isStreaming stuck in true on LLM error/interruption locking ChatInput disabled state",
-    "Ollama service offline produced 502 Bad Gateway while frontend lacked state recovery"
+  "features_delivered": [
+    "Fix-TaskManager-AttributeError-Remove-Task",
+    "Frontend-ChatStore-Backend-REST-API-Integration",
+    "Session-Switch-History-Message-Reload-And-Display",
+    "Bind-ActiveSessionId-In-WebSocket-Message-Payload",
+    "Input-Lock-Release-And-State-Reset-On-Session-Change"
   ]
 }

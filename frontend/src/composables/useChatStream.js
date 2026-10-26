@@ -193,7 +193,7 @@ export function useChatStream(clientId = 'vue3_client_stream') {
     }
   };
 
-  const sendMessage = (text, customMetadata = {}) => {
+  const sendMessage = (text, customMetadata = {}, explicitSessionId = null) => {
     if (!text.trim() || !isConnected.value) return;
 
     const userMsg = {
@@ -222,11 +222,13 @@ export function useChatStream(clientId = 'vue3_client_stream') {
     };
     messages.value.push(aiMsg);
 
+    const targetSessionId = explicitSessionId || currentThreadId.value;
+
     const payload = {
       message: text,
       thread_id: currentThreadId.value,
       user_id: 'u_vue3_user',
-      session_id: `s_vue3_${Date.now()}`,
+      session_id: targetSessionId,
       metadata: customMetadata,
     };
 

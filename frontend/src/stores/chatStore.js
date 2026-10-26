@@ -68,10 +68,27 @@ export const useChatStore = defineStore('chat', () => {
     }
   };
 
-  // 创建新会话
-  const createSession = (initialTitle = '新对话') => {
+  // 创建新会话 (支持异步向后端注册)
+  const createSession = async (initialTitle = '新对话') => {
+    let newSessionId = `s_vue3_${Date.now()}`;
+    try {
+      const res = await fetch('/api/v1/chat/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: initialTitle, user_id: 'u_vue3_user' })
+      });
+      if (res.ok) {
+        const s = await res.json();
+        if (s && s.session_id) {
+          newSessionId = s.session_id;
+        }
+      }
+    } catch (e) {
+      console.warn('[ChatStore] createSession API failed, fallback to local ID:', e);
+    }
+
     const newSession = {
-      id: `session_${Date.now()}_${Math.random().toString(36).slice(-4)}`,
+      id: newSessionId,
       title: initialTitle,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -94,29 +111,118 @@ export const useChatStore = defineStore('chat', () => {
   };
 
   // 删除会话
-  const deleteSession = (sessionId) => {
+  const deleteSession = async (sessionId) => {
     const idx = sessions.value.findIndex((s) => s.id === sessionId);
     if (idx === -1) return;
+
+    try {
+      await fetch(`/api/v1/chat/sessions/${sessionId}`, { method: 'DELETE' });
+    } catch (e) {
+      console.warn('[ChatStore] deleteSession API error:', e);
+    }
 
     sessions.value.splice(idx, 1);
     if (activeSessionId.value === sessionId) {
       if (sessions.value.length > 0) {
         activeSessionId.value = sessions.value[0].id;
       } else {
-        createSession('新对话');
+        await createSession('新对话');
       }
     }
     saveToStorage();
   };
 
   // 重命名会话
-  const renameSession = (sessionId, newTitle) => {
+  const renameSession = async (sessionId, newTitle) => {
     const session = sessions.value.find((s) => s.id === sessionId);
     if (session && newTitle.trim()) {
       session.title = newTitle.trim();
       session.updatedAt = Date.now();
       saveToStorage();
+      try {
+        await fetch(`/api/v1/chat/sessions/${sessionId}/title`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: newTitle.trim() })
+        });
+      } catch (e) {
+        console.warn('[ChatStore] renameSession API error:', e);
+      }
     }
+  };
+
+  // 从后端异步加载指定会话的历史消息
+  const loadSessionMessages = async (sessionId) => {
+    if (!sessionId) return [];
+    const targetSession = sessions.value.find((s) => s.id === sessionId);
+    try {
+      const res = await fetch(`/api/v1/chat/sessions/${sessionId}/messages`);
+      if (res.ok) {
+        const dbMessages = await res.json();
+        if (Array.isArray(dbMessages)) {
+          const formatted = dbMessages.map((m) => {
+            let parsedSources = [];
+            if (m.sources) {
+              try {
+                const arr = JSON.parse(m.sources);
+                if (Array.isArray(arr)) {
+                  parsedSources = arr.map((src, idx) => ({
+                    doc_id: `DOC-DB-${idx + 1}`,
+                    title: typeof src === 'string' ? (src.startsWith('《') ? src : `《${src}》`) : '参考制度',
+                    snippet: '',
+                    tag: '制度依据'
+                  }));
+                }
+              } catch {}
+            }
+            return {
+              id: `msg_db_${m.id}`,
+              sender: m.role === 'user' ? 'user' : 'ai',
+              role: m.role,
+              content: m.content,
+              sources: parsedSources,
+              completed: true,
+              isStreaming: false,
+              timestamp: new Date(m.created_at).toLocaleTimeString()
+            };
+          });
+          if (targetSession) {
+            targetSession.messages = formatted;
+          }
+          return formatted;
+        }
+      }
+    } catch (e) {
+      console.warn(`[ChatStore] loadSessionMessages failed for ${sessionId}:`, e);
+    }
+    return targetSession ? targetSession.messages : [];
+  };
+
+  // 从后端拉取真实会话列表
+  const fetchSessions = async () => {
+    try {
+      const res = await fetch('/api/v1/chat/sessions?user_id=u_vue3_user');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          sessions.value = data.map((s) => ({
+            id: s.session_id,
+            title: s.title,
+            createdAt: new Date(s.created_at).getTime(),
+            updatedAt: new Date(s.updated_at).getTime(),
+            messages: []
+          }));
+          if (!sessions.value.some((s) => s.id === activeSessionId.value)) {
+            activeSessionId.value = sessions.value[0].id;
+          }
+          saveToStorage();
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('[ChatStore] fetchSessions error, using cached sessions:', e);
+    }
+    initSessions();
   };
 
   // 为当前会话追加消息，并智能提炼首条消息作为会话标题
@@ -203,5 +309,7 @@ export const useChatStore = defineStore('chat', () => {
     renameSession,
     addMessageToActiveSession,
     initSessions,
+    loadSessionMessages,
+    fetchSessions,
   };
 });

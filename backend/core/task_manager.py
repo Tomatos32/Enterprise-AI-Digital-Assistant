@@ -21,6 +21,10 @@ class TaskManager:
         """Removes a task from registry upon completion."""
         self._tasks.pop(thread_id, None)
 
+    def remove_task(self, thread_id: str):
+        """Alias for unregister_task."""
+        self.unregister_task(thread_id)
+
     def abort_task(self, thread_id: str) -> bool:
         """
         Cancels the active task for thread_id if running.

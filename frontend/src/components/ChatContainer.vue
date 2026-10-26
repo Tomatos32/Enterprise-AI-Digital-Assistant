@@ -72,7 +72,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, watch } from 'vue';
+import { ref, nextTick, watch, onMounted } from 'vue';
 import { Bot, Sparkles, ArrowDown } from 'lucide-vue-next';
 import { useChatStream } from '../composables/useChatStream';
 import { useChatStore } from '../stores/chatStore';
@@ -100,11 +100,23 @@ watch(isConnected, (val) => {
   chatStore.isOnline = val;
 }, { immediate: true });
 
-// 保持活跃会话与当前 threadId 同步
-watch(() => chatStore.activeSessionId, (newId) => {
+// 保持活跃会话与当前 threadId 同步并拉取历史记录
+watch(() => chatStore.activeSessionId, async (newId) => {
   if (newId) {
     currentThreadId.value = newId;
-    messages.value = [];
+    isStreaming.value = false;
+    const history = await chatStore.loadSessionMessages(newId);
+    messages.value = history || [];
+    autoScrollToBottom();
+  }
+});
+
+onMounted(async () => {
+  await chatStore.fetchSessions();
+  if (chatStore.activeSessionId) {
+    const history = await chatStore.loadSessionMessages(chatStore.activeSessionId);
+    messages.value = history || [];
+    autoScrollToBottom();
   }
 });
 
@@ -152,7 +164,8 @@ const handleSend = (payload) => {
   // 自动将首条消息同步作为会话标题
   if (chatStore.activeSession && (chatStore.activeSession.title === '新对话' || !chatStore.activeSession.title)) {
     const summary = text.slice(0, 18);
-    chatStore.activeSession.title = summary.length >= 18 ? summary + '...' : summary;
+    const newTitle = summary.length >= 18 ? summary + '...' : summary;
+    chatStore.renameSession(chatStore.activeSessionId, newTitle);
   }
 
   // 采购查询时自动携带 purchase_args 参数
@@ -175,7 +188,7 @@ const handleSend = (payload) => {
 
   // 发送后强制保证处于底部
   isAtBottom.value = true;
-  sendMessage(text, customMetadata);
+  sendMessage(text, customMetadata, chatStore.activeSessionId);
 };
 
 const sendSamplePrompt = (promptText) => {

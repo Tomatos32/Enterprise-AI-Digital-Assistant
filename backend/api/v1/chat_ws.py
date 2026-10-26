@@ -408,7 +408,7 @@ async def websocket_chat_endpoint(websocket: WebSocket, client_id: str):
             await process_ws_chat_stream(websocket, client_id, data)
 
             if thread_id:
-                task_manager.remove_task(thread_id)
+                task_manager.unregister_task(thread_id)
 
     except WebSocketDisconnect:
         manager.disconnect(client_id)
