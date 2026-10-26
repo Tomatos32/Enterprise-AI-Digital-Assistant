@@ -43,6 +43,10 @@
           :status="thoughtStatus"
           :title="thoughtTitle"
           :sources="message.sources || []"
+          :thought-text="message.thought || ''"
+          :duration-seconds="message.durationSeconds"
+          :thought-steps="message.nodeSteps || []"
+          :tool-calls="message.toolLogs || []"
         />
       </div>
 
@@ -156,8 +160,10 @@ const showThoughtBadge = computed(() => {
   if (isUser.value) return false;
   return (
     props.message.isThinking ||
-    props.message.isStreaming ||
-    (props.message.sources && props.message.sources.length > 0)
+    (props.message.isStreaming && !props.message.content) ||
+    !!props.message.thought ||
+    (props.message.sources && props.message.sources.length > 0) ||
+    (props.message.toolLogs && props.message.toolLogs.length > 0)
   );
 });
 
@@ -170,10 +176,10 @@ const thoughtStatus = computed(() => {
 
 const thoughtTitle = computed(() => {
   if (thoughtStatus.value === 'thinking') {
-    return '正在比对企业规章与多源数据...';
+    return '正在分析与检索...';
   }
-  const count = (props.message.sources || []).length || 2;
-  return `已参考 ${count} 篇企业规章制度`;
+  const count = (props.message.sources || []).length;
+  return count > 0 ? `已参考 ${count} 篇企业规章制度` : '';
 });
 
 const renderedHtml = computed(() => {

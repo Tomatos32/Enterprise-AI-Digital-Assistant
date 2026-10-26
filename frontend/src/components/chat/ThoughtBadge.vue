@@ -2,14 +2,16 @@
   <div class="my-2 select-none">
     <!-- ThoughtLine with Live Stopwatch, Breathing Beacon & Step Accordion -->
     <ThoughtLine
-      :is-thinking="status === 'thinking'"
-      :duration-seconds="calculatedDuration"
+      :working="status === 'thinking'"
+      :elapsed="durationSeconds"
       :steps="reasoningSteps"
-      :preview="previewText"
+      :preview="thoughtText"
+      :collapsible="true"
+      :collapse-on-settle="true"
     />
 
     <!-- Active Tool Execution Chips (CallChip) during/after retrieval -->
-    <div v-if="toolCalls.length > 0" class="flex flex-wrap gap-1.5 my-1.5">
+    <div v-if="toolCalls && toolCalls.length > 0" class="flex flex-wrap gap-1.5 my-1.5">
       <CallChip
         v-for="tool in toolCalls"
         :key="tool.name"
@@ -20,7 +22,7 @@
       />
     </div>
 
-    <!-- Completed Knowledge Sources Accordion Capsule -->
+    <!-- Completed Knowledge Sources Accordion Capsule (Shown ONLY when real sources exist) -->
     <div v-if="status !== 'thinking' && hasSources" class="inline-block max-w-full mt-1">
       <button
         @click="isOpen = !isOpen"
@@ -59,7 +61,7 @@
               <FileText class="w-3.5 h-3.5 text-brand-primary" />
               <span>知识库参考凭证 (已核验制度条款)</span>
             </span>
-            <span class="text-[10px] text-text-muted">权威内网知识库 v2.6</span>
+            <span class="text-[10px] text-text-muted">权威内网知识库</span>
           </div>
 
           <!-- Sources Cards List -->
@@ -80,13 +82,13 @@
               </div>
 
               <!-- Snippet Citation Text -->
-              <p class="mt-1.5 text-[11px] text-text-secondary leading-relaxed line-clamp-3 font-sans pl-3 border-l-2 border-brand-primary/40">
+              <p v-if="source.snippet" class="mt-1.5 text-[11px] text-text-secondary leading-relaxed line-clamp-3 font-sans pl-3 border-l-2 border-brand-primary/40">
                 {{ source.snippet }}
               </p>
 
               <!-- Footer with ID & Action -->
               <div class="mt-2 pt-1.5 flex items-center justify-between text-[10px] text-text-muted border-t border-border-subtle/50">
-                <span class="font-mono">编号: {{ source.doc_id || 'DOC-2026-SOP' }}</span>
+                <span class="font-mono">编号: {{ source.doc_id || 'DOC-REF' }}</span>
                 <span class="flex items-center space-x-1 text-brand-primary hover:underline cursor-pointer">
                   <span>查看制度全文</span>
                   <ExternalLink class="w-3 h-3" />
@@ -128,30 +130,24 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  thoughtText: {
+    type: String,
+    default: '',
+  },
+  durationSeconds: {
+    type: Number,
+    default: undefined,
+  },
+  toolCalls: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const isOpen = ref(false);
 
-const defaultSampleSources = [
-  {
-    doc_id: 'SOP-2026-081',
-    title: '《企业IT资产采购与固定资产管理制度 (2026修订版)》',
-    snippet: '第三章第十二条：研发人员申请配置高规格笔记本电脑（单价 ￥15,000 元以上），需经研发总监与业务归口负责人在线审批，并核对部门年度硬件预算额度。',
-    tag: '固定资产规章',
-  },
-  {
-    doc_id: 'SOP-2026-042',
-    title: '《研发部硬件标准配置指南及 ERP 库存备件表》',
-    snippet: 'AI 算法与大模型本地开发岗位可配置 MacBook Pro 16（64GB 内存规格及以上），目前北京园区仓库无闲置可用资产，建议发起新增采购申请。',
-    tag: '硬件标准',
-  },
-];
-
 const formattedSources = computed(() => {
-  if (props.sources && props.sources.length > 0) {
-    return props.sources;
-  }
-  return defaultSampleSources;
+  return props.sources || [];
 });
 
 const hasSources = computed(() => {
@@ -164,28 +160,10 @@ const sourceCount = computed(() => {
 
 const displayTitle = computed(() => props.title);
 
-const calculatedDuration = computed(() => 1.8);
-
 const reasoningSteps = computed(() => {
   if (props.thoughtSteps && props.thoughtSteps.length > 0) {
-    return props.thoughtSteps;
+    return props.thoughtSteps.map((s) => (typeof s === 'string' ? s : (s.title || String(s))));
   }
-  return [
-    { title: '解析用户采购申请意图，提取预算规格与设备型号', status: 'done' },
-    { title: '调用 Qdrant 密集向量检索《企业IT固定资产管理制度》', status: 'done' },
-    { title: '比对 ERP 备件库库存余量与研发部年度预算额度', status: 'done' },
-    { title: '识别金额超 ￥5,000 元，自动挂载人机协同审批卡片', status: 'done' }
-  ];
-});
-
-const previewText = computed(() => {
-  return '正在核查采购审批金额门禁与部门权限标准...';
-});
-
-const toolCalls = computed(() => {
-  return [
-    { name: 'qdrant_retrieval', status: 'success', durationMs: 42, summary: 'IT固定资产规章' },
-    { name: 'erp_check', status: 'success', durationMs: 18, summary: 'MacBook Pro 库存' },
-  ];
+  return [];
 });
 </script>

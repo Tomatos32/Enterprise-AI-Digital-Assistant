@@ -1,0 +1,25 @@
+{
+  "issue_id": "Issue-0046",
+  "parent_sprint": "Sprint-F-09",
+  "sprint": "R-04",
+  "campaign": "真实化落地与交付攻坚模式",
+  "title": "Ollama 思考链真实透传、ThoughtLine 动效规范化重塑与发送状态解闭锁",
+  "status": "COMPLETED",
+  "created_at": "2026-10-26T09:00:00Z",
+  "completed_at": "2026-10-26T09:20:00Z",
+  "review_score": 100,
+  "artifacts": [
+    "frontend/src/components/ui/ThoughtLine.vue",
+    "frontend/src/components/chat/ThoughtBadge.vue",
+    "frontend/src/components/chat/MessageItem.vue",
+    "frontend/src/composables/useChatStream.js",
+    "backend/api/v1/chat_ws.py"
+  ],
+  "features_delivered": [
+    "Official-Vue-Bits-ThoughtLine-Integration-Hugeicons",
+    "Real-Time-Thinking-Duration-Dynamic-Stopwatch",
+    "Wipe-Out-All-Hardcoded-Procurement-Sources-And-Steps",
+    "Unconditional-Stream-State-Reset-Fixing-Stop-Square-Button",
+    "Ollama-Reasoning-Content-Streaming-Bridge"
+  ]
+}

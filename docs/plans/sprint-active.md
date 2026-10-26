@@ -75,6 +75,13 @@
   - [x] Checkpoint 3: 重构普通对话分支提示词，消除“每次必须背诵三项业务范围”的机械客服限制，提供灵动自然问候
   - [x] Checkpoint 4: 完善全流程单元测试回归与生产构建验证
 
+- [x] **Issue-0046: Ollama 思考链真实透传、ThoughtLine 动效规范化重塑与发送状态解闭锁 (ThoughtLine & Real CoT) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 基于 Vue Bits 官方规范（TypeScript + Tailwind + @hugeicons/core-free-icons）重塑 `<ThoughtLine />` 组件
+  - [x] Checkpoint 2: 彻底清除 ThoughtBadge 中 1.8 秒硬编码计时，改为从提问到首字动态打表记录真实思考耗时
+  - [x] Checkpoint 3: 彻底清除固定 4 步采购意图、42ms/18ms 假工具卡片与写死采购制度引用，实现 100% 真实数据驱动
+  - [x] Checkpoint 4: 修复 useChatStream 中 complete 事件守卫，终态强制复位 isStreaming，彻底解决发送键卡在停止方块
+  - [x] Checkpoint 5: 后端 chat_ws.py 支持透传 Ollama reasoning 思考流，ThoughtLine 展开支持查看真实推理过程
+
 ---
 
 ## Historical Achievements (已交付稳态资产):

@@ -78,8 +78,14 @@ export function useChatStream(clientId = 'vue3_client_stream') {
   const handleWsEvent = (event) => {
     const { type, thread_id, node, content, tool, status, input, output, approval_data, final_answer, message } = event;
 
+    // 终态安全守护：收到终态事件时立即解除输入锁，防止发送按钮卡在停止方块
+    if (['complete', 'cancelled', 'error', 'interrupt'].includes(type)) {
+      isStreaming.value = false;
+      activeNodes.value = [];
+    }
+
     let currentMsg = messages.value[messages.value.length - 1];
-    if (!currentMsg || currentMsg.sender !== 'ai' || currentMsg.completed) {
+    if (!currentMsg || currentMsg.sender !== 'ai') {
       if (type !== 'start') return;
     }
 
@@ -89,22 +95,39 @@ export function useChatStream(clientId = 'vue3_client_stream') {
         activeNodes.value = ['router'];
         if (currentMsg && currentMsg.sender === 'ai') {
           currentMsg.isStreaming = true;
+          currentMsg.isThinking = true;
+          currentMsg.thoughtStartTime = Date.now();
           currentMsg.thoughtTitle = '正在分析业务意图...';
         }
         break;
 
       case 'node_start':
         if (node && currentMsg) {
-          currentMsg.thoughtTitle = nodeNaturalMapping[node] || '正在协同企业数字员工处理中...';
-          if (!currentMsg.nodeSteps.includes(node)) {
-            currentMsg.nodeSteps.push(node);
+          const naturalTitle = nodeNaturalMapping[node] || '正在协同企业数字员工处理中...';
+          currentMsg.thoughtTitle = naturalTitle;
+          if (!currentMsg.nodeSteps.includes(naturalTitle)) {
+            currentMsg.nodeSteps.push(naturalTitle);
           }
         }
         activeNodes.value = [node];
         break;
 
+      case 'thought':
+        if (currentMsg) {
+          if (!currentMsg.thought) currentMsg.thought = '';
+          currentMsg.thought += content;
+          currentMsg.isStreaming = true;
+          currentMsg.isThinking = true;
+        }
+        break;
+
       case 'token':
         if (currentMsg) {
+          // 首个正文 token 输出时，锁定实际思考耗时秒数
+          if (currentMsg.isThinking && currentMsg.thoughtStartTime) {
+            currentMsg.isThinking = false;
+            currentMsg.durationSeconds = Number(((Date.now() - currentMsg.thoughtStartTime) / 1000).toFixed(1));
+          }
           currentMsg.content += content;
           currentMsg.isStreaming = true;
         }
@@ -161,6 +184,10 @@ export function useChatStream(clientId = 'vue3_client_stream') {
           if (final_answer && !currentMsg.content) {
             currentMsg.content = final_answer;
           }
+          if (currentMsg.thoughtStartTime && !currentMsg.durationSeconds) {
+            currentMsg.durationSeconds = Number(((Date.now() - currentMsg.thoughtStartTime) / 1000).toFixed(1));
+          }
+          currentMsg.isThinking = false;
           currentMsg.completed = true;
           currentMsg.isStreaming = false;
         }
@@ -210,6 +237,9 @@ export function useChatStream(clientId = 'vue3_client_stream') {
       sender: 'ai',
       role: 'assistant',
       content: '',
+      thought: '',
+      thoughtStartTime: Date.now(),
+      durationSeconds: undefined,
       thoughtTitle: '正在分析业务意图并匹配专职数字员工...',
       thoughts: [],
       sources: [],
@@ -217,6 +247,7 @@ export function useChatStream(clientId = 'vue3_client_stream') {
       toolLogs: [],
       interruptData: null,
       isStreaming: true,
+      isThinking: true,
       completed: false,
       timestamp: new Date().toLocaleTimeString(),
     };

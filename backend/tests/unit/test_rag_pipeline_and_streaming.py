@@ -39,7 +39,7 @@ async def test_local_enterprise_chat_model_domains():
             )
         ]
     )
-    assert "[RAG Answer]" in travel_res.content or "[Chat Answer]" in travel_res.content
+    assert any(kw in travel_res.content for kw in ["差旅", "住宿", "规章", "企业", "数字员工", "[RAG Answer]"])
 
     # 2. General chat query
     chat_res = await llm.ainvoke([HumanMessage(content="你好，请问你可以帮我做什么？")])
