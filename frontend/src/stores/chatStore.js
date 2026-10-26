@@ -191,6 +191,16 @@ export const useChatStore = defineStore('chat', () => {
           }
           return formatted;
         }
+      } else if (res.status === 404) {
+        // 自动容错旧前端缓存会话，静默在数据库注册
+        try {
+          await fetch('/api/v1/chat/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: targetSession?.title || '新对话', user_id: 'u_vue3_user' })
+          });
+        } catch {}
+        return targetSession ? targetSession.messages : [];
       }
     } catch (e) {
       console.warn(`[ChatStore] loadSessionMessages failed for ${sessionId}:`, e);

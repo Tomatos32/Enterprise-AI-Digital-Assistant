@@ -1,0 +1,21 @@
+{
+  "issue_id": "Issue-0045",
+  "sprint": "R-04",
+  "campaign": "真实化落地与交付攻坚模式",
+  "title": "WebSocket 断开安全防御、会话 404 容错自愈与人设去客服套话",
+  "status": "COMPLETED",
+  "created_at": "2026-10-26T08:30:00Z",
+  "completed_at": "2026-10-26T08:52:00Z",
+  "review_score": 100,
+  "artifacts": [
+    "backend/api/v1/chat_ws.py",
+    "backend/graph/nodes/generate_node.py",
+    "frontend/src/stores/chatStore.js"
+  ],
+  "features_delivered": [
+    "Safe-Send-JSON-Guarding-Against-Closed-WebSocket-State",
+    "Eliminate-RuntimeError-Unexpected-ASGI-Message-After-Close",
+    "Frontend-404-Session-Auto-Registration-Self-Healing",
+    "Natural-Conversational-Persona-Prompt-Optimization"
+  ]
+}

@@ -69,6 +69,12 @@
   - [x] Checkpoint 3: 在 `StreamingSanitizer` 与 WebSocket `complete` 帧发送层自动过滤 `[Chat Answer]: ` 等技术代号
   - [x] Checkpoint 4: 增强 `generate_node.py` 防御机制，模型生成为空时自动触发高质量领域兜底合成
 
+- [x] **Issue-0045: WebSocket 断开安全防御、会话 404 容错自愈与人设去客服套话 (WebSocket Resilience & Persona) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 在 `chat_ws.py` 实现 `safe_send_json` 防御机制，彻底消除 closed socket 后的 ASGI 发送崩溃
+  - [x] Checkpoint 2: 前端 `chatStore.js` 增加对旧前端缓存 404 响应的自愈重注册处理，防止页面卡死
+  - [x] Checkpoint 3: 重构普通对话分支提示词，消除“每次必须背诵三项业务范围”的机械客服限制，提供灵动自然问候
+  - [x] Checkpoint 4: 完善全流程单元测试回归与生产构建验证
+
 ---
 
 ## Historical Achievements (已交付稳态资产):

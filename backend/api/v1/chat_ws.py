@@ -7,6 +7,7 @@ import logging
 import re
 from typing import Dict, List, Optional
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocketState
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.errors import GraphInterrupt
 
@@ -141,6 +142,20 @@ def strip_internal_answer_tags(text: str) -> str:
     return cleaned.strip()
 
 
+async def safe_send_json(websocket: WebSocket, payload: dict) -> bool:
+    """Safely transmits JSON over WebSocket, preventing RuntimeError if socket has already closed."""
+    try:
+        if websocket.client_state != WebSocketState.CONNECTED:
+            return False
+        await websocket.send_text(json.dumps(payload, ensure_ascii=False))
+        return True
+    except (RuntimeError, WebSocketDisconnect):
+        return False
+    except Exception as e:
+        logger.debug(f"[ChatWS] safe_send_json failed: {e}")
+        return False
+
+
 async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dict):
     """Processes chat request over WebSocket and streams events in real-time."""
     user_message = data.get("message", "").strip()
@@ -154,18 +169,16 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
     # 0. Input Security & Guardrail Check (OWASP LLM01 Prompt Injection / Jailbreak)
     guard_result = validate_input(user_message)
     if not guard_result.is_valid:
-        await websocket.send_text(
-            json.dumps(
-                {
-                    "type": "error",
-                    "status": 400,
-                    "thread_id": thread_id,
-                    "session_id": session_id,
-                    "message": f"400 Bad Request: Policy Violation - {guard_result.reason} ({guard_result.category})",
-                    "category": guard_result.category,
-                },
-                ensure_ascii=False,
-            )
+        await safe_send_json(
+            websocket,
+            {
+                "type": "error",
+                "status": 400,
+                "thread_id": thread_id,
+                "session_id": session_id,
+                "message": f"400 Bad Request: Policy Violation - {guard_result.reason} ({guard_result.category})",
+                "category": guard_result.category,
+            },
         )
         return
 
@@ -189,16 +202,14 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
     sanitizer = StreamingSanitizer()
 
     # Send Initial Handshake Response
-    await websocket.send_text(
-        json.dumps(
-            {
-                "type": "start",
-                "thread_id": thread_id,
-                "session_id": session_id,
-                "status": "PROCESSING",
-            },
-            ensure_ascii=False,
-        )
+    await safe_send_json(
+        websocket,
+        {
+            "type": "start",
+            "thread_id": thread_id,
+            "session_id": session_id,
+            "status": "PROCESSING",
+        },
     )
 
     try:
@@ -208,17 +219,16 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
 
             # 1. Node Execution Transition Events
             if kind == "on_chain_start" and name in ["router", "retrieve", "tool", "approval", "generate"]:
-                await websocket.send_text(
-                    json.dumps(
-                        {
-                            "type": "node_start",
-                            "node": name,
-                            "thread_id": thread_id,
-                            "session_id": session_id,
-                        },
-                        ensure_ascii=False,
-                    )
-                )
+                if not await safe_send_json(
+                    websocket,
+                    {
+                        "type": "node_start",
+                        "node": name,
+                        "thread_id": thread_id,
+                        "session_id": session_id,
+                    },
+                ):
+                    break
 
             # 2. LLM Streaming Tokens
             elif kind == "on_chat_model_stream":
@@ -229,95 +239,84 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
                 if chunk and hasattr(chunk, "content") and chunk.content:
                     safe_token = sanitizer.process_chunk(chunk.content)
                     if safe_token:
-                        await websocket.send_text(
-                            json.dumps(
-                                {
-                                    "type": "token",
-                                    "content": safe_token,
-                                    "thread_id": thread_id,
-                                    "session_id": session_id,
-                                },
-                                ensure_ascii=False,
-                            )
-                        )
+                        if not await safe_send_json(
+                            websocket,
+                            {
+                                "type": "token",
+                                "content": safe_token,
+                                "thread_id": thread_id,
+                                "session_id": session_id,
+                            },
+                        ):
+                            break
 
             # 3. Tool Execution Logs
             elif kind == "on_tool_start":
                 tool_name = event.get("name")
                 tool_input = event.get("data", {}).get("input")
-                await websocket.send_text(
-                    json.dumps(
-                        {
-                            "type": "tool_log",
-                            "status": "started",
-                            "tool": tool_name,
-                            "input": tool_input,
-                            "thread_id": thread_id,
-                            "session_id": session_id,
-                        },
-                        ensure_ascii=False,
-                    )
+                await safe_send_json(
+                    websocket,
+                    {
+                        "type": "tool_log",
+                        "status": "started",
+                        "tool": tool_name,
+                        "input": tool_input,
+                        "thread_id": thread_id,
+                        "session_id": session_id,
+                    },
                 )
 
             elif kind == "on_tool_end":
                 tool_name = event.get("name")
                 tool_output = event.get("data", {}).get("output")
-                await websocket.send_text(
-                    json.dumps(
-                        {
-                            "type": "tool_log",
-                            "status": "completed",
-                            "tool": tool_name,
-                            "output": sanitize_text(str(tool_output)),
-                            "thread_id": thread_id,
-                            "session_id": session_id,
-                        },
-                        ensure_ascii=False,
-                    )
+                await safe_send_json(
+                    websocket,
+                    {
+                        "type": "tool_log",
+                        "status": "completed",
+                        "tool": tool_name,
+                        "output": sanitize_text(str(tool_output)),
+                        "thread_id": thread_id,
+                        "session_id": session_id,
+                    },
                 )
 
         # Flush any remaining tokens from streaming sanitizer buffer
         flush_token = sanitizer.flush()
         if flush_token:
-            await websocket.send_text(
-                json.dumps(
-                    {
-                        "type": "token",
-                        "content": flush_token,
-                        "thread_id": thread_id,
-                        "session_id": session_id,
-                    },
-                    ensure_ascii=False,
-                )
+            await safe_send_json(
+                websocket,
+                {
+                    "type": "token",
+                    "content": flush_token,
+                    "thread_id": thread_id,
+                    "session_id": session_id,
+                },
             )
 
     except GraphInterrupt:
         # LangGraph Interrupt Caught (e.g. High-value Purchase Approval required)
         pass
     except asyncio.CancelledError:
-        await websocket.send_text(
-            json.dumps(
-                {
-                    "type": "cancelled",
-                    "thread_id": thread_id,
-                    "session_id": session_id,
-                    "message": "Chat generation cancelled by user",
-                },
-                ensure_ascii=False,
-            )
+        await safe_send_json(
+            websocket,
+            {
+                "type": "cancelled",
+                "thread_id": thread_id,
+                "session_id": session_id,
+                "message": "Chat generation cancelled by user",
+            },
         )
         return
     except Exception as e:
-        await websocket.send_text(
-            json.dumps(
-                {
-                    "type": "error",
-                    "thread_id": thread_id,
-                    "session_id": session_id,
-                    "message": str(e),
-                },
-                ensure_ascii=False,
-            )
+        await safe_send_json(
+            websocket,
+            {
+                "type": "error",
+                "thread_id": thread_id,
+                "session_id": session_id,
+                "message": str(e),
+            },
         )
         return
 
@@ -329,16 +328,14 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
         if state_snapshot.tasks and state_snapshot.tasks[0].interrupts:
             interrupt_val = state_snapshot.tasks[0].interrupts[0].value
 
-        await websocket.send_text(
-            json.dumps(
-                {
-                    "type": "interrupt",
-                    "thread_id": thread_id,
-                    "session_id": session_id,
-                    "approval_data": interrupt_val,
-                },
-                ensure_ascii=False,
-            )
+        await safe_send_json(
+            websocket,
+            {
+                "type": "interrupt",
+                "thread_id": thread_id,
+                "session_id": session_id,
+                "approval_data": interrupt_val,
+            },
         )
     else:
         # State completed
@@ -366,17 +363,15 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
             sources=sources_str,
         )
 
-        await websocket.send_text(
-            json.dumps(
-                {
-                    "type": "complete",
-                    "thread_id": thread_id,
-                    "session_id": session_id,
-                    "final_answer": sanitized_answer,
-                    "current_step": final_values.get("current_step", "completed"),
-                },
-                ensure_ascii=False,
-            )
+        await safe_send_json(
+            websocket,
+            {
+                "type": "complete",
+                "thread_id": thread_id,
+                "session_id": session_id,
+                "final_answer": sanitized_answer,
+                "current_step": final_values.get("current_step", "completed"),
+            },
         )
 
 
@@ -390,12 +385,7 @@ async def websocket_chat_endpoint(websocket: WebSocket, client_id: str):
             try:
                 data = json.loads(raw_data)
             except json.JSONDecodeError:
-                await websocket.send_text(
-                    json.dumps(
-                        {"type": "error", "message": "Invalid JSON format"},
-                        ensure_ascii=False,
-                    )
-                )
+                await safe_send_json(websocket, {"type": "error", "message": "Invalid JSON format"})
                 continue
 
             thread_id = data.get("thread_id", f"ws_thread_{client_id}")
