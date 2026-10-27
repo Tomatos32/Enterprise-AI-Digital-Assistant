@@ -313,6 +313,7 @@ const insertCommand = (cmd) => {
 };
 
 const handleKeyDown = (e) => {
+  if (e.isComposing) return; // Prevent triggering while typing in IME (Pinyin/Chinese)
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     if (canSend.value) {
@@ -324,9 +325,12 @@ const handleKeyDown = (e) => {
   }
 };
 
+let isSending = false;
 const handleSend = () => {
+  if (isSending) return;
   const text = inputContent.value.trim();
-  if (!text) return;
+  if (!text || props.isStreaming) return;
+  isSending = true;
   emit('send', {
     text,
     source: attachedSource.value,
@@ -336,6 +340,9 @@ const handleSend = () => {
   attachedSource.value = '';
   showAtMenu.value = false;
   showSlashMenu.value = false;
+  setTimeout(() => {
+    isSending = false;
+  }, 350);
   nextTick(() => {
     autoResize();
   });

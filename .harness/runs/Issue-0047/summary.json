@@ -1,0 +1,22 @@
+{
+  "issue_id": "Issue-0047",
+  "parent_issue": "Issue-0045",
+  "sprint": "R-04",
+  "campaign": "真实化落地与交付攻坚模式",
+  "title": "WebSocket 心跳提问混淆治理、协程独立任务化隔离与输入防重抖动抑制",
+  "status": "COMPLETED",
+  "created_at": "2026-10-27T01:00:00Z",
+  "completed_at": "2026-10-27T01:32:00Z",
+  "review_score": 100,
+  "artifacts": [
+    "backend/api/v1/chat_ws.py",
+    "frontend/src/composables/useChatStream.js",
+    "frontend/src/components/ui/PromptBar.vue"
+  ],
+  "features_delivered": [
+    "Heartbeat-Ping-Pong-Separation-Preventing-Ghost-Inference",
+    "Independent-Worker-Task-Isolation-Enabling-Precise-Abort",
+    "Frontend-WebSocket-Singleton-Reconnection-Guard",
+    "PromptBar-IME-Composing-And-Debounce-Lock"
+  ]
+}

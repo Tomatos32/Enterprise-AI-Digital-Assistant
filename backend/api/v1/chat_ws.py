@@ -394,6 +394,7 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
 async def websocket_chat_endpoint(websocket: WebSocket, client_id: str):
     """WebSocket endpoint for duplex streaming chat."""
     await manager.connect(client_id, websocket)
+    active_stream_task: Optional[asyncio.Task] = None
     try:
         while True:
             raw_data = await websocket.receive_text()
@@ -403,20 +404,46 @@ async def websocket_chat_endpoint(websocket: WebSocket, client_id: str):
                 await safe_send_json(websocket, {"type": "error", "message": "Invalid JSON format"})
                 continue
 
+            # 1. Heartbeat ping: instant pong response without invoking LLM
+            if data.get("type") == "ping":
+                await safe_send_json(websocket, {"type": "pong", "timestamp": data.get("timestamp")})
+                continue
+
+            # 2. Ignore empty message payloads
+            user_msg = data.get("message", "").strip()
+            if not user_msg:
+                continue
+
             thread_id = data.get("thread_id", f"ws_thread_{client_id}")
 
-            # Register running task to TaskManager for abort API compatibility
-            current_task = asyncio.current_task()
-            if current_task and thread_id:
-                task_manager.register_task(thread_id, current_task)
+            # 3. If previous generation task is still running, safely cancel it before starting new one
+            if active_stream_task and not active_stream_task.done():
+                active_stream_task.cancel()
+                try:
+                    await asyncio.wait_for(asyncio.shield(active_stream_task), timeout=0.2)
+                except (asyncio.CancelledError, asyncio.TimeoutError):
+                    pass
 
-            await process_ws_chat_stream(websocket, client_id, data)
-
+            # 4. Spawn independent worker task so main receive loop stays active
+            active_stream_task = asyncio.create_task(
+                process_ws_chat_stream(websocket, client_id, data)
+            )
             if thread_id:
-                task_manager.unregister_task(thread_id)
+                task_manager.register_task(thread_id, active_stream_task)
+
+            # Cleanup task upon completion
+            def _cleanup_callback(fut: asyncio.Future, t_id: str = thread_id):
+                if t_id:
+                    task_manager.unregister_task(t_id)
+
+            active_stream_task.add_done_callback(_cleanup_callback)
 
     except WebSocketDisconnect:
+        if active_stream_task and not active_stream_task.done():
+            active_stream_task.cancel()
         manager.disconnect(client_id)
     except Exception as exc:
         logger.error(f"[ChatWS] Unexpected WebSocket error for client '{client_id}': {exc}", exc_info=True)
+        if active_stream_task and not active_stream_task.done():
+            active_stream_task.cancel()
         manager.disconnect(client_id)

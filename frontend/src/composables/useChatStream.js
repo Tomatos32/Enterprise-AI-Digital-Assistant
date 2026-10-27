@@ -39,14 +39,28 @@ export function useChatStream(clientId = 'vue3_client_stream') {
     }
   };
 
+  let isConnecting = false;
+
   const connect = () => {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+    if (isConnecting) return;
+    isConnecting = true;
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     const wsUrl = `${protocol}//${host}/api/v1/ws/chat/${clientId}`;
 
-    ws = new WebSocket(wsUrl);
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch (e) {
+      isConnecting = false;
+      return;
+    }
 
     ws.onopen = () => {
+      isConnecting = false;
       isConnected.value = true;
       startHeartbeat();
       console.log('[ChatStream] WebSocket Connected:', wsUrl);
@@ -64,10 +78,12 @@ export function useChatStream(clientId = 'vue3_client_stream') {
 
     ws.onerror = (err) => {
       console.error('[ChatStream] Error:', err);
+      isConnecting = false;
       isConnected.value = false;
     };
 
     ws.onclose = () => {
+      isConnecting = false;
       isConnected.value = false;
       stopHeartbeat();
       console.log('[ChatStream] Disconnected. Silent auto-reconnect in 3s...');
@@ -221,7 +237,7 @@ export function useChatStream(clientId = 'vue3_client_stream') {
   };
 
   const sendMessage = (text, customMetadata = {}, explicitSessionId = null) => {
-    if (!text.trim() || !isConnected.value) return;
+    if (!text.trim() || !isConnected.value || isStreaming.value) return;
 
     const userMsg = {
       id: `msg_u_${Date.now()}`,

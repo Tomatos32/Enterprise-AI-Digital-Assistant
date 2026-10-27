@@ -82,6 +82,12 @@
   - [x] Checkpoint 4: 修复 useChatStream 中 complete 事件守卫，终态强制复位 isStreaming，彻底解决发送键卡在停止方块
   - [x] Checkpoint 5: 后端 chat_ws.py 支持透传 Ollama reasoning 思考流，ThoughtLine 展开支持查看真实推理过程
 
+- [x] **Issue-0047: WebSocket 心跳提问混淆治理、协程独立任务化隔离与输入防重抖动抑制 (Task Isolation & Anti-Duplicate) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 在 `chat_ws.py` 中对心跳 `ping` 消息进行即时 `pong` 分流，拦截空消息幽灵循环提问
+  - [x] Checkpoint 2: 将问答生成独立为 `active_stream_task` 协程并绑定 TaskManager，使 `/abort` 精准刹车且 WebSocket 主连接不断线
+  - [x] Checkpoint 3: 前端 `useChatStream.js` 实现单例连接守卫与 `isStreaming` 强防重入保护
+  - [x] Checkpoint 4: `PromptBar.vue` 增加输入法 `isComposing` 与 350ms 发送锁，彻底消灭单次输入重复多次回复
+
 ---
 
 ## Historical Achievements (已交付稳态资产):
