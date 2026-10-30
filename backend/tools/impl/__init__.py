@@ -5,6 +5,7 @@ from backend.tools.impl.inventory_tools import query_inventory
 from backend.tools.impl.ticket_tools import create_ticket
 from backend.tools.impl.purchase_tools import create_purchase
 from backend.tools.impl.email_tools import send_email
+from backend.tools.impl.knowledge_tools import search_knowledge_base
 
 __all__ = [
     "query_employee",
@@ -12,4 +13,5 @@ __all__ = [
     "create_ticket",
     "create_purchase",
     "send_email",
+    "search_knowledge_base",
 ]

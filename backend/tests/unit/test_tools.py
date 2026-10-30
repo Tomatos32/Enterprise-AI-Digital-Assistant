@@ -9,6 +9,7 @@ from backend.tools.impl import (
     create_ticket,
     create_purchase,
     send_email,
+    search_knowledge_base,
 )
 from backend.graph.nodes.tool_node import tool_node
 from backend.graph.workflow import graph
@@ -27,6 +28,7 @@ def test_tool_registry_openai_schema_export():
     assert "create_ticket" in tool_names
     assert "create_purchase" in tool_names
     assert "send_email" in tool_names
+    assert "search_knowledge_base" in tool_names
 
     for item in tools_schema:
         assert item["type"] == "function"
@@ -103,6 +105,14 @@ def test_send_email_tool():
 
     err = send_email(to_email="invalid_email_str", subject="错误测试", body="正文")
     assert err["status"] == "ERROR"
+
+
+def test_search_knowledge_base_tool():
+    """Tests search_knowledge_base tool logic."""
+    res = search_knowledge_base(query="出差临时借用备用机期限", top_k=3)
+    assert res["status"] == "SUCCESS"
+    assert res["count"] > 0
+    assert any("03_IT" in d["metadata"].get("source", "") or "借用" in d["content"] for d in res["documents"])
 
 
 @pytest.mark.asyncio

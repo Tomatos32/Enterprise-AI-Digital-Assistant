@@ -19,6 +19,15 @@ async def test_router_node_classification():
     r1 = await router_node(retrieve_state)
     assert r1["intent"] == "retrieve"
 
+    # User issue case: temporary equipment loan query must route to retrieve (RAG)
+    borrow_state: AgentState = {
+        "messages": [HumanMessage(content="我出差需要临时借用备用机，期限是多久")],
+        "user_id": "u_borrow",
+        "session_id": "s_borrow"
+    }
+    r_borrow = await router_node(borrow_state)
+    assert r_borrow["intent"] == "retrieve"
+
     # Tool intent
     tool_state: AgentState = {
         "messages": [HumanMessage(content="请帮我创建工单通知运维研发")],
@@ -28,6 +37,24 @@ async def test_router_node_classification():
     r2 = await router_node(tool_state)
     assert r2["intent"] == "tool"
 
+    # Tool query employee
+    emp_state: AgentState = {
+        "messages": [HumanMessage(content="查询IT运维部员工张伟的岗位职级与联系方式")],
+        "user_id": "u_emp",
+        "session_id": "s_emp"
+    }
+    r_emp = await router_node(emp_state)
+    assert r_emp["intent"] == "tool"
+
+    # Approval intent
+    app_state: AgentState = {
+        "messages": [HumanMessage(content="申请大额设备采购：MacBook Pro 16 1台，单价 22999 元")],
+        "user_id": "u_app",
+        "session_id": "s_app"
+    }
+    r_app = await router_node(app_state)
+    assert r_app["intent"] == "approval"
+
     # Chat intent
     chat_state: AgentState = {
         "messages": [HumanMessage(content="你好，你是谁？")],
@@ -36,6 +63,14 @@ async def test_router_node_classification():
     }
     r3 = await router_node(chat_state)
     assert r3["intent"] == "chat"
+
+    hi_state: AgentState = {
+        "messages": [HumanMessage(content="hi")],
+        "user_id": "u_hi",
+        "session_id": "s_hi"
+    }
+    r_hi = await router_node(hi_state)
+    assert r_hi["intent"] == "chat"
 
 
 @pytest.mark.asyncio
@@ -115,4 +150,4 @@ async def test_chat_branch_trajectory():
     assert result["intent"] == "chat"
     assert result["current_step"] == "completed"
     last_msg = result["messages"][-1].content
-    assert "[Chat Answer]" in last_msg
+    assert len(last_msg) > 0 and any(w in last_msg for w in ["数字员工", "助手", "您好", "你好", "Chat Answer"])

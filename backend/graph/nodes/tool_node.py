@@ -18,6 +18,7 @@ async def tool_node(state: AgentState) -> Dict[str, Any]:
     new_messages: List[ToolMessage] = []
     metadata = state.get("metadata", {}).copy()
     metadata["tool_executed"] = True
+    context_docs: List[Dict[str, Any]] = []
 
     # 1. Check if last message contains OpenAI/LangGraph tool_calls attribute
     tool_calls = getattr(last_msg, "tool_calls", None) if last_msg else None
@@ -31,6 +32,8 @@ async def tool_node(state: AgentState) -> Dict[str, Any]:
             try:
                 res = await registry.execute_tool(tool_name, tool_args)
                 content_str = json.dumps(res, ensure_ascii=False) if isinstance(res, (dict, list)) else str(res)
+                if tool_name == "search_knowledge_base" and isinstance(res, dict) and "documents" in res:
+                    context_docs.extend(res["documents"])
             except Exception as e:
                 content_str = json.dumps({"status": "ERROR", "message": str(e)}, ensure_ascii=False)
 
@@ -55,6 +58,11 @@ async def tool_node(state: AgentState) -> Dict[str, Any]:
         elif "员工" in q_lower or "employee" in q_lower:
             res = await registry.execute_tool("query_employee", {"name": "张伟"})
             tool_name = "query_employee"
+        elif any(k in q_lower for k in ["检索", "制度", "规章", "搜索知识", "查文档", "search_knowledge"]):
+            res = await registry.execute_tool("search_knowledge_base", {"query": query})
+            tool_name = "search_knowledge_base"
+            if isinstance(res, dict) and "documents" in res:
+                context_docs.extend(res["documents"])
         else:
             res = await registry.execute_tool("query_inventory", {"item_name": "MacBook"})
             tool_name = "query_inventory"
@@ -65,8 +73,11 @@ async def tool_node(state: AgentState) -> Dict[str, Any]:
         )
         metadata["tool_output"] = content_str
 
-    return {
+    result_state = {
         "messages": new_messages,
         "metadata": metadata,
-        "current_step": "tool_executed"
+        "current_step": "tool_executed",
     }
+    if context_docs:
+        result_state["context"] = context_docs
+    return result_state

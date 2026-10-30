@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 
 from backend.core.graph_rag import default_enterprise_kg
 from backend.graph.state import AgentState
-from backend.rag.retriever import HybridRetriever
+from backend.rag.retriever import get_hybrid_retriever
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ async def retrieve_node(state: AgentState) -> Dict[str, Any]:
     product_root = Path(__file__).resolve().parent.parent.parent.parent
     sample_kb_dir = product_root / "docs" / "sample_kb"
 
-    retriever = HybridRetriever(sample_kb_dir=sample_kb_dir)
+    retriever = get_hybrid_retriever(sample_kb_dir=sample_kb_dir)
     docs = retriever.retrieve(
         query=query,
         top_k=3,

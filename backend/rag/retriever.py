@@ -7,9 +7,14 @@ from typing import Dict, List, Optional
 from langchain_core.documents import Document
 from rank_bm25 import BM25Okapi
 
+from backend.core.config import settings
 from backend.rag.loader import load_sample_kb_documents
 from backend.rag.splitter import split_documents
-from backend.rag.vector_store import search_similar_documents, upsert_documents
+from backend.rag.vector_store import (
+    get_qdrant_client,
+    search_similar_documents,
+    upsert_documents,
+)
 
 
 def tokenize_text(text: str) -> List[str]:
@@ -174,15 +179,22 @@ class HybridRetriever:
     5. Reranker Refinement
     """
 
-    def __init__(self, sample_kb_dir: Optional[Path] = None):
+    def __init__(self, sample_kb_dir: Optional[Path] = None, sync_to_qdrant: bool = True):
         kb_path = sample_kb_dir or Path("docs/sample_kb")
         raw_docs = load_sample_kb_documents(kb_path)
         self.sample_docs = split_documents(raw_docs, chunk_size=500, chunk_overlap=50) if raw_docs else []
         self.bm25_retriever = BM25Retriever(self.sample_docs)
 
-        # Ensure sample docs are indexed in Qdrant as well
-        if self.sample_docs:
-            upsert_documents(self.sample_docs)
+        # Ensure sample docs are indexed in Qdrant as well, but skip re-indexing if points already exist
+        if sync_to_qdrant and self.sample_docs:
+            try:
+                client = get_qdrant_client()
+                col_info = client.get_collection(collection_name=settings.QDRANT_COLLECTION)
+                points_count = getattr(col_info, "points_count", 0) or 0
+                if points_count == 0:
+                    upsert_documents(self.sample_docs, client=client)
+            except Exception:
+                upsert_documents(self.sample_docs)
 
     def retrieve(
         self,
@@ -231,3 +243,17 @@ class HybridRetriever:
         final_results = reranker.rerank(query=query, docs=fused_results, top_k=top_k)
 
         return final_results
+
+
+_global_hybrid_retriever: Optional[HybridRetriever] = None
+
+
+def get_hybrid_retriever(
+    sample_kb_dir: Optional[Path] = None,
+    force_refresh: bool = False,
+) -> HybridRetriever:
+    """Returns singleton HybridRetriever to prevent redundant disk I/O, BM25 indexing, and embedding computation."""
+    global _global_hybrid_retriever
+    if _global_hybrid_retriever is None or force_refresh:
+        _global_hybrid_retriever = HybridRetriever(sample_kb_dir=sample_kb_dir)
+    return _global_hybrid_retriever

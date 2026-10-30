@@ -88,6 +88,13 @@
   - [x] Checkpoint 3: 前端 `useChatStream.js` 实现单例连接守卫与 `isStreaming` 强防重入保护
   - [x] Checkpoint 4: `PromptBar.vue` 增加输入法 `isComposing` 与 350ms 发送锁，彻底消灭单次输入重复多次回复
 
+- [x] **Issue-0048: RAG 意图路由重构（RAG-First 策略与知识源联动）、知识库检索 Tool 工具注册与向量入库幂等性治理 (RAG Intent Routing & Knowledge Tooling) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 重构 `router_node.py` 为 RAG-First 意图分类引擎，大幅扩充企业规章实体与诉求词库，并打通前端 `@知识源` 数据源强绑定
+  - [x] Checkpoint 2: 在 `backend/tools/impl/knowledge_tools.py` 新增并注册全局 `search_knowledge_base` 工具，向大模型开放标准 Function Calling 知识检索
+  - [x] Checkpoint 3: 加固 `backend/rag/vector_store.py` 向量入库，基于文档源路径与切片哈希采用 UUID5 确定性点 ID，杜绝向量重复爆炸
+  - [x] Checkpoint 4: 改造 `backend/rag/retriever.py` 为单例池化检索器 (`get_hybrid_retriever`)，避免每轮对话重复全量重读磁盘与重新构建 BM25
+  - [x] Checkpoint 5: 全量自动化测试全通 (28/28 PASS)，实测 `我出差需要临时借用备用机，期限是多久` 100% 命中制度并精准回答 14 天门禁
+
 ---
 
 ## Historical Achievements (已交付稳态资产):

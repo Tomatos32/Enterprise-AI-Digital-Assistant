@@ -1,5 +1,6 @@
 """Qdrant Vector Database Connection Manager & RBAC Security Filter Engine."""
 
+import hashlib
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -261,7 +262,6 @@ def upsert_documents(
 
     points: List[PointStruct] = []
     for doc, vec in zip(docs, vectors):
-        point_id = str(uuid.uuid4())
         meta = dict(doc.metadata) if doc.metadata else {}
 
         # Ensure security fields are present
@@ -271,6 +271,13 @@ def upsert_documents(
             meta["allowed_departments"] = sec.allowed_departments
         if "security_clearance_level" not in meta:
             meta["security_clearance_level"] = sec.security_clearance_level
+
+        # Deterministic UUID5 based on source, chunk_index, and content hash for idempotent upserts
+        source_key = meta.get("source") or meta.get("filename") or "doc"
+        chunk_idx = meta.get("chunk_index", 0)
+        content_hash = hashlib.md5(doc.page_content.encode("utf-8")).hexdigest()
+        unique_seed = f"{source_key}__chunk_{chunk_idx}__{content_hash}"
+        point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, unique_seed))
 
         payload: Dict[str, Any] = {
             "page_content": doc.page_content,
