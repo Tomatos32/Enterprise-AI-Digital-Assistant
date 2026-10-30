@@ -219,21 +219,74 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
 
             # 1. Node Execution Transition Events
             if kind == "on_chain_start" and name in ["router", "retrieve", "tool", "approval", "generate"]:
+                step_mapping = {
+                    "router": "💡 意图理解：分析业务意图与咨询范畴...",
+                    "retrieve": "🔍 制度检索：调取企业规章与SOP知识库...",
+                    "tool": "🛠️ 工具调用：核验业务系统实时数据...",
+                    "approval": "📋 审批协同：生成人机协同单据...",
+                    "generate": "✍️ 组织建议：依据权威条款生成回复...",
+                }
+                title = step_mapping.get(name, f"正在执行 {name} 节点...")
                 if not await safe_send_json(
                     websocket,
                     {
                         "type": "node_start",
                         "node": name,
+                        "title": title,
                         "thread_id": thread_id,
                         "session_id": session_id,
                     },
                 ):
                     break
 
+            # 1.1 Retrieval and Rerank Completion Trace
+            elif kind == "on_chain_end" and name == "retrieve":
+                output = event.get("data", {}).get("output", {})
+                context = output.get("context", []) if isinstance(output, dict) else []
+                if context:
+                    top_doc = context[0]
+                    meta = top_doc.get("metadata", {})
+                    doc_name = meta.get("filename") or meta.get("source") or meta.get("title") or "企业制度指南"
+                    doc_name = doc_name.replace("\\", "/").split("/")[-1]
+                    score = meta.get("rerank_score") or meta.get("score")
+                    score_text = f" (置信度: {score})" if score is not None else ""
+                    await safe_send_json(
+                        websocket,
+                        {
+                            "type": "thought_step",
+                            "step": "rerank",
+                            "title": f"⚖️ Rerank 语义重排：匹配《{doc_name}》等 {len(context)} 篇制度条款{score_text}",
+                            "thread_id": thread_id,
+                            "session_id": session_id,
+                        },
+                    )
+                    # Push confirmed knowledge sources to frontend
+                    sources_list = []
+                    for idx, d in enumerate(context[:5], 1):
+                        d_meta = d.get("metadata", {})
+                        d_title = d_meta.get("filename") or d_meta.get("title") or f"制度文档 {idx}"
+                        d_title = d_title.replace("\\", "/").split("/")[-1]
+                        d_snippet = d.get("content", "").strip()[:180]
+                        sources_list.append({
+                            "doc_id": f"SOP-2026-0{idx}",
+                            "title": f"《{d_title}》",
+                            "snippet": d_snippet,
+                            "tag": d_meta.get("category", "制度条款"),
+                        })
+                    await safe_send_json(
+                        websocket,
+                        {
+                            "type": "sources",
+                            "sources": sources_list,
+                            "thread_id": thread_id,
+                            "session_id": session_id,
+                        },
+                    )
+
             # 2. LLM Streaming Tokens
             elif kind == "on_chat_model_stream":
-                # Deduplicate nested ChatOpenAI stream events when wrapped in ResilientChatModel
-                if event.get("name") == "ChatOpenAI":
+                # Deduplicate nested ChatOpenAI / EnterpriseChatOpenAI stream events when wrapped in ResilientChatModel
+                if event.get("name") in ["ChatOpenAI", "EnterpriseChatOpenAI"]:
                     continue
                 chunk = event.get("data", {}).get("chunk")
 

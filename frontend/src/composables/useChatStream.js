@@ -12,11 +12,12 @@ export function useChatStream(clientId = 'vue3_client_stream') {
   let heartbeatTimer = null;
 
   const nodeNaturalMapping = {
-    router: '正在分析业务意图并匹配专职数字员工...',
-    retrieve: '正在核对企业知识库与规章制度...',
-    tool: '正在调用企业服务核验数据与预算...',
-    approval: '正在生成人机协同审批确认单据...',
-    generate: '已完成数据核验，正在组织回复建议...',
+    router: '💡 意图理解：分析业务意图与咨询范畴...',
+    retrieve: '🔍 制度检索：调取企业知识库与规章标准...',
+    rerank: '⚖️ Rerank 语义重排：匹配高置信度条款...',
+    tool: '🛠️ 工具调用：核验业务系统实时数据...',
+    approval: '📋 审批协同：生成人机协同单据...',
+    generate: '✍️ 组织建议：依据权威条款生成回复...',
   };
 
   const startHeartbeat = () => {
@@ -119,13 +120,29 @@ export function useChatStream(clientId = 'vue3_client_stream') {
 
       case 'node_start':
         if (node && currentMsg) {
-          const naturalTitle = nodeNaturalMapping[node] || '正在协同企业数字员工处理中...';
+          const naturalTitle = event.title || nodeNaturalMapping[node] || '正在协同企业数字员工处理中...';
           currentMsg.thoughtTitle = naturalTitle;
           if (!currentMsg.nodeSteps.includes(naturalTitle)) {
             currentMsg.nodeSteps.push(naturalTitle);
           }
         }
         activeNodes.value = [node];
+        break;
+
+      case 'thought_step':
+        if (currentMsg) {
+          const stepText = event.title || event.detail;
+          if (stepText && !currentMsg.nodeSteps.includes(stepText)) {
+            currentMsg.nodeSteps.push(stepText);
+          }
+          currentMsg.thoughtTitle = event.title || currentMsg.thoughtTitle;
+        }
+        break;
+
+      case 'sources':
+        if (currentMsg && event.sources && Array.isArray(event.sources)) {
+          currentMsg.sources = event.sources;
+        }
         break;
 
       case 'thought':

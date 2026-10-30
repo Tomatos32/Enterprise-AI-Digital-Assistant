@@ -1,5 +1,7 @@
 """Main FastAPI Application Entry Point."""
 
+import asyncio
+from contextlib import asynccontextmanager
 import os
 # Protect against OpenBLAS memory allocation abort in high-memory environments (Docker/Ollama)
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
@@ -27,10 +29,20 @@ from backend.api.v1.tasks import router as tasks_router
 from backend.api.v1.workflow import router as workflow_router
 from backend.api.v1.feedback import router as feedback_router
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Warms up core singleton engines (e.g. HybridRetriever) to eliminate first-request cold start latency."""
+    from backend.rag.retriever import get_hybrid_retriever
+    asyncio.create_task(asyncio.to_thread(get_hybrid_retriever))
+    yield
+
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan,
 )
 
 # Exception Handlers

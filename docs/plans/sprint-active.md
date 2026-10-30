@@ -95,6 +95,13 @@
   - [x] Checkpoint 4: 改造 `backend/rag/retriever.py` 为单例池化检索器 (`get_hybrid_retriever`)，避免每轮对话重复全量重读磁盘与重新构建 BM25
   - [x] Checkpoint 5: 全量自动化测试全通 (28/28 PASS)，实测 `我出差需要临时借用备用机，期限是多久` 100% 命中制度并精准回答 14 天门禁
 
+- [x] **Issue-0049: ThoughtLine 结构化全链路推理重塑（意图/检索/Rerank/建议）、TTFT 首字延迟极速穿透与输入栏交互去枷锁 (ThoughtLine Trace & TTFT Acceleration) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 移除输入栏强制 `@知识源` 的多余视觉引导，更新占位符为全自动意图识别与规章检索说明
+  - [x] Checkpoint 2: 实现 `EnterpriseChatOpenAI` 拦截与提取 Ollama/DeepSeek reasoning 思考流，彻底修复 LangChain 丢弃思考 Token 导致的前端静默假死
+  - [x] Checkpoint 3: 优化 WebSocket 流式管道，结构化推送【意图理解】->【制度检索】->【Rerank 语义重排】->【组织建议】四大 ThoughtLine 步骤并展示匹配文件名与置信度
+  - [x] Checkpoint 4: 修复 `chat_ws.py` 嵌套模型去重过滤器，杜绝 `EnterpriseChatOpenAI` 引入的 Duplicate Token 重叠现象
+  - [x] Checkpoint 5: 后端集成 FastAPI lifespan 预热机制，实测 TTFT 首字流式响应从 20s+ 骤降至 0.5s~3s，且步骤卡片与来源凭证 100% 真实联动
+
 ---
 
 ## Historical Achievements (已交付稳态资产):

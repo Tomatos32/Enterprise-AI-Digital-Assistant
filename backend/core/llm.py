@@ -194,6 +194,35 @@ class LocalEnterpriseChatModel(BaseChatModel):
             await asyncio.sleep(0.005)
 
 
+class EnterpriseChatOpenAI(ChatOpenAI):
+    """Enterprise ChatOpenAI extension that captures reasoning / thought stream tokens.
+
+    Ensures models emitting reasoning tokens (e.g. Ollama Qwen3.5/2.5 'reasoning' or
+    DeepSeek 'reasoning_content') have them preserved in `additional_kwargs`
+    rather than dropped by the standard LangChain parser.
+    """
+
+    def _convert_chunk_to_generation_chunk(
+        self,
+        chunk: dict,
+        default_chunk_class: type,
+        base_generation_info: Optional[dict],
+    ) -> Optional[ChatGenerationChunk]:
+        gen_chunk = super()._convert_chunk_to_generation_chunk(
+            chunk=chunk,
+            default_chunk_class=default_chunk_class,
+            base_generation_info=base_generation_info,
+        )
+        if gen_chunk and gen_chunk.message:
+            choices = chunk.get("choices", []) or chunk.get("chunk", {}).get("choices", [])
+            if choices and choices[0].get("delta"):
+                delta = choices[0]["delta"]
+                reasoning = delta.get("reasoning") or delta.get("reasoning_content")
+                if reasoning:
+                    gen_chunk.message.additional_kwargs["reasoning_content"] = reasoning
+        return gen_chunk
+
+
 class ResilientChatModel(BaseChatModel):
     """Resilient Chat Model with automatic fallback.
 
@@ -255,7 +284,13 @@ class ResilientChatModel(BaseChatModel):
             try:
                 streamed = False
                 async for chunk in self.primary_model.astream(messages, stop=stop, **kwargs):
-                    if chunk and hasattr(chunk, "content") and chunk.content:
+                    has_content = bool(chunk and hasattr(chunk, "content") and chunk.content)
+                    has_reasoning = bool(
+                        chunk and hasattr(chunk, "additional_kwargs") and (
+                            chunk.additional_kwargs.get("reasoning_content") or chunk.additional_kwargs.get("reasoning")
+                        )
+                    )
+                    if has_content or has_reasoning:
                         streamed = True
                         yield ChatGenerationChunk(message=chunk)
                 if streamed:
@@ -325,7 +360,7 @@ def get_chat_llm(
                 timeout=httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0),
             )
 
-            chat_openai = ChatOpenAI(
+            chat_openai = EnterpriseChatOpenAI(
                 model=effective_model,
                 api_key=effective_key or "ollama",
                 base_url=effective_base,

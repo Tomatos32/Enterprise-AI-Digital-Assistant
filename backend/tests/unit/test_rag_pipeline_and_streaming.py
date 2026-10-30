@@ -155,8 +155,12 @@ async def test_astream_events_token_streaming():
         if kind == "on_chat_model_stream":
             has_chat_model_event = True
             chunk = event.get("data", {}).get("chunk")
-            if chunk and hasattr(chunk, "content") and chunk.content:
-                streamed_tokens.append(chunk.content)
+            c = getattr(chunk, "content", "") if chunk else ""
+            r = getattr(chunk, "additional_kwargs", {}).get("reasoning_content") if chunk else ""
+            if c:
+                streamed_tokens.append(c)
+            elif r:
+                streamed_tokens.append(r)
 
     assert has_chat_model_event is True
     assert len(streamed_tokens) > 0

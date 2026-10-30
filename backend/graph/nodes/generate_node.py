@@ -70,9 +70,10 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
             )
         else:
             context_blocks = []
-            for idx, doc in enumerate(context[:3], 1):
+            for idx, doc in enumerate(context[:2], 1):
                 meta = doc.get("metadata", {})
                 fname = meta.get("filename") or meta.get("source") or f"制度文档_{idx}"
+                fname = fname.replace("\\", "/").split("/")[-1]
                 sec = meta.get("section_header") or ""
                 content_snippet = doc.get("content", "").strip()
                 header_str = f"【参考制度 {idx}】《{fname}》" + (f" - {sec}" if sec else "")
@@ -81,11 +82,11 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
             context_text = "\n\n".join(context_blocks)
             system_prompt = (
                 "你是一位专业严谨的企业 AI 数字员工助手。\n"
-                "请依据以下【参考制度依据】回答用户问题，确保数额标准、审批权限、申报时限准确无误。\n"
+                "请直接依据以下【参考制度依据】回答用户问题，确保数额标准、审批权限、申报时限准确无误。\n"
                 "回答规范要求：\n"
                 "1. 回答首行必须标注以 `[RAG Answer]: ` 开头；\n"
-                "2. 结构清晰，使用有序或无序列表明确关键数额与门禁；\n"
-                "3. 回答末尾必须标注【依据制度】：文件名与章节；\n"
+                "2. 结构清晰，直接列出关键数额与门禁条款，言简意赅；\n"
+                "3. 回答末尾标注【依据制度】：文件名与章节；\n"
                 "4. 严禁编造任何未在制度中提及的流程。\n\n"
                 f"【参考制度依据】：\n{context_text}"
             )

@@ -81,17 +81,6 @@
         <!-- Top Toolbar inside PromptBar: Tags & Actions -->
         <div class="flex items-center justify-between px-1">
           <div class="flex items-center space-x-1.5 sm:space-x-2">
-            <!-- Quick Data Source Trigger (@) -->
-            <button
-              type="button"
-              @click.stop="toggleAtMenu"
-              title="关联企业知识库与数据库 (@)"
-              class="hidden sm:inline-flex items-center space-x-1 px-2 py-0.8 text-[11px] font-medium rounded-lg text-text-secondary hover:text-text-main hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-            >
-              <Database class="w-3 h-3 text-brand-primary" />
-              <span>@知识源</span>
-            </button>
-
             <!-- Quick Command Trigger (/) -->
             <button
               type="button"
@@ -249,7 +238,7 @@ const slashCommands = [
 ];
 
 const placeholderText = computed(() => {
-  return '输入问题，输入 @ 链接知识源，或输入 / 触发内置命令...';
+  return '输入业务问题，数字员工将自动理解意图并检索规章制度回答...';
 });
 
 const canSend = computed(() => {
