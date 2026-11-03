@@ -1,5 +1,6 @@
 """Hybrid Retrieval (BM25 + Qdrant Dense Vector) & Reranker Engine with RBAC Security."""
 
+import hashlib
 import re
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -112,8 +113,14 @@ def reciprocal_rank_fusion(
 
     for results in results_list:
         for rank, doc in enumerate(results):
-            # Use content hash + title as unique doc identifier
-            doc_id = f"{doc.metadata.get('source', '')}_{hash(doc.page_content)}"
+            meta = doc.metadata or {}
+            raw_src = meta.get("source") or meta.get("filename") or ""
+            norm_name = Path(raw_src).name if raw_src else "doc"
+            chunk_idx = meta.get("chunk_index", 0)
+            content_clean = doc.page_content.strip()
+            content_hash = hashlib.md5(content_clean.encode("utf-8")).hexdigest()
+            # Normalize doc_id so identical chunks from relative/absolute paths merge seamlessly
+            doc_id = f"{norm_name}__chunk_{chunk_idx}__{content_hash}"
             doc_map[doc_id] = doc
 
             score = 1.0 / (k + (rank + 1))

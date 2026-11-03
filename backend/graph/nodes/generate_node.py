@@ -1,5 +1,6 @@
 """Response Generation Node with RAG Grounding, Self-Correction & LLM Synthesis."""
 
+import hashlib
 import logging
 from typing import Any, Dict, List
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
@@ -70,14 +71,25 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
             )
         else:
             context_blocks = []
-            for idx, doc in enumerate(context[:2], 1):
+            seen_fingerprints = set()
+            for doc in context:
+                content_snippet = doc.get("content", "").strip()
+                if not content_snippet:
+                    continue
+                # Deduplicate identical or near-identical text chunks across multiple retrievers
+                fp = hashlib.md5(content_snippet[:200].encode("utf-8")).hexdigest()
+                if fp in seen_fingerprints:
+                    continue
+                seen_fingerprints.add(fp)
+
                 meta = doc.get("metadata", {})
-                fname = meta.get("filename") or meta.get("source") or f"制度文档_{idx}"
+                fname = meta.get("filename") or meta.get("source") or f"制度文档_{len(context_blocks) + 1}"
                 fname = fname.replace("\\", "/").split("/")[-1]
                 sec = meta.get("section_header") or ""
-                content_snippet = doc.get("content", "").strip()
-                header_str = f"【参考制度 {idx}】《{fname}》" + (f" - {sec}" if sec else "")
+                header_str = f"【参考制度 {len(context_blocks) + 1}】《{fname}》" + (f" - {sec}" if sec else "")
                 context_blocks.append(f"{header_str}\n{content_snippet}")
+                if len(context_blocks) >= 2:
+                    break
 
             context_text = "\n\n".join(context_blocks)
             system_prompt = (
@@ -86,8 +98,9 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
                 "回答规范要求：\n"
                 "1. 回答首行必须标注以 `[RAG Answer]: ` 开头；\n"
                 "2. 结构清晰，直接列出关键数额与门禁条款，言简意赅；\n"
-                "3. 回答末尾标注【依据制度】：文件名与章节；\n"
-                "4. 严禁编造任何未在制度中提及的流程。\n\n"
+                "3. 若制度中未提及用户询问的某个细节（例如未提及押金或额外手续），请直接客观说明「制度未提及/无相关规定」，切勿反复查找或臆测；\n"
+                "4. 回答末尾标注【依据制度】：文件名与章节；\n"
+                "5. 严禁编造任何未在制度中提及的流程。\n\n"
                 f"【参考制度依据】：\n{context_text}"
             )
 

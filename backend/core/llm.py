@@ -76,65 +76,35 @@ class LocalEnterpriseChatModel(BaseChatModel):
 
         # 2. Check for RAG context in system message
         if "【参考制度依据】" in system_text or "参考制度" in system_text:
-            # 2.1 差旅与住宿报销场景
-            if any(k in query for k in ["差旅", "报销", "住宿", "餐饮", "交通", "出差"]):
+            match = re.search(r"【参考制度依据】：\s*(.*)", system_text, re.DOTALL)
+            if match and match.group(1).strip():
+                raw_context = match.group(1).strip()
+                # Parse doc titles and relevant lines from actual retrieved text
+                doc_lines = []
+                cited_docs = []
+                for line in raw_context.splitlines():
+                    line_s = line.strip()
+                    if not line_s:
+                        continue
+                    if "【参考制度" in line_s and "《" in line_s:
+                        t_match = re.search(r"《(.*?)》", line_s)
+                        if t_match and t_match.group(1) not in cited_docs:
+                            cited_docs.append(t_match.group(1))
+                    elif not line_s.startswith("#") and not line_s.startswith("---"):
+                        doc_lines.append(line_s)
+
+                doc_str = "、".join(f"《{d}》" for d in cited_docs) if cited_docs else "企业规章制度库"
+                body_snippet = "\n".join(doc_lines[:8])
                 return (
-                    "[RAG Answer]: 根据企业《财务差旅与费用报销管理制度》，现行核心报销与补贴标准如下：\n\n"
-                    "1. **住宿补贴限额**：\n"
-                    "   - 一线城市（北京、上海、广州、深圳）：住宿补贴上限为 **500元/天**。\n"
-                    "   - 二线及其他城市：住宿补贴上限为 **350元/天**。\n\n"
-                    "2. **餐饮与出差补贴**：\n"
-                    "   - 出差期间餐饮补贴统一标准为 **100元/天**，凭合规发票实报实销。\n\n"
-                    "3. **市内交通与特殊申报**：\n"
-                    "   - 市内交通凭有效打车或公共交通票据据实报销；\n"
-                    "   - 单次市内出租车费用超过 **200元** 的，须提前或事后提交部门主管特批说明。\n\n"
-                    "【依据制度】：《01_FINANCE_TRAVEL_POLICY.md》第3节「差旅报销与标准矩阵」"
+                    f"[RAG Answer]: 根据企业权威制度（{doc_str}）相关规定：\n\n"
+                    f"{body_snippet}\n\n"
+                    f"【依据制度】：{doc_str}"
                 )
 
-            # 2.2 采购金额与审批权限矩阵
-            if any(k in query for k in ["采购", "50000", "5万", "限额", "审批权限", "门禁", "CFO", "SOP"]):
-                return (
-                    "[RAG Answer]: 根据《企业采购金额门禁与审批权限控制规范》，采购权限划分如下：\n\n"
-                    "1. **重大采购（金额 > 50,000元）**：\n"
-                    "   - 必须触发人机协同三级门禁；\n"
-                    "   - 经部门总监初审后，必须由 **CFO（首席财务官）** 与 **分管VP** 联合联签会签方可生效。\n\n"
-                    "2. **常规采购（金额 <= 50,000元）**：\n"
-                    "   - 经采购专员发起，由业务部门负责人及采购部经理二级审批通过即可执行。\n\n"
-                    "3. **合规审计要求**：\n"
-                    "   - 所有超过 10,000 元的采购合同必须经过法务部门线上合规盖章审查。\n\n"
-                    "【依据制度】：《03_FINANCE_PROCUREMENT_LIMITS.md》第2节「采购审批门禁权限表」"
-                )
-
-            # 2.3 考勤打卡与年假/病假管理
-            if any(k in query for k in ["考勤", "年假", "病假", "迟到", "请假", "打卡"]):
-                return (
-                    "[RAG Answer]: 根据《员工考勤、假期管理与休假指引细则》：\n\n"
-                    "1. **考勤迟到宽限**：\n"
-                    "   - 员工每月享有 **3次、每次15分钟以内** 的弹性迟到免扣款豁免权限。\n\n"
-                    "2. **带薪年假核算**：\n"
-                    "   - 入职满1年不满10年：享有 **5天** 法定带薪年假；\n"
-                    "   - 入职满10年不满20年：享有 **10天**；满20年以上享有 **15天**。\n\n"
-                    "3. **病假申请手续**：\n"
-                    "   - 连续病假超过 **2天** 须提供二级甲等及以上医院开具的休假证明，按规定发放病假基本工资。\n\n"
-                    "【依据制度】：《02_HR_LEAVE_ATTENDANCE.md》第1节与第4节"
-                )
-
-            # 2.4 IT 运维与信息安全
-            if any(k in query for k in ["IT", "打印机", "密码", "OA", "泛微", "VPN", "网络"]):
-                return (
-                    "[RAG Answer]: 根据《企业IT技术支持与办公自动化SOP规程》：\n\n"
-                    "1. **办公设备与网络配置**：\n"
-                    "   - 办公网统一采用 802.1X 认证，打印机驱动可通过内网门户一键分发安装。\n"
-                    "2. **OA 与工单流转**：\n"
-                    "   - 泛微OA单点登录采用企业微信/飞书网关桥接；异常流程由运维值班组在30分钟内响应。\n\n"
-                    "【依据制度】：《04_IT_SYSTEM_OPERATION.md》第2节"
-                )
-
-            # 2.5 通用 RAG 综合回答
+            # Fallback if no specific reference text parsed
             return (
                 f"[RAG Answer]: 根据企业制度知识库检索结果：\n\n"
-                f"针对您关心的「{query}」，企业已有既定制度标准与执行细则，请严格遵循内控合规流程。\n"
-                f"如涉及财务支出或合同签订，请先在OA系统提起事前申请审批。\n\n"
+                f"针对您关心的「{query}」，企业已有既定制度标准与执行细则，请严格遵循内控合规流程。\n\n"
                 f"【依据制度】：企业内部合规与运营管理制度汇编"
             )
 

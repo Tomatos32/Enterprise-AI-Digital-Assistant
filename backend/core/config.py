@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     LLM_API_BASE: Optional[str] = None  # e.g., "https://api.deepseek.com/v1" or "http://localhost:11434/v1"
     LLM_API_KEY: Optional[str] = None
     LLM_TEMPERATURE: float = 0.2
-    LLM_MAX_TOKENS: int = 2048
+    LLM_MAX_TOKENS: int = 4096
     LLM_STREAM: bool = True
 
     # JWT Security Config

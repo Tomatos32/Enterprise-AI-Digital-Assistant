@@ -102,6 +102,13 @@
   - [x] Checkpoint 4: 修复 `chat_ws.py` 嵌套模型去重过滤器，杜绝 `EnterpriseChatOpenAI` 引入的 Duplicate Token 重叠现象
   - [x] Checkpoint 5: 后端集成 FastAPI lifespan 预热机制，实测 TTFT 首字流式响应从 20s+ 骤降至 0.5s~3s，且步骤卡片与来源凭证 100% 真实联动
 
+- [x] **Issue-0050: 根除 RAG 思考循环死锁与兜底模型假制度倒流漏洞 (RAG Grounding & Thinking Loop Fix) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 修复 `backend/rag/retriever.py` 中 RRF 融合因相对路径与绝对路径差异导致同一切片重复注入的缺陷
+  - [x] Checkpoint 2: 在 `backend/graph/nodes/generate_node.py` 增加切片内容指纹去重，并注入对未提及条款（如押金）的明确说明准则，彻底消灭 2B 模型的死循环死锁
+  - [x] Checkpoint 3: 彻底清除 `LocalEnterpriseChatModel` 中硬编码假制度文件（`01_FINANCE_TRAVEL_POLICY.md`）的陈旧 Mock 分支，改为动态真切片提炼
+  - [x] Checkpoint 4: 将 `LLM_MAX_TOKENS` 扩容至 4096，保证长思考链下正文生成的充足 Token 预算
+  - [x] Checkpoint 5: 端到端实测通过，多意图复合提问（借用期限、押金、超期扣款）100% 产出真实准确回复并规范引用实际制度文档
+
 ---
 
 ## Historical Achievements (已交付稳态资产):
