@@ -109,6 +109,18 @@
   - [x] Checkpoint 4: 将 `LLM_MAX_TOKENS` 扩容至 4096，保证长思考链下正文生成的充足 Token 预算
   - [x] Checkpoint 5: 端到端实测通过，多意图复合提问（借用期限、押金、超期扣款）100% 产出真实准确回复并规范引用实际制度文档
 
+- [x] **Issue-0051: RAG 查询重写 (Query Rewriting)、多意图子查询拆分与 Rerank 强阈值截断 (RAG Precision Hardening) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 新建 `backend/rag/query_rewriter.py`，支持多轮对话指代消解、实体提炼与复合问题原子子查询拆分，剔除场景噪声词
+  - [x] Checkpoint 2: 改造 `HybridRetriever.retrieve` 支持多查询并行双路混合召回与多候选列表 RRF 融合
+  - [x] Checkpoint 3: 重构 `Reranker` 增加绝对底线门限 (`min_score=0.16`)、相对高分截断 (`0.60 * top_score`) 与跨领域排他截断，物理杜绝无关制度（如《04_FINANCE》）误召回
+  - [x] Checkpoint 4: 编写 `test_query_rewriter.py` 专项单元测试，验证复合提问下 100% 排除财务文档且高分召回 IT 指南
+
+- [x] **Issue-0052: 对齐 shadcn Vuebits 官方规范重塑 ThoughtLine、消除 Emoji 并统一样式字体 (ThoughtLine Vuebits Spec & UI Polish) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 全面排查并彻底清除前后端 ThoughtLine 步骤中的所有 Emoji 符号（💡/🔍/⚖️/✍️/🛠️/📋），改用典雅严谨的工业级文本标签
+  - [x] Checkpoint 2: 统一 ThoughtLine 内各步骤、打勾图标与思考预览区的字体族（统一采用 `font-sans`），消除字体参差不齐
+  - [x] Checkpoint 3: 严格对齐 `@vue-bits/ThoughtLine` 官方 TSX/Tailwind 排版规范，确保呼吸光标、秒表打表与折叠收拢动效 100% 稳态运行
+  - [x] Checkpoint 4: 全量测试回归通过，前端生产构建通过 (7.82s)
+
 ---
 
 ## Historical Achievements (已交付稳态资产):

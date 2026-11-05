@@ -12,12 +12,12 @@ export function useChatStream(clientId = 'vue3_client_stream') {
   let heartbeatTimer = null;
 
   const nodeNaturalMapping = {
-    router: '💡 意图理解：分析业务意图与咨询范畴...',
-    retrieve: '🔍 制度检索：调取企业知识库与规章标准...',
-    rerank: '⚖️ Rerank 语义重排：匹配高置信度条款...',
-    tool: '🛠️ 工具调用：核验业务系统实时数据...',
-    approval: '📋 审批协同：生成人机协同单据...',
-    generate: '✍️ 组织建议：依据权威条款生成回复...',
+    router: '意图理解与咨询范畴分析',
+    retrieve: '调取企业规章与制度知识库',
+    rerank: '语义重排并匹配核心条款',
+    tool: '核验业务系统实时数据',
+    approval: '生成人机协同审批确认单据',
+    generate: '依据核验条款组织回复建议',
   };
 
   const startHeartbeat = () => {

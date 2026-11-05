@@ -11,6 +11,7 @@ from typing import Any, Dict, List
 
 from backend.core.graph_rag import default_enterprise_kg
 from backend.graph.state import AgentState
+from backend.rag.query_rewriter import get_query_rewriter
 from backend.rag.retriever import get_hybrid_retriever
 
 logger = logging.getLogger(__name__)
@@ -33,17 +34,24 @@ async def retrieve_node(state: AgentState) -> Dict[str, Any]:
     user_department = user_info.get("department") or metadata.get("department")
     clearance_level = user_info.get("clearance_level") or metadata.get("clearance_level", 1)
 
+    # 0. Query Rewriting & Sub-Query Decomposition
+    history_messages = messages[:-1] if len(messages) > 1 else []
+    rewriter = get_query_rewriter()
+    rewritten = rewriter.rewrite(query=query, history=history_messages)
+
     # 1. Path to sample_kb for Vector / Hybrid Retriever
     product_root = Path(__file__).resolve().parent.parent.parent.parent
     sample_kb_dir = product_root / "docs" / "sample_kb"
 
     retriever = get_hybrid_retriever(sample_kb_dir=sample_kb_dir)
     docs = retriever.retrieve(
-        query=query,
+        query=rewritten.standalone_query,
         top_k=3,
         tenant_id=tenant_id,
         user_department=user_department,
         clearance_level=clearance_level,
+        sub_queries=rewritten.sub_queries,
+        primary_domain=rewritten.primary_domain,
     )
 
     formatted_context: List[Dict[str, Any]] = [

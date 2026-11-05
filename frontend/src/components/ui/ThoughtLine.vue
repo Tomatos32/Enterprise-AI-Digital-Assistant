@@ -380,7 +380,7 @@ const rootStyle = computed(
           <!-- Raw Reasoning Text (from Ollama/DeepSeek thinking) -->
           <div
             v-if="preview"
-            class="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400 font-mono whitespace-pre-wrap pl-3 border-l-2 border-brand-primary/40 my-1 max-h-48 overflow-y-auto"
+            class="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400 font-sans whitespace-pre-wrap pl-3 border-l-2 border-brand-primary/40 my-1 max-h-48 overflow-y-auto"
           >
             {{ preview }}
           </div>

@@ -140,12 +140,20 @@ def reciprocal_rank_fusion(
 
 
 class Reranker:
-    """Semantic Reranker to score and refine top candidate documents."""
+    """Semantic Reranker to score and refine top candidate documents with dynamic truncation."""
 
-    def rerank(self, query: str, docs: List[Document], top_k: int = 5) -> List[Document]:
+    def rerank(
+        self,
+        query: str,
+        docs: List[Document],
+        top_k: int = 5,
+        min_score: Optional[float] = None,
+        relative_threshold: Optional[float] = None,
+        primary_domain: Optional[str] = None,
+    ) -> List[Document]:
         """Calculates cross-semantic relevance scores for query and candidates,
 
-        returning top_k refined documents sorted by rerank_score.
+        returning top_k refined documents with optional low-relevance noise truncation.
         """
         if not docs:
             return []
@@ -173,7 +181,41 @@ class Reranker:
             scored_docs.append(Document(page_content=doc.page_content, metadata=meta))
 
         scored_docs.sort(key=lambda x: x.metadata["rerank_score"], reverse=True)
-        return scored_docs[:top_k]
+
+        if not scored_docs:
+            return []
+
+        # If no cutoff parameters provided, return top_k candidates directly
+        if min_score is None and relative_threshold is None and primary_domain is None:
+            return scored_docs[:top_k]
+
+        # Floor and relative dropoff filtering
+        top_score = scored_docs[0].metadata["rerank_score"]
+        top_cat = scored_docs[0].metadata.get("category", "")
+        target_domain = primary_domain or top_cat
+
+        filtered_docs: List[Document] = [scored_docs[0]]
+        for d in scored_docs[1:]:
+            s = d.metadata["rerank_score"]
+            cat = d.metadata.get("category", "")
+
+            # 1. Floor cutoff
+            if min_score is not None and s < min_score:
+                continue
+
+            # 2. Relative dropoff cutoff (drop if score is < 60% of top hit)
+            if relative_threshold is not None and s < top_score * relative_threshold:
+                continue
+
+            # 3. Cross-domain noise cutoff: if top hit is IT, and doc is FINANCE with much lower score, drop
+            if target_domain and cat and cat.upper() != target_domain.upper() and s < 0.25:
+                continue
+
+            filtered_docs.append(d)
+            if len(filtered_docs) >= top_k:
+                break
+
+        return filtered_docs
 
 
 class HybridRetriever:
@@ -212,42 +254,65 @@ class HybridRetriever:
         tenant_id: Optional[str] = "default",
         user_department: Optional[str] = None,
         clearance_level: Optional[int] = 1,
+        sub_queries: Optional[List[str]] = None,
+        primary_domain: Optional[str] = None,
     ) -> List[Document]:
         """Performs hybrid retrieval pipeline with RBAC Security:
 
-        Dense Search + BM25 Search -> RRF Fusion -> Category Filter -> Reranker -> Top-K Docs.
+        Dense Search + BM25 Search (across all sub-queries) -> RRF Fusion -> Category Filter -> Reranker -> Top-K Docs.
         """
-        # 1. Dense Vector Search from Qdrant with RBAC Filter
-        dense_results = search_similar_documents(
-            query=query,
-            top_k=candidate_k,
-            tenant_id=tenant_id,
-            user_department=user_department,
-            clearance_level=clearance_level,
-        )
+        all_dense_results: List[List[Document]] = []
+        all_bm25_results: List[List[Document]] = []
 
-        # 2. BM25 Keyword Search with RBAC Filter
-        bm25_results = self.bm25_retriever.search(
-            query=query,
-            top_k=candidate_k,
-            tenant_id=tenant_id,
-            user_department=user_department,
-            clearance_level=clearance_level,
-        )
+        target_queries = list(sub_queries) if sub_queries else [query]
+        if query not in target_queries:
+            target_queries.insert(0, query)
 
-        # 3. RRF Fusion
-        fused_results = reciprocal_rank_fusion([dense_results, bm25_results], k=60)
+        for q in target_queries:
+            # 1. Dense Vector Search from Qdrant with RBAC Filter
+            dense = search_similar_documents(
+                query=q,
+                top_k=candidate_k,
+                tenant_id=tenant_id,
+                user_department=user_department,
+                clearance_level=clearance_level,
+            )
+            all_dense_results.append(dense)
+
+            # 2. BM25 Keyword Search with RBAC Filter
+            bm25 = self.bm25_retriever.search(
+                query=q,
+                top_k=candidate_k,
+                tenant_id=tenant_id,
+                user_department=user_department,
+                clearance_level=clearance_level,
+            )
+            all_bm25_results.append(bm25)
+
+        # 3. RRF Fusion across all candidate lists
+        combined_lists = all_dense_results + all_bm25_results
+        fused_results = reciprocal_rank_fusion(combined_lists, k=60)
 
         # 4. Category Filter (if specified)
-        if category_filter:
-            fused_results = [
+        effective_cat = category_filter or primary_domain
+        if effective_cat:
+            cat_matched = [
                 doc for doc in fused_results
-                if doc.metadata.get("category", "").upper() == category_filter.upper()
+                if doc.metadata.get("category", "").upper() == effective_cat.upper()
             ]
+            if cat_matched:
+                fused_results = cat_matched
 
-        # 5. Reranker 精排
+        # 5. Reranker 精排与强阈值截断
         reranker = Reranker()
-        final_results = reranker.rerank(query=query, docs=fused_results, top_k=top_k)
+        final_results = reranker.rerank(
+            query=query,
+            docs=fused_results,
+            top_k=top_k,
+            min_score=0.16,
+            relative_threshold=0.60,
+            primary_domain=effective_cat,
+        )
 
         return final_results
 

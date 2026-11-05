@@ -220,11 +220,11 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
             # 1. Node Execution Transition Events
             if kind == "on_chain_start" and name in ["router", "retrieve", "tool", "approval", "generate"]:
                 step_mapping = {
-                    "router": "💡 意图理解：分析业务意图与咨询范畴...",
-                    "retrieve": "🔍 制度检索：调取企业规章与SOP知识库...",
-                    "tool": "🛠️ 工具调用：核验业务系统实时数据...",
-                    "approval": "📋 审批协同：生成人机协同单据...",
-                    "generate": "✍️ 组织建议：依据权威条款生成回复...",
+                    "router": "意图理解与业务范畴分析",
+                    "retrieve": "调取企业规章与制度知识库",
+                    "tool": "核验业务系统实时数据",
+                    "approval": "生成人机协同审批确认单据",
+                    "generate": "依据核验条款组织回复建议",
                 }
                 title = step_mapping.get(name, f"正在执行 {name} 节点...")
                 if not await safe_send_json(
@@ -255,7 +255,7 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
                         {
                             "type": "thought_step",
                             "step": "rerank",
-                            "title": f"⚖️ Rerank 语义重排：匹配《{doc_name}》等 {len(context)} 篇制度条款{score_text}",
+                            "title": f"语义重排并匹配核心条款 (匹配《{doc_name}》{score_text})",
                             "thread_id": thread_id,
                             "session_id": session_id,
                         },
