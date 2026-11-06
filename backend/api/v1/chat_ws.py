@@ -110,8 +110,11 @@ def _record_assistant_message(
     session_id: str,
     assistant_message: str,
     sources: Optional[str] = None,
+    thought: Optional[str] = None,
+    duration_seconds: Optional[float] = None,
+    thought_steps: Optional[str] = None,
 ) -> None:
-    """Persists assistant completion message to database."""
+    """Persists assistant completion message, full thought trace, and duration to database."""
     if not assistant_message:
         return
     try:
@@ -121,6 +124,9 @@ def _record_assistant_message(
                 role="assistant",
                 content=assistant_message,
                 sources=sources,
+                thought=thought,
+                duration_seconds=duration_seconds,
+                thought_steps=thought_steps,
             )
             db.add(assistant_record)
 
@@ -198,8 +204,13 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
     }
     config = {"configurable": {"thread_id": thread_id}}
 
-    # Initialize streaming PII sanitizer
+    # Initialize streaming PII sanitizer & timing telemetry
     sanitizer = StreamingSanitizer()
+    import time
+    stream_start_time = time.time()
+    first_token_time: Optional[float] = None
+    streamed_thought_chunks: List[str] = []
+    thought_steps_history: List[str] = []
 
     # Send Initial Handshake Response
     await safe_send_json(
@@ -227,6 +238,8 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
                     "generate": "依据核验条款组织回复建议",
                 }
                 title = step_mapping.get(name, f"正在执行 {name} 节点...")
+                if title not in thought_steps_history:
+                    thought_steps_history.append(title)
                 if not await safe_send_json(
                     websocket,
                     {
@@ -250,12 +263,15 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
                     doc_name = doc_name.replace("\\", "/").split("/")[-1]
                     score = meta.get("rerank_score") or meta.get("score")
                     score_text = f" (置信度: {score})" if score is not None else ""
+                    rerank_step_title = f"语义重排并匹配核心条款 (匹配《{doc_name}》{score_text})"
+                    if rerank_step_title not in thought_steps_history:
+                        thought_steps_history.append(rerank_step_title)
                     await safe_send_json(
                         websocket,
                         {
                             "type": "thought_step",
                             "step": "rerank",
-                            "title": f"语义重排并匹配核心条款 (匹配《{doc_name}》{score_text})",
+                            "title": rerank_step_title,
                             "thread_id": thread_id,
                             "session_id": session_id,
                         },
@@ -285,8 +301,8 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
 
             # 2. LLM Streaming Tokens
             elif kind == "on_chat_model_stream":
-                # Deduplicate nested ChatOpenAI / EnterpriseChatOpenAI stream events when wrapped in ResilientChatModel
-                if event.get("name") in ["ChatOpenAI", "EnterpriseChatOpenAI"]:
+                # Deduplicate nested ChatOpenAI / EnterpriseChatOpenAI / NativeOllamaChatModel stream events when wrapped in ResilientChatModel
+                if event.get("name") in ["ChatOpenAI", "EnterpriseChatOpenAI", "NativeOllamaChatModel"]:
                     continue
                 chunk = event.get("data", {}).get("chunk")
 
@@ -294,6 +310,7 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
                 if chunk and hasattr(chunk, "additional_kwargs"):
                     reasoning_token = chunk.additional_kwargs.get("reasoning_content") or chunk.additional_kwargs.get("reasoning")
                     if reasoning_token:
+                        streamed_thought_chunks.append(reasoning_token)
                         await safe_send_json(
                             websocket,
                             {
@@ -305,6 +322,8 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
                         )
 
                 if chunk and hasattr(chunk, "content") and chunk.content:
+                    if first_token_time is None:
+                        first_token_time = time.time()
                     safe_token = sanitizer.process_chunk(chunk.content)
                     if safe_token:
                         if not await safe_send_json(
@@ -424,11 +443,19 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
             if source_list:
                 sources_str = json.dumps(list(set(source_list)), ensure_ascii=False)
 
+        # Calculate actual thinking duration & assemble thought trace for persistence
+        elapsed_sec = round(first_token_time - stream_start_time, 1) if first_token_time else round(time.time() - stream_start_time, 1)
+        persisted_thought = "".join(streamed_thought_chunks).strip() if streamed_thought_chunks else None
+        persisted_steps = json.dumps(thought_steps_history, ensure_ascii=False) if thought_steps_history else None
+
         # Persist assistant answer to database
         _record_assistant_message(
             session_id=session_id,
             assistant_message=sanitized_answer,
             sources=sources_str,
+            thought=persisted_thought,
+            duration_seconds=elapsed_sec,
+            thought_steps=persisted_steps,
         )
 
         await safe_send_json(

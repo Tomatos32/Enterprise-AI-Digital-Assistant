@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     LLM_TEMPERATURE: float = 0.2
     LLM_MAX_TOKENS: int = 4096
     LLM_STREAM: bool = True
+    LLM_THINKING: bool = False  # Set True to enable Deep Reasoning (CoT) mode on thinking models (e.g. Qwen3.5/R1)
 
     # JWT Security Config
     SECRET_KEY: str = "super_secret_jwt_key_enterprise_ai_2026_harness"

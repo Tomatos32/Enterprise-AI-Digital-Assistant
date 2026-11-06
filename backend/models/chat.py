@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import String, Integer, Text, DateTime, Boolean
+from sqlalchemy import String, Integer, Text, DateTime, Boolean, Float
 from sqlalchemy.orm import Mapped, mapped_column
 from backend.db.session import Base
 
@@ -33,4 +33,7 @@ class ChatMessage(Base):
     role: Mapped[str] = mapped_column(String(20), nullable=False)  # 'user', 'assistant', 'system', 'tool'
     content: Mapped[str] = mapped_column(Text, nullable=False)
     sources: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON-encoded reference metadata
+    thought: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Full reasoning thought trace
+    duration_seconds: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # Thinking elapsed seconds
+    thought_steps: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON-encoded ThoughtLine steps list
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

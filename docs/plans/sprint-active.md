@@ -121,6 +121,22 @@
   - [x] Checkpoint 3: 严格对齐 `@vue-bits/ThoughtLine` 官方 TSX/Tailwind 排版规范，确保呼吸光标、秒表打表与折叠收拢动效 100% 稳态运行
   - [x] Checkpoint 4: 全量测试回归通过，前端生产构建通过 (7.82s)
 
+- [x] **Issue-0053: 思考延迟根因穿透与 NativeOllama 极速推理模式 (Latency Root Cause & Fast Native Adapter) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 定位 26s 耗时 100% 产生于 Ollama 模型内部 1400 Token 英文思考流，实现 `NativeOllamaChatModel` 原生驱动
+  - [x] Checkpoint 2: 提供 `LLM_THINKING` 可配置思考开关，极速模式下响应时延降至 2.88s (0.47s TTFT)
+  - [x] Checkpoint 3: 消除历史多轮对话中的遗留错误对小模型元推理循环的干扰
+
+- [x] **Issue-0054: 会话切换后深度思考与 ThoughtLine 完整历史持久化 (Thought & CoT Persistence) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 升级 `chat_messages` 数据表，新增 `thought`、`duration_seconds` 与 `thought_steps` 字段
+  - [x] Checkpoint 2: 改造 WebSocket 完成帧，将思考文本、耗时与步骤列表落库，并通过 REST 消息接口导出
+  - [x] Checkpoint 3: 前端 `chatStore` 与 `MessageItem` 历史消息完全恢复 ThoughtLine 状态，切换历史会话不再丢失思考过程
+  - [x] Checkpoint 4: 编写 `test_thought_persistence.py` 专项测试并通过验证
+
+- [x] **Issue-0055: 边栏展开收起会话展示不对称与时间分组截断修复 (Sidebar Session Grouping Alignment) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 在 `Sidebar.vue` 中补充 `olderSessions`（更早历史）渲染区域，消灭展开时 7 天前记录被丢弃的缺陷
+  - [x] Checkpoint 2: 补充全部会话无缝保底渲染列表，确保无论展开还是收起，历史会话条数与展示完全对称一致
+  - [x] Checkpoint 3: 将 `chatStore.js` 中的时间基准改造为动态计算，消除静态常驻时间戳造成的日期归类偏移
+
 ---
 
 ## Historical Achievements (已交付稳态资产):

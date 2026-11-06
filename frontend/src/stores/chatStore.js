@@ -9,46 +9,55 @@ export const useChatStore = defineStore('chat', () => {
   const isOnline = ref(true);
   const selectedMode = ref('general'); // 'general' | 'it' | 'finance' | 'hr'
 
-  // 时间维度基准计算
+  // 时间维度基准动态计算
   const getStartOfDay = (d) => {
     const date = new Date(d);
     date.setHours(0, 0, 0, 0);
     return date.getTime();
   };
 
-  const now = Date.now();
-  const startOfToday = getStartOfDay(now);
-  const startOfYesterday = startOfToday - 86400000;
-  const startOf7DaysAgo = startOfToday - 7 * 86400000;
+  const getTime = (s) => {
+    const t = s.updatedAt || s.createdAt;
+    if (!t) return 0;
+    return typeof t === 'number' ? t : new Date(t).getTime();
+  };
 
   // 活跃会话对象
   const activeSession = computed(() => {
     return sessions.value.find((s) => s.id === activeSessionId.value) || sessions.value[0] || null;
   });
 
-  // 按时间维度计算分组
+  // 按时间维度动态计算分组（确保每天零点与跨周后会话无缝自愈）
   const todaySessions = computed(() => {
-    return sessions.value.filter((s) => (s.updatedAt || s.createdAt) >= startOfToday);
+    const startOfToday = getStartOfDay(Date.now());
+    return sessions.value.filter((s) => getTime(s) >= startOfToday);
   });
 
   const yesterdaySessions = computed(() => {
+    const startOfToday = getStartOfDay(Date.now());
+    const startOfYesterday = startOfToday - 86400000;
     return sessions.value.filter((s) => {
-      const time = s.updatedAt || s.createdAt;
+      const time = getTime(s);
       return time >= startOfYesterday && time < startOfToday;
     });
   });
 
   const previous7DaysSessions = computed(() => {
+    const startOfToday = getStartOfDay(Date.now());
+    const startOfYesterday = startOfToday - 86400000;
+    const startOf7DaysAgo = startOfToday - 7 * 86400000;
     return sessions.value.filter((s) => {
-      const time = s.updatedAt || s.createdAt;
+      const time = getTime(s);
       return time >= startOf7DaysAgo && time < startOfYesterday;
     });
   });
 
   const olderSessions = computed(() => {
+    const startOfToday = getStartOfDay(Date.now());
+    const startOf7DaysAgo = startOfToday - 7 * 86400000;
     return sessions.value.filter((s) => {
-      const time = s.updatedAt || s.createdAt;
-      return time < startOf7DaysAgo;
+      const time = getTime(s);
+      return time > 0 && time < startOf7DaysAgo;
     });
   });
 
@@ -175,11 +184,20 @@ export const useChatStore = defineStore('chat', () => {
                 }
               } catch {}
             }
+            let parsedSteps = [];
+            if (m.thought_steps) {
+              try {
+                parsedSteps = JSON.parse(m.thought_steps);
+              } catch {}
+            }
             return {
               id: `msg_db_${m.id}`,
               sender: m.role === 'user' ? 'user' : 'ai',
               role: m.role,
               content: m.content,
+              thought: m.thought || '',
+              durationSeconds: m.duration_seconds || undefined,
+              nodeSteps: Array.isArray(parsedSteps) ? parsedSteps : [],
               sources: parsedSources,
               completed: true,
               isStreaming: false,

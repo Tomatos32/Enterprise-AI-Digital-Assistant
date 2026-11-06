@@ -51,6 +51,9 @@ class ChatMessageResponse(BaseModel):
     role: str
     content: str
     sources: Optional[str] = None
+    thought: Optional[str] = None
+    duration_seconds: Optional[float] = None
+    thought_steps: Optional[str] = None
     created_at: datetime
 
 

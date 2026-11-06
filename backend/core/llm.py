@@ -9,6 +9,7 @@ Supports:
 """
 
 import asyncio
+import json
 import logging
 import re
 from typing import Any, AsyncIterator, Dict, List, Optional
@@ -193,6 +194,101 @@ class EnterpriseChatOpenAI(ChatOpenAI):
         return gen_chunk
 
 
+class NativeOllamaChatModel(BaseChatModel):
+    """High-Performance Native Ollama Chat Model supporting non-blocking think mode control."""
+
+    model_name: str = "qwen3.5:2b"
+    base_url: str = "http://127.0.0.1:11434"
+    think: bool = False
+    temperature: float = 0.1
+    streaming: bool = True
+
+    @property
+    def _llm_type(self) -> str:
+        return "native_ollama_chat"
+
+    def _convert_messages(self, messages: List[BaseMessage]) -> List[Dict[str, str]]:
+        converted = []
+        for m in messages:
+            role = "user"
+            if isinstance(m, SystemMessage):
+                role = "system"
+            elif isinstance(m, AIMessage):
+                role = "assistant"
+            converted.append({"role": role, "content": str(m.content)})
+        return converted
+
+    def _generate(
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        payload = {
+            "model": self.model_name,
+            "messages": self._convert_messages(messages),
+            "stream": False,
+            "think": self.think,
+            "options": {"temperature": self.temperature},
+        }
+        with httpx.Client(trust_env=False, timeout=60.0) as client:
+            res = client.post(f"{self.base_url}/api/chat", json=payload)
+            res.raise_for_status()
+            data = res.json()
+            content = data.get("message", {}).get("content", "")
+            return ChatResult(generations=[ChatGeneration(message=AIMessage(content=content))])
+
+    async def _agenerate(
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[AsyncCallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        payload = {
+            "model": self.model_name,
+            "messages": self._convert_messages(messages),
+            "stream": False,
+            "think": self.think,
+            "options": {"temperature": self.temperature},
+        }
+        async with httpx.AsyncClient(trust_env=False, timeout=60.0) as client:
+            res = await client.post(f"{self.base_url}/api/chat", json=payload)
+            res.raise_for_status()
+            data = res.json()
+            content = data.get("message", {}).get("content", "")
+            return ChatResult(generations=[ChatGeneration(message=AIMessage(content=content))])
+
+    async def _astream(
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[AsyncCallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[ChatGenerationChunk]:
+        payload = {
+            "model": self.model_name,
+            "messages": self._convert_messages(messages),
+            "stream": True,
+            "think": self.think,
+            "options": {"temperature": self.temperature},
+        }
+        async with httpx.AsyncClient(trust_env=False, timeout=60.0) as client:
+            async with client.stream("POST", f"{self.base_url}/api/chat", json=payload) as response:
+                async for line in response.aiter_lines():
+                    if line:
+                        chunk_data = json.loads(line)
+                        msg_chunk = chunk_data.get("message", {})
+                        content = msg_chunk.get("content", "")
+                        thinking = chunk_data.get("thinking", "")
+                        additional_kwargs = {}
+                        if thinking:
+                            additional_kwargs["reasoning_content"] = thinking
+                        if content or thinking:
+                            yield ChatGenerationChunk(message=AIMessageChunk(content=content, additional_kwargs=additional_kwargs))
+
+
 class ResilientChatModel(BaseChatModel):
     """Resilient Chat Model with automatic fallback.
 
@@ -314,6 +410,30 @@ def get_chat_llm(
     # Only instantiate remote ChatOpenAI if explicit settings/parameters are configured
     if effective_key or effective_base or effective_provider in ["openai", "deepseek", "vllm", "ollama"]:
         try:
+            if effective_provider == "ollama":
+                native_base = effective_base.replace("/v1", "").rstrip("/") if effective_base else "http://127.0.0.1:11434"
+                logger.info(
+                    "[LLM] Initializing ResilientChatModel with NativeOllamaChatModel (model=%s, think=%s, base=%s)",
+                    effective_model,
+                    settings.LLM_THINKING,
+                    native_base,
+                )
+                ollama_model = NativeOllamaChatModel(
+                    model_name=effective_model,
+                    base_url=native_base,
+                    think=settings.LLM_THINKING,
+                    temperature=effective_temp,
+                    streaming=effective_stream,
+                )
+                return ResilientChatModel(
+                    primary_model=ollama_model,
+                    fallback_model=LocalEnterpriseChatModel(
+                        model_name="local-enterprise-agent-v1",
+                        temperature=effective_temp,
+                        streaming=effective_stream,
+                    ),
+                )
+
             logger.info(
                 "[LLM] Initializing ResilientChatModel with primary ChatOpenAI (model=%s, base_url=%s)",
                 effective_model,

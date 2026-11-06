@@ -1,6 +1,5 @@
 """Unit Tests for Enterprise Query Rewriter, Sub-Query Decomposition, and Rerank Truncation."""
 
-import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 from backend.rag.query_rewriter import get_query_rewriter
 from backend.rag.retriever import get_hybrid_retriever

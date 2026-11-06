@@ -104,6 +104,44 @@
           />
         </div>
       </div>
+
+      <!-- Group: 更早历史 -->
+      <div v-if="chatStore.olderSessions.length > 0">
+        <div class="px-2 py-1 text-[11px] font-semibold text-text-muted tracking-wider">更早</div>
+        <div class="space-y-0.5">
+          <LineSidebar
+            v-for="s in chatStore.olderSessions"
+            :key="s.id"
+            :title="s.title"
+            :active="s.id === chatStore.activeSessionId"
+            @select="handleSelect(s.id)"
+            @delete="chatStore.deleteSession(s.id)"
+          />
+        </div>
+      </div>
+
+      <!-- Fallback: 如果没有匹配上任何日期分组，直接完整列出所有历史会话，绝对不隐藏任何记录 -->
+      <div
+        v-if="
+          chatStore.todaySessions.length === 0 &&
+          chatStore.yesterdaySessions.length === 0 &&
+          chatStore.previous7DaysSessions.length === 0 &&
+          chatStore.olderSessions.length === 0 &&
+          chatStore.sessions.length > 0
+        "
+      >
+        <div class="px-2 py-1 text-[11px] font-semibold text-text-muted tracking-wider">全部对话</div>
+        <div class="space-y-0.5">
+          <LineSidebar
+            v-for="s in chatStore.sessions"
+            :key="s.id"
+            :title="s.title"
+            :active="s.id === chatStore.activeSessionId"
+            @select="handleSelect(s.id)"
+            @delete="chatStore.deleteSession(s.id)"
+          />
+        </div>
+      </div>
     </div>
 
     <!-- Middle: Collapsed Recent Icon Dots (Collapsed) -->
