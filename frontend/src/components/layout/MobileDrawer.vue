@@ -150,71 +150,225 @@
                 </div>
               </div>
             </div>
+
+            <!-- Group: 更早历史 -->
+            <div v-if="chatStore.olderSessions.length > 0">
+              <div class="px-2 py-1 text-[11px] font-semibold text-text-muted tracking-wider">更早</div>
+              <div class="space-y-1">
+                <div
+                  v-for="s in chatStore.olderSessions"
+                  :key="s.id"
+                  @click="handleSelect(s.id)"
+                  class="group px-3 py-2.5 min-h-[44px] rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors duration-150"
+                  :class="s.id === chatStore.activeSessionId ? 'bg-slate-200 dark:bg-slate-800 text-text-main font-semibold border border-border-card shadow-sm' : 'text-text-secondary hover:text-text-main hover:bg-slate-200/50 dark:hover:bg-slate-900/60'"
+                >
+                  <div class="flex items-center space-x-2.5 truncate">
+                    <MessageSquare class="w-4 h-4 shrink-0 text-brand-primary/80" />
+                    <span class="truncate">{{ s.title }}</span>
+                  </div>
+                  <button
+                    @click.stop="chatStore.deleteSession(s.id)"
+                    title="删除会话"
+                    class="p-2 text-text-muted hover:text-status-danger rounded transition-colors duration-150"
+                  >
+                    <Trash2 class="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fallback: 完整保底列出未分组的历史会话 -->
+            <div
+              v-if="
+                chatStore.todaySessions.length === 0 &&
+                chatStore.yesterdaySessions.length === 0 &&
+                chatStore.previous7DaysSessions.length === 0 &&
+                chatStore.olderSessions.length === 0 &&
+                chatStore.sessions.length > 0
+              "
+            >
+              <div class="px-2 py-1 text-[11px] font-semibold text-text-muted tracking-wider">全部对话</div>
+              <div class="space-y-1">
+                <div
+                  v-for="s in chatStore.sessions"
+                  :key="s.id"
+                  @click="handleSelect(s.id)"
+                  class="group px-3 py-2.5 min-h-[44px] rounded-xl text-xs flex items-center justify-between cursor-pointer transition-colors duration-150"
+                  :class="s.id === chatStore.activeSessionId ? 'bg-slate-200 dark:bg-slate-800 text-text-main font-semibold border border-border-card shadow-sm' : 'text-text-secondary hover:text-text-main hover:bg-slate-200/50 dark:hover:bg-slate-900/60'"
+                >
+                  <div class="flex items-center space-x-2.5 truncate">
+                    <MessageSquare class="w-4 h-4 shrink-0 text-brand-primary/80" />
+                    <span class="truncate">{{ s.title }}</span>
+                  </div>
+                  <button
+                    @click.stop="chatStore.deleteSession(s.id)"
+                    title="删除会话"
+                    class="p-2 text-text-muted hover:text-status-danger rounded transition-colors duration-150"
+                  >
+                    <Trash2 class="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Lower: Business Workspaces Navigation -->
-          <div class="p-3 border-t border-border-subtle bg-slate-200/50 dark:bg-slate-950/60 shrink-0">
-            <div class="px-1 pb-1.5 text-[11px] font-semibold text-text-muted tracking-wider">
-              企业业务协同
+          <div class="p-3 border-t border-border-subtle bg-slate-200/50 dark:bg-slate-950/60 shrink-0 space-y-3">
+            <div>
+              <div class="px-1 pb-1.5 text-[11px] font-semibold text-text-muted tracking-wider">
+                企业业务协同
+              </div>
+
+              <nav class="space-y-1.5">
+                <!-- 待我审批入口 (仅部门主管与系统管理员可见) -->
+                <router-link
+                  v-if="authStore.canApprove"
+                  to="/approvals"
+                  @click="closeDrawer"
+                  class="flex items-center justify-between p-2.5 min-h-[44px] rounded-xl text-xs transition-colors duration-150 cursor-pointer active:bg-slate-200 dark:active:bg-slate-800"
+                  active-class="bg-slate-200 dark:bg-slate-800 text-status-approval font-semibold"
+                >
+                  <div class="flex items-center space-x-2.5 truncate">
+                    <ClipboardList class="w-4 h-4 text-status-approval shrink-0" />
+                    <span class="text-text-secondary hover:text-text-main truncate">待我审批中心</span>
+                  </div>
+                  <div class="flex items-center space-x-1.5">
+                    <span
+                      v-if="pendingApprovalsCount > 0"
+                      class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/20 text-status-approval border border-amber-500/30 font-mono"
+                    >
+                      {{ pendingApprovalsCount }} 项
+                    </span>
+                    <ChevronRight class="w-3.5 h-3.5 text-text-muted" />
+                  </div>
+                </router-link>
+
+                <!-- 规章制度知识库入口 -->
+                <router-link
+                  to="/knowledge"
+                  @click="closeDrawer"
+                  class="flex items-center justify-between p-2.5 min-h-[44px] rounded-xl text-xs transition-colors duration-150 cursor-pointer active:bg-slate-200 dark:active:bg-slate-800"
+                  active-class="bg-slate-200 dark:bg-slate-800 text-brand-primary font-semibold"
+                >
+                  <div class="flex items-center space-x-2.5 truncate">
+                    <BookOpen class="w-4 h-4 text-brand-primary shrink-0" />
+                    <span class="text-text-secondary hover:text-text-main truncate">规章制度知识库</span>
+                  </div>
+                  <ChevronRight class="w-3.5 h-3.5 text-text-muted" />
+                </router-link>
+              </nav>
             </div>
 
-            <nav class="space-y-1.5">
-              <!-- 待我审批入口 -->
-              <router-link
-                to="/approvals"
-                @click="closeDrawer"
-                class="flex items-center justify-between p-2.5 min-h-[44px] rounded-xl text-xs transition-colors duration-150 cursor-pointer active:bg-slate-200 dark:active:bg-slate-800"
-                active-class="bg-slate-200 dark:bg-slate-800 text-status-approval font-semibold"
-              >
-                <div class="flex items-center space-x-2.5 truncate">
-                  <ClipboardList class="w-4 h-4 text-status-approval shrink-0" />
-                  <span class="text-text-secondary hover:text-text-main truncate">待我审批中心</span>
-                </div>
-                <div class="flex items-center space-x-1.5">
-                  <span
-                    v-if="pendingApprovalsCount > 0"
-                    class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/20 text-status-approval border border-amber-500/30 font-mono"
-                  >
-                    {{ pendingApprovalsCount }} 项
-                  </span>
-                  <ChevronRight class="w-3.5 h-3.5 text-text-muted" />
-                </div>
-              </router-link>
+            <!-- 系统管理控制台 (仅系统管理员可见 · 预留导航分组插槽) -->
+            <div v-if="authStore.isAdmin" class="pt-2 border-t border-border-subtle/70">
+              <div class="px-1 pb-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 tracking-wider">
+                系统管理控制台
+              </div>
 
-              <!-- 规章制度知识库入口 -->
-              <router-link
-                to="/knowledge"
-                @click="closeDrawer"
-                class="flex items-center justify-between p-2.5 min-h-[44px] rounded-xl text-xs transition-colors duration-150 cursor-pointer active:bg-slate-200 dark:active:bg-slate-800"
-                active-class="bg-slate-200 dark:bg-slate-800 text-brand-primary font-semibold"
-              >
-                <div class="flex items-center space-x-2.5 truncate">
-                  <BookOpen class="w-4 h-4 text-brand-primary shrink-0" />
-                  <span class="text-text-secondary hover:text-text-main truncate">规章制度知识库</span>
-                </div>
-                <ChevronRight class="w-3.5 h-3.5 text-text-muted" />
-              </router-link>
-            </nav>
+              <nav class="space-y-1">
+                <router-link
+                  to="/admin/settings"
+                  @click="closeDrawer"
+                  class="flex items-center justify-between p-2.5 min-h-[42px] rounded-xl text-xs transition-colors duration-150 cursor-pointer"
+                  active-class="bg-slate-200 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 font-semibold"
+                >
+                  <div class="flex items-center space-x-2.5 truncate">
+                    <SlidersHorizontal class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span class="text-text-secondary hover:text-text-main truncate">模型与参数配置</span>
+                  </div>
+                  <ChevronRight class="w-3.5 h-3.5 text-text-muted" />
+                </router-link>
+
+                <router-link
+                  to="/admin/tasks"
+                  @click="closeDrawer"
+                  class="flex items-center justify-between p-2.5 min-h-[42px] rounded-xl text-xs transition-colors duration-150 cursor-pointer"
+                  active-class="bg-slate-200 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 font-semibold"
+                >
+                  <div class="flex items-center space-x-2.5 truncate">
+                    <ListTodo class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span class="text-text-secondary hover:text-text-main truncate">异步任务中心</span>
+                  </div>
+                  <ChevronRight class="w-3.5 h-3.5 text-text-muted" />
+                </router-link>
+
+                <router-link
+                  to="/admin/monitoring"
+                  @click="closeDrawer"
+                  class="flex items-center justify-between p-2.5 min-h-[42px] rounded-xl text-xs transition-colors duration-150 cursor-pointer"
+                  active-class="bg-slate-200 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 font-semibold"
+                >
+                  <div class="flex items-center space-x-2.5 truncate">
+                    <Activity class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span class="text-text-secondary hover:text-text-main truncate">运行遥测监控</span>
+                  </div>
+                  <ChevronRight class="w-3.5 h-3.5 text-text-muted" />
+                </router-link>
+              </nav>
+            </div>
           </div>
 
-          <!-- Bottom: User Profile Card -->
-          <div class="p-3 border-t border-border-subtle bg-slate-200/60 dark:bg-slate-950/80 flex items-center justify-between shrink-0">
-            <div class="flex items-center space-x-2.5 overflow-hidden">
-              <div class="w-9 h-9 rounded-full bg-slate-300 dark:bg-slate-800 border border-border-card flex items-center justify-center text-text-secondary shrink-0">
-                <User class="w-4 h-4 text-slate-700 dark:text-slate-300" />
+          <!-- Bottom: User Profile & Quick Role Switcher -->
+          <div class="p-3 border-t border-border-subtle bg-slate-200/60 dark:bg-slate-950/80 space-y-2.5 shrink-0">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2.5 overflow-hidden">
+                <div
+                  class="w-9 h-9 rounded-full border flex items-center justify-center text-xs font-bold shrink-0"
+                  :class="avatarBadgeClass"
+                >
+                  {{ authStore.avatarInitial }}
+                </div>
+                <div class="truncate">
+                  <div class="text-xs font-semibold text-text-main truncate">{{ authStore.displayName }}</div>
+                  <div class="text-[10px] text-text-muted truncate">
+                    {{ authStore.department }} · {{ authStore.roleLabel }}
+                  </div>
+                </div>
               </div>
-              <div class="truncate">
-                <div class="text-xs font-semibold text-text-main truncate">张经理</div>
-                <div class="text-[10px] text-text-muted truncate">研发部 · 业务审批人</div>
+
+              <div class="flex items-center space-x-1 shrink-0">
+                <button
+                  type="button"
+                  @click="handleOpenSettings"
+                  :title="authStore.isAdmin ? '模型与节点配置中心 (管理员)' : '个人外观与显示偏好'"
+                  class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors duration-150 cursor-pointer"
+                  :class="
+                    authStore.isAdmin && route.path === '/admin/settings'
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                      : 'text-text-secondary hover:text-text-main hover:bg-slate-300/50 dark:hover:bg-slate-800'
+                  "
+                >
+                  <Settings class="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  @click="handleLogout"
+                  title="退出登录"
+                  class="w-9 h-9 rounded-xl flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors duration-150 cursor-pointer"
+                >
+                  <LogOut class="w-4 h-4" />
+                </button>
               </div>
             </div>
 
-            <button
-              title="设置"
-              class="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:text-text-main hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors duration-150 cursor-pointer"
-            >
-              <Settings class="w-4 h-4" />
-            </button>
+            <!-- Mobile One-Tap Role Pills -->
+            <div class="grid grid-cols-3 gap-1">
+              <button
+                v-for="identity in authStore.demoIdentities"
+                :key="identity.username"
+                type="button"
+                @click="handleRoleSwitch(identity.username)"
+                class="py-1.5 px-1 rounded-lg text-[10px] font-medium text-center border transition-colors cursor-pointer truncate"
+                :class="
+                  identity.username === authStore.currentUsername
+                    ? 'bg-brand-primary/15 border-brand-primary/40 text-brand-primary font-semibold'
+                    : 'bg-bg-card/60 border-border-subtle text-text-secondary hover:text-text-main'
+                "
+              >
+                {{ identity.role_label }}
+              </button>
+            </div>
           </div>
         </aside>
       </transition>
@@ -230,15 +384,20 @@ import {
   MessageSquare,
   ClipboardList,
   BookOpen,
-  Settings,
-  User,
   Trash2,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  SlidersHorizontal,
+  ListTodo,
+  Activity,
+  LogOut,
+  Settings
 } from 'lucide-vue-next';
 import { useChatStore } from '../../stores/chatStore';
 import { useApprovalStore } from '../../stores/approvalStore';
-import { useRouter } from 'vue-router';
+import { useAuthStore } from '../../stores/authStore';
+import { usePreferencesStore } from '../../stores/preferencesStore';
+import { useRouter, useRoute } from 'vue-router';
 
 const props = defineProps({
   modelValue: {
@@ -251,7 +410,10 @@ const emit = defineEmits(['update:modelValue', 'newSession', 'selectSession']);
 
 const chatStore = useChatStore();
 const approvalStore = useApprovalStore();
+const authStore = useAuthStore();
+const preferencesStore = usePreferencesStore();
 const router = useRouter();
+const route = useRoute();
 
 const isAnimating = ref(false);
 
@@ -259,12 +421,52 @@ const pendingApprovalsCount = computed(() => {
   return approvalStore.pendingApprovals.length;
 });
 
+const avatarBadgeClass = computed(() => {
+  if (authStore.currentRole === 'admin') {
+    return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30';
+  }
+  if (authStore.currentRole === 'manager') {
+    return 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30';
+  }
+  return 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30';
+});
+
 const closeDrawer = () => {
   emit('update:modelValue', false);
 };
 
-const handleNewChat = () => {
-  chatStore.createSession();
+const handleRoleSwitch = async (username) => {
+  if (username === authStore.currentUsername) return;
+  const res = await authStore.switchRole(username);
+  if (res.success) {
+    const allowedRoles = route.meta?.roles;
+    if (Array.isArray(allowedRoles) && !allowedRoles.includes(authStore.currentRole)) {
+      authStore.setPermissionNotice(
+        `已切换为「${authStore.displayName} (${authStore.roleLabel})」，当前页面不在该角色权限范围内，已返回智能对话工作台。`
+      );
+      closeDrawer();
+      router.push('/');
+    }
+  }
+};
+
+const handleLogout = () => {
+  closeDrawer();
+  authStore.logout(true);
+  router.push('/login');
+};
+
+const handleOpenSettings = () => {
+  closeDrawer();
+  if (authStore.isAdmin) {
+    router.push('/admin/settings');
+  } else {
+    preferencesStore.openPreferencesModal();
+  }
+};
+
+const handleNewChat = async () => {
+  await chatStore.createSession();
   emit('newSession');
   closeDrawer();
   router.push('/');

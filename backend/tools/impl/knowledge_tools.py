@@ -31,7 +31,7 @@ from backend.tools.registry import register_tool
 )
 def search_knowledge_base(
     query: str,
-    top_k: int = 3,
+    top_k: Optional[int] = None,
     category: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Searches enterprise knowledge base policies, SOPs, and guidelines via Hybrid Retriever."""

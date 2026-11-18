@@ -7,7 +7,7 @@
       :steps="reasoningSteps"
       :preview="thoughtText"
       :collapsible="true"
-      :collapse-on-settle="true"
+      :collapse-on-settle="preferencesStore.autoCollapseThought"
     />
 
     <!-- Active Tool Execution Chips (CallChip) during/after retrieval -->
@@ -112,6 +112,9 @@ import {
 } from 'lucide-vue-next';
 import ThoughtLine from '../ui/ThoughtLine.vue';
 import CallChip from '../ui/CallChip.vue';
+import { usePreferencesStore } from '../../stores/preferencesStore';
+
+const preferencesStore = usePreferencesStore();
 
 const props = defineProps({
   status: {

@@ -24,7 +24,7 @@ async def approval_node(state: AgentState) -> Dict[str, Any]:
     item_name = purchase_args.get("item_name", "办公设备")
     quantity = int(purchase_args.get("quantity", 1))
     unit_price = float(purchase_args.get("unit_price", 6000.0))
-    department = purchase_args.get("department", "IT运维部")
+    department = purchase_args.get("department") or metadata.get("department", "IT运维部")
     reason = purchase_args.get("reason", "硬件升级需求")
     total_price = round(quantity * unit_price, 2)
 

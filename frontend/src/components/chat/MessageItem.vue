@@ -55,8 +55,12 @@
         class="rounded-2xl text-xs sm:text-sm leading-relaxed shadow-md transition-all duration-150 break-words"
         :class="[
           isUser
-            ? 'bg-brand-primary text-white rounded-tr-none px-4 py-3 selection:bg-white/30'
-            : 'bg-bg-card border border-border-card text-text-main rounded-tl-none p-4 shadow-lg'
+            ? (preferencesStore.chatDensity === 'compact'
+                ? 'bg-brand-primary text-white rounded-tr-none px-3 py-2 selection:bg-white/30'
+                : 'bg-brand-primary text-white rounded-tr-none px-4 py-3 selection:bg-white/30')
+            : (preferencesStore.chatDensity === 'compact'
+                ? 'bg-bg-card border border-border-card text-text-main rounded-tl-none p-3 shadow-md'
+                : 'bg-bg-card border border-border-card text-text-main rounded-tl-none p-4 shadow-lg')
         ]"
       >
         <!-- User Plain Text -->
@@ -138,6 +142,7 @@ import {
 import ThoughtBadge from './ThoughtBadge.vue';
 import ApprovalCard from '../ApprovalCard.vue';
 import { renderMarkdown } from '../../utils/markdown';
+import { usePreferencesStore } from '../../stores/preferencesStore';
 
 const props = defineProps({
   message: {
@@ -148,6 +153,7 @@ const props = defineProps({
 
 defineEmits(['approvalAction']);
 
+const preferencesStore = usePreferencesStore();
 const copied = ref(false);
 
 const isUser = computed(() => props.message.role === 'user');

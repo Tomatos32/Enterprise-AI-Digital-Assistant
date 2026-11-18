@@ -108,7 +108,7 @@
           <span>{{ tab.label }}</span>
           <span
             v-if="tab.count !== undefined"
-            class="px-1.5 py-0.2 rounded-full text-[10px] font-mono"
+            class="px-1.5 py-0.5 rounded-full text-[10px] font-mono"
             :class="activeStatusTab === tab.key ? 'bg-slate-300 dark:bg-slate-700 text-text-main' : 'bg-slate-200 dark:bg-slate-900 text-text-muted'"
           >
             {{ tab.count }}
@@ -124,10 +124,9 @@
           class="glass-panel border border-border-subtle text-text-secondary text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-brand-primary"
         >
           <option value="ALL">全部申请部门</option>
-          <option value="研发部">研发部</option>
-          <option value="行政后勤部">行政后勤部</option>
-          <option value="财务部">财务部</option>
-          <option value="市场营销部">市场营销部</option>
+          <option v-for="dept in departmentOptions" :key="dept" :value="dept">
+            {{ dept }}
+          </option>
         </select>
 
         <!-- Search Input -->
@@ -141,6 +140,21 @@
           />
         </div>
       </div>
+    </div>
+
+    <!-- Error Feedback Banner -->
+    <div
+      v-if="approvalStore.error"
+      class="px-4 py-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs flex items-center justify-between"
+    >
+      <span>{{ approvalStore.error }}</span>
+      <button
+        type="button"
+        @click="approvalStore.error = null"
+        class="text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+      >
+        关闭
+      </button>
     </div>
 
     <!-- Approvals List Section -->
@@ -195,19 +209,27 @@ import {
   CheckCheck
 } from 'lucide-vue-next';
 import { useApprovalStore } from '../stores/approvalStore';
+import { useAuthStore } from '../stores/authStore';
 import ApprovalCard from '../components/chat/ApprovalCard.vue';
 
 const approvalStore = useApprovalStore();
+const authStore = useAuthStore();
 
 const activeStatusTab = ref('PENDING');
 const selectedDepartment = ref('ALL');
 const searchQuery = ref('');
 const isBatchProcessing = ref(false);
 
-onMounted(() => {
-  if (approvalStore.approvals.length === 0) {
-    approvalStore.initPresetData();
-  }
+const departmentOptions = computed(() => {
+  const defaults = ['采购管理部', '人力资源部', 'IT 系统管理部', '研发部', '财务部', '行政后勤部'];
+  const dynamicDepts = approvalStore.approvals
+    .map((item) => item.department)
+    .filter(Boolean);
+  return Array.from(new Set([...defaults, ...dynamicDepts]));
+});
+
+onMounted(async () => {
+  await approvalStore.fetchApprovals();
 });
 
 const approvedCount = computed(() => {
@@ -251,13 +273,13 @@ const filteredApprovals = computed(() => {
   });
 });
 
-const handleSingleDecision = ({ approvalId, decision, reason }) => {
-  approvalStore.submitDecision(approvalId, decision, reason);
+const handleSingleDecision = async (approvalId, decision, reason) => {
+  await approvalStore.submitDecision(approvalId, decision, reason);
 };
 
 const handleBatchApprove = async () => {
   isBatchProcessing.value = true;
-  await approvalStore.batchApproveAll('系统管理员批量同意核准');
+  await approvalStore.batchApproveAll(`${authStore.displayName} (${authStore.roleLabel}) 批量同意核准`);
   isBatchProcessing.value = false;
 };
 </script>

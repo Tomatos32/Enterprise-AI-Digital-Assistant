@@ -6,12 +6,14 @@ import json
 import logging
 import re
 from typing import Dict, List, Optional
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.errors import GraphInterrupt
 
+from backend.core.exceptions import AuthenticationError
 from backend.core.guardrails import StreamingSanitizer, sanitize_text, validate_input
+from backend.core.rbac import UserPayload, resolve_user_from_token
 from backend.core.task_manager import task_manager
 from backend.db.session import SessionLocal
 from backend.graph.state import AgentState
@@ -33,9 +35,10 @@ class ConnectionManager:
         await websocket.accept()
         self.active_connections[client_id] = websocket
 
-    def disconnect(self, client_id: str):
+    def disconnect(self, client_id: str, websocket: Optional[WebSocket] = None):
         if client_id in self.active_connections:
-            del self.active_connections[client_id]
+            if websocket is None or self.active_connections.get(client_id) is websocket:
+                del self.active_connections[client_id]
 
     async def send_json(self, client_id: str, message: dict):
         if client_id in self.active_connections:
@@ -49,6 +52,7 @@ def _ensure_session_and_record_user_message(
     session_id: str,
     user_id: str,
     user_message: str,
+    enforce_owner: bool = False,
 ) -> List[BaseMessage]:
     """Ensures ChatSession exists in DB, writes user ChatMessage,
 
@@ -62,6 +66,8 @@ def _ensure_session_and_record_user_message(
                 .filter(ChatSession.session_id == session_id, ChatSession.is_deleted == False)  # noqa: E712
                 .first()
             )
+            if session and enforce_owner and session.user_id != user_id:
+                raise PermissionError("无权访问或修改其他用户的对话会话")
             if not session:
                 title = user_message[:30].strip() or "新对话"
                 session = ChatSession(
@@ -98,6 +104,8 @@ def _ensure_session_and_record_user_message(
             session.updated_at = datetime.utcnow()
             db.commit()
 
+    except PermissionError:
+        raise
     except Exception as e:
         logger.warning(f"[ChatWS] Failed to persist user message to DB: {e}")
 
@@ -162,15 +170,24 @@ async def safe_send_json(websocket: WebSocket, payload: dict) -> bool:
         return False
 
 
-async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dict):
+async def process_ws_chat_stream(
+    websocket: WebSocket,
+    client_id: str,
+    data: dict,
+    authenticated_user: Optional[UserPayload] = None,
+):
     """Processes chat request over WebSocket and streams events in real-time."""
     user_message = data.get("message", "").strip()
     thread_id = data.get("thread_id", f"ws_thread_{client_id}")
-    user_id = data.get("user_id", "u_ws_default")
+    user_id = authenticated_user.username if authenticated_user else data.get("user_id", "u_ws_default")
     session_id = data.get("session_id", f"s_ws_{client_id}")
-    metadata = data.get("metadata", {})
+    metadata = (data.get("metadata") or {}).copy()
     metadata["thread_id"] = thread_id
     metadata["session_id"] = session_id
+    if authenticated_user is not None:
+        metadata["user_role"] = authenticated_user.role.value
+        metadata["department"] = authenticated_user.department
+        metadata["display_name"] = authenticated_user.display_name
 
     # 0. Input Security & Guardrail Check (OWASP LLM01 Prompt Injection / Jailbreak)
     guard_result = validate_input(user_message)
@@ -189,11 +206,25 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
         return
 
     # 1. Database Persistence: Ensure session & persist user message with multi-turn history
-    full_conversation_messages = _ensure_session_and_record_user_message(
-        session_id=session_id,
-        user_id=user_id,
-        user_message=user_message,
-    )
+    try:
+        full_conversation_messages = _ensure_session_and_record_user_message(
+            session_id=session_id,
+            user_id=user_id,
+            user_message=user_message,
+            enforce_owner=authenticated_user is not None,
+        )
+    except PermissionError as perm_err:
+        await safe_send_json(
+            websocket,
+            {
+                "type": "error",
+                "status": 403,
+                "thread_id": thread_id,
+                "session_id": session_id,
+                "message": str(perm_err),
+            },
+        )
+        return
 
     initial_state: AgentState = {
         "messages": full_conversation_messages,
@@ -470,9 +501,46 @@ async def process_ws_chat_stream(websocket: WebSocket, client_id: str, data: dic
         )
 
 
+def _resolve_ws_authenticated_user(websocket: WebSocket, token: Optional[str]) -> Optional[UserPayload]:
+    """Resolves optional JWT user from query param (?token=) or Authorization header."""
+    raw_token = token
+    if not raw_token:
+        auth_header = websocket.headers.get("authorization")
+        if auth_header:
+            parts = auth_header.split()
+            if len(parts) == 2 and parts[0].lower() == "bearer":
+                raw_token = parts[1]
+            else:
+                raise AuthenticationError("Invalid Authorization header format")
+
+    if not raw_token:
+        return None
+    return resolve_user_from_token(raw_token)
+
+
 @router.websocket("/ws/chat/{client_id}")
-async def websocket_chat_endpoint(websocket: WebSocket, client_id: str):
+async def websocket_chat_endpoint(
+    websocket: WebSocket,
+    client_id: str,
+    token: Optional[str] = Query(None),
+):
     """WebSocket endpoint for duplex streaming chat."""
+    authenticated_user: Optional[UserPayload] = None
+    try:
+        authenticated_user = _resolve_ws_authenticated_user(websocket, token)
+    except AuthenticationError as auth_err:
+        await websocket.accept()
+        await safe_send_json(
+            websocket,
+            {
+                "type": "error",
+                "status": 401,
+                "message": f"身份凭证无效或已过期，请重新登录 ({auth_err.message})",
+            },
+        )
+        await websocket.close(code=4401)
+        return
+
     await manager.connect(client_id, websocket)
     active_stream_task: Optional[asyncio.Task] = None
     try:
@@ -506,7 +574,7 @@ async def websocket_chat_endpoint(websocket: WebSocket, client_id: str):
 
             # 4. Spawn independent worker task so main receive loop stays active
             active_stream_task = asyncio.create_task(
-                process_ws_chat_stream(websocket, client_id, data)
+                process_ws_chat_stream(websocket, client_id, data, authenticated_user=authenticated_user)
             )
             if thread_id:
                 task_manager.register_task(thread_id, active_stream_task)
@@ -521,9 +589,9 @@ async def websocket_chat_endpoint(websocket: WebSocket, client_id: str):
     except WebSocketDisconnect:
         if active_stream_task and not active_stream_task.done():
             active_stream_task.cancel()
-        manager.disconnect(client_id)
+        manager.disconnect(client_id, websocket)
     except Exception as exc:
         logger.error(f"[ChatWS] Unexpected WebSocket error for client '{client_id}': {exc}", exc_info=True)
         if active_stream_task and not active_stream_task.done():
             active_stream_task.cancel()
-        manager.disconnect(client_id)
+        manager.disconnect(client_id, websocket)

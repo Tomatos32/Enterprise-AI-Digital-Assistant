@@ -1,0 +1,2863 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Enterprise AI Digital Assistant",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health Check",
+        "description": "Liveness and Readiness probe endpoint inspecting MySQL, Redis, Qdrant connectivity.",
+        "operationId": "health_check_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health/integrations": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health Integrations Check",
+        "description": "Dynamic Integration Probe inspecting connectivity and latency of external enterprise systems\n(HR OpenAPI, ERP MM/OData, OA/Jira, WeCom Webhook, Dify Workflows).",
+        "operationId": "health_integrations_check_api_v1_health_integrations_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "Auth & RBAC"
+        ],
+        "summary": "Login",
+        "description": "Authenticates user and issues JWT access token.",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/identities": {
+      "get": {
+        "tags": [
+          "Auth & RBAC"
+        ],
+        "summary": "List Demo Identities",
+        "description": "Returns non-sensitive demo identities for quick role context switching.",
+        "operationId": "list_demo_identities_api_v1_auth_identities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/switch-role": {
+      "post": {
+        "tags": [
+          "Auth & RBAC"
+        ],
+        "summary": "Switch Demo Role",
+        "description": "Issues a valid JWT token for a target demo identity in dev/demo mode.",
+        "operationId": "switch_demo_role_api_v1_auth_switch_role_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleSwitchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "Auth & RBAC"
+        ],
+        "summary": "Get My Profile",
+        "description": "Returns profile of currently authenticated user.",
+        "operationId": "get_my_profile_api_v1_auth_me_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/admin-only": {
+      "get": {
+        "tags": [
+          "Auth & RBAC"
+        ],
+        "summary": "Admin Only Endpoint",
+        "description": "Protected endpoint for Admin role only.",
+        "operationId": "admin_only_endpoint_api_v1_auth_admin_only_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config": {
+      "get": {
+        "tags": [
+          "Admin Control Plane"
+        ],
+        "summary": "Get Admin Runtime Config",
+        "description": "Returns sanitized LLM, RAG, and LangGraph runtime settings for Admins only.",
+        "operationId": "get_admin_runtime_config_api_v1_admin_config_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin Control Plane"
+        ],
+        "summary": "Update Admin Runtime Config",
+        "description": "Validates and hot-applies whitelisted LLM & LangGraph node settings for Admins only.",
+        "operationId": "update_admin_runtime_config_api_v1_admin_config_put",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminConfigUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/reset": {
+      "post": {
+        "tags": [
+          "Admin Control Plane"
+        ],
+        "summary": "Reset Admin Runtime Config",
+        "description": "Restores all runtime parameters back to startup baseline defaults.",
+        "operationId": "reset_admin_runtime_config_api_v1_admin_config_reset_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/probe": {
+      "post": {
+        "tags": [
+          "Admin Control Plane"
+        ],
+        "summary": "Probe Admin Runtime Connectivity",
+        "description": "Executes non-destructive connectivity & readiness probe for LLM endpoint and RAG store.",
+        "operationId": "probe_admin_runtime_connectivity_api_v1_admin_config_probe_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AdminConfigProbeRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/status": {
+      "get": {
+        "tags": [
+          "Knowledge Base"
+        ],
+        "summary": "Get Knowledge Status",
+        "description": "Returns comprehensive runtime observability and diagnostic status of the knowledge base\n\nincluding vector count, storage mode, embedding engine, and indexed file catalogue.",
+        "operationId": "get_knowledge_status_api_v1_knowledge_status_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/sync": {
+      "post": {
+        "tags": [
+          "Knowledge Base"
+        ],
+        "summary": "Sync Knowledge Base",
+        "description": "Triggers on-demand re-ingestion of the sample knowledge base into Qdrant.",
+        "operationId": "sync_knowledge_base_api_v1_knowledge_sync_post",
+        "parameters": [
+          {
+            "name": "recreate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Whether to recreate collection from scratch",
+              "default": false,
+              "title": "Recreate"
+            },
+            "description": "Whether to recreate collection from scratch"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/upload": {
+      "post": {
+        "tags": [
+          "Knowledge Base"
+        ],
+        "summary": "Upload Knowledge File",
+        "description": "Receives an uploaded knowledge document, stores it in backend/data/.\n\nIf is_async=True, dispatches Celery background ingestion task and returns task_id immediately.\nOtherwise parses chunks, splits semantically, and indexes vectors into Qdrant synchronously.",
+        "operationId": "upload_knowledge_file_api_v1_knowledge_upload_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_knowledge_file_api_v1_knowledge_upload_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/search": {
+      "post": {
+        "tags": [
+          "Knowledge Base"
+        ],
+        "summary": "Post Search Knowledge",
+        "description": "Performs Hybrid Retrieval (BM25 + Qdrant Dense Vector + RRF + Reranker)\n\nfiltered by optional category.",
+        "operationId": "post_search_knowledge_api_v1_knowledge_search_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Knowledge Base"
+        ],
+        "summary": "Get Search Knowledge",
+        "description": "GET shortcut for Hybrid Retrieval.",
+        "operationId": "get_search_knowledge_api_v1_knowledge_search_get",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Search query string",
+              "title": "Query"
+            },
+            "description": "Search query string"
+          },
+          {
+            "name": "top_k",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "default": 5,
+              "title": "Top K"
+            }
+          },
+          {
+            "name": "category_filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category Filter"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mock/hr/employees/{id_or_name}": {
+      "get": {
+        "tags": [
+          "HR Mock System"
+        ],
+        "summary": "Get Employee By Id Or Name",
+        "description": "Mock HR API: Query employee details by employee_id or name.",
+        "operationId": "get_employee_by_id_or_name_api_v1_mock_hr_employees__id_or_name__get",
+        "parameters": [
+          {
+            "name": "id_or_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id Or Name"
+            }
+          },
+          {
+            "name": "department",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Department"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Employee By Id Or Name Api V1 Mock Hr Employees  Id Or Name  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mock/hr/employees": {
+      "get": {
+        "tags": [
+          "HR Mock System"
+        ],
+        "summary": "List Employees",
+        "description": "Mock HR API: List all employees or filter by department.",
+        "operationId": "list_employees_api_v1_mock_hr_employees_get",
+        "parameters": [
+          {
+            "name": "department",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Department"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List Employees Api V1 Mock Hr Employees Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mock/erp/inventory": {
+      "get": {
+        "tags": [
+          "ERP Mock System"
+        ],
+        "summary": "Get Inventory",
+        "description": "Mock ERP API: Query equipment inventory from database.",
+        "operationId": "get_inventory_api_v1_mock_erp_inventory_get",
+        "parameters": [
+          {
+            "name": "item_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Item Name"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Inventory Api V1 Mock Erp Inventory Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mock/erp/purchases": {
+      "post": {
+        "tags": [
+          "ERP Mock System"
+        ],
+        "summary": "Create Purchase Order",
+        "description": "Mock ERP API: Submit a purchase order and store into Purchase table with approval threshold rules.",
+        "operationId": "create_purchase_order_api_v1_mock_erp_purchases_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Create Purchase Order Api V1 Mock Erp Purchases Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mock/oa/tickets": {
+      "post": {
+        "tags": [
+          "OA Mock System"
+        ],
+        "summary": "Create Oa Ticket",
+        "description": "Mock OA API: Submit an OA service ticket and persist to Ticket table.",
+        "operationId": "create_oa_ticket_api_v1_mock_oa_tickets_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TicketCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Create Oa Ticket Api V1 Mock Oa Tickets Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mock/oa/email": {
+      "post": {
+        "tags": [
+          "OA Mock System"
+        ],
+        "summary": "Send Oa Email",
+        "description": "Mock OA API: Send simulated email notification.",
+        "operationId": "send_oa_email_api_v1_mock_oa_email_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailSendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Send Oa Email Api V1 Mock Oa Email Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approval/action": {
+      "post": {
+        "tags": [
+          "Human-in-the-Loop Approval"
+        ],
+        "summary": "Process Approval Action",
+        "description": "Approval Action API: Processes supervisor decision (approve/reject),\nupdates Approval DB record, and calls graph.ainvoke(Command(resume=...)) to resume LangGraph.",
+        "operationId": "process_approval_action_api_v1_approval_action_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Process Approval Action Api V1 Approval Action Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approval/pending": {
+      "get": {
+        "tags": [
+          "Human-in-the-Loop Approval"
+        ],
+        "summary": "List Pending Approvals",
+        "description": "Lists all pending human-in-the-loop approvals.",
+        "operationId": "list_pending_approvals_api_v1_approval_pending_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List Pending Approvals Api V1 Approval Pending Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approval/list": {
+      "get": {
+        "tags": [
+          "Human-in-the-Loop Approval"
+        ],
+        "summary": "List All Approvals",
+        "description": "Lists all approval records (pending, approved, rejected) for authorized approvers.",
+        "operationId": "list_all_approvals_api_v1_approval_list_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List All Approvals Api V1 Approval List Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/sessions": {
+      "post": {
+        "tags": [
+          "Chat Control & Abort",
+          "Chat Sessions"
+        ],
+        "summary": "Create Chat Session",
+        "description": "Creates a new persistent chat session.",
+        "operationId": "create_chat_session_api_v1_chat_sessions_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatSessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Chat Control & Abort",
+          "Chat Sessions"
+        ],
+        "summary": "List Chat Sessions",
+        "description": "Lists active (non-deleted) chat sessions for the specified user ordered by last updated.",
+        "operationId": "list_chat_sessions_api_v1_chat_sessions_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "用户 ID 过滤",
+              "default": "u_ws_default",
+              "title": "User Id"
+            },
+            "description": "用户 ID 过滤"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "返回数量",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "返回数量"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "偏移量",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "偏移量"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChatSessionResponse"
+                  },
+                  "title": "Response List Chat Sessions Api V1 Chat Sessions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/sessions/{session_id}/messages": {
+      "get": {
+        "tags": [
+          "Chat Control & Abort",
+          "Chat Sessions"
+        ],
+        "summary": "Get Session Messages",
+        "description": "Retrieves all chat messages for a specific session ordered by creation time.",
+        "operationId": "get_session_messages_api_v1_chat_sessions__session_id__messages_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChatMessageResponse"
+                  },
+                  "title": "Response Get Session Messages Api V1 Chat Sessions  Session Id  Messages Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/sessions/{session_id}/title": {
+      "put": {
+        "tags": [
+          "Chat Control & Abort",
+          "Chat Sessions"
+        ],
+        "summary": "Update Session Title",
+        "description": "Renames an existing chat session.",
+        "operationId": "update_session_title_api_v1_chat_sessions__session_id__title_put",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionTitleUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatSessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/sessions/{session_id}": {
+      "delete": {
+        "tags": [
+          "Chat Control & Abort",
+          "Chat Sessions"
+        ],
+        "summary": "Delete Chat Session",
+        "description": "Soft-deletes a chat session so it no longer appears in active history.",
+        "operationId": "delete_chat_session_api_v1_chat_sessions__session_id__delete",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/abort": {
+      "post": {
+        "tags": [
+          "Chat Control & Abort",
+          "Chat Control"
+        ],
+        "summary": "Abort Chat Generation",
+        "description": "Three-Layer AI Abort API:\n\n1. Cancels active running asyncio Task for thread_id.\n2. Updates LangGraph Checkpointer state metadata to status='CANCELLED'.",
+        "operationId": "abort_chat_generation_api_v1_chat_abort_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatAbortRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Abort Chat Generation Api V1 Chat Abort Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}/status": {
+      "get": {
+        "tags": [
+          "Async Tasks",
+          "Async Tasks"
+        ],
+        "summary": "Get Task Status",
+        "description": "Queries current execution status, progress, and result of a Celery async task.",
+        "operationId": "get_task_status_api_v1_tasks__task_id__status_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Celery Task ID string",
+              "title": "Task Id"
+            },
+            "description": "Celery Task ID string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhook/event": {
+      "post": {
+        "tags": [
+          "Webhook & Workflows"
+        ],
+        "summary": "Handle Webhook Event",
+        "description": "Unified Webhook Ingestion & Trigger Endpoint (`POST /api/v1/webhook/event`).\nAccepts workflow events from n8n / Dify or triggers downstream notifications.",
+        "operationId": "handle_webhook_event_api_v1_webhook_event_post",
+        "parameters": [
+          {
+            "name": "x-webhook-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Webhook-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookEventPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhook/history": {
+      "get": {
+        "tags": [
+          "Webhook & Workflows"
+        ],
+        "summary": "Get Webhook History",
+        "description": "Returns the recent webhook event history.",
+        "operationId": "get_webhook_history_api_v1_webhook_history_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Webhook History Api V1 Webhook History Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhook/wecom/messages": {
+      "get": {
+        "tags": [
+          "Webhook & Workflows"
+        ],
+        "summary": "Get Wecom Mock Messages",
+        "description": "Returns the recorded Enterprise WeChat Bot mock messages.",
+        "operationId": "get_wecom_mock_messages_api_v1_webhook_wecom_messages_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Wecom Mock Messages Api V1 Webhook Wecom Messages Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/feedback": {
+      "post": {
+        "tags": [
+          "Human Feedback & DPO",
+          "Human Feedback & DPO"
+        ],
+        "summary": "Submit Feedback",
+        "description": "Submits user feedback (like/dislike & correction) into the database for DPO alignment.",
+        "operationId": "submit_feedback_api_v1_chat_feedback_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": [
+          "Monitoring & Telemetry"
+        ],
+        "summary": "Metrics",
+        "description": "Prometheus Scrape Endpoint exposing production system & LLM metrics.",
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminConfigProbeRequest": {
+        "properties": {
+          "llm_provider": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "openai",
+                  "deepseek",
+                  "vllm",
+                  "ollama",
+                  "local_fallback"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Provider"
+          },
+          "llm_model": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Model"
+          },
+          "llm_api_base": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Api Base"
+          },
+          "llm_thinking": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Thinking"
+          }
+        },
+        "type": "object",
+        "title": "AdminConfigProbeRequest",
+        "description": "Optional preview parameters for testing model endpoint connectivity."
+      },
+      "AdminConfigUpdateRequest": {
+        "properties": {
+          "llm_provider": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "openai",
+                  "deepseek",
+                  "vllm",
+                  "ollama",
+                  "local_fallback"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Provider",
+            "description": "大模型驱动引擎 (auto / ollama / deepseek / openai / vllm / local_fallback)"
+          },
+          "llm_model": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Model",
+            "description": "模型标识符"
+          },
+          "llm_api_base": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Api Base",
+            "description": "模型服务基础 URL (http:// 或 https://)"
+          },
+          "llm_thinking": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Thinking",
+            "description": "是否开启深度思考 CoT 模式 (true=深度推理, false=极速模式)"
+          },
+          "llm_temperature": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 2.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Temperature",
+            "description": "生成采样温度 [0.0, 2.0]"
+          },
+          "llm_max_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 16384.0,
+                "minimum": 128.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Max Tokens",
+            "description": "最大生成 Token 预算 [128, 16384]"
+          },
+          "rag_top_k": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 20.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rag Top K",
+            "description": "RAG 混合检索召回片段数 Top-K [1, 20]"
+          },
+          "rag_min_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rag Min Score",
+            "description": "Rerank 语义相关性截断阈值 [0.0, 1.0]"
+          },
+          "system_prompt_instruction": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Prompt Instruction",
+            "description": "附加给企业数字员工的系统级行为规范指令"
+          },
+          "llm_api_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Api Key",
+            "description": "可选：仅写入的新 API Key（空字符串或含掩码将保留原密钥）"
+          },
+          "clear_api_key": {
+            "type": "boolean",
+            "title": "Clear Api Key",
+            "description": "设为 true 时显式清空内存中已配置的外部 API Key",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "AdminConfigUpdateRequest",
+        "description": "Validated payload for hot-updating whitelisted LLM & RAG node settings."
+      },
+      "ApprovalActionRequest": {
+        "properties": {
+          "approval_id": {
+            "type": "string",
+            "title": "Approval Id",
+            "description": "审批单唯一编号 (如 APP-20260804-1001)"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action",
+            "description": "决策操作: approve 或 reject"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment",
+            "description": "可选审批批注说明",
+            "default": "主管审核意见"
+          }
+        },
+        "type": "object",
+        "required": [
+          "approval_id",
+          "action"
+        ],
+        "title": "ApprovalActionRequest"
+      },
+      "Body_upload_knowledge_file_api_v1_knowledge_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "is_async": {
+            "type": "boolean",
+            "title": "Is Async",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_knowledge_file_api_v1_knowledge_upload_post"
+      },
+      "ChatAbortRequest": {
+        "properties": {
+          "thread_id": {
+            "type": "string",
+            "title": "Thread Id",
+            "description": "会话线程 ID (如 thread_001)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "thread_id"
+        ],
+        "title": "ChatAbortRequest"
+      },
+      "ChatMessageResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "sources": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sources"
+          },
+          "thought": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thought"
+          },
+          "duration_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Seconds"
+          },
+          "thought_steps": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thought Steps"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "session_id",
+          "role",
+          "content",
+          "created_at"
+        ],
+        "title": "ChatMessageResponse"
+      },
+      "ChatSessionResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "is_deleted": {
+            "type": "boolean",
+            "title": "Is Deleted"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "session_id",
+          "user_id",
+          "title",
+          "is_deleted",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ChatSessionResponse"
+      },
+      "EmailSendRequest": {
+        "properties": {
+          "to_email": {
+            "type": "string",
+            "title": "To Email",
+            "description": "收件人邮箱"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject",
+            "description": "邮件主题"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body",
+            "description": "邮件正文"
+          }
+        },
+        "type": "object",
+        "required": [
+          "to_email",
+          "subject",
+          "body"
+        ],
+        "title": "EmailSendRequest"
+      },
+      "FeedbackCreateRequest": {
+        "properties": {
+          "thread_id": {
+            "type": "string",
+            "title": "Thread Id",
+            "description": "Conversation thread identifier"
+          },
+          "message_id": {
+            "type": "string",
+            "title": "Message Id",
+            "description": "Target message ID for this feedback"
+          },
+          "score": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "title": "Score",
+            "description": "Rating: 1 for like, -1 for dislike"
+          },
+          "user_correction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Correction",
+            "description": "Optional user correction or revised prompt/answer"
+          },
+          "context_snapshot": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Snapshot",
+            "description": "Snapshot of prompt, LLM output, context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "thread_id",
+          "message_id",
+          "score"
+        ],
+        "title": "FeedbackCreateRequest"
+      },
+      "FeedbackResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "message"
+        ],
+        "title": "FeedbackResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LoginRequest": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "PurchaseCreateRequest": {
+        "properties": {
+          "item_name": {
+            "type": "string",
+            "title": "Item Name",
+            "description": "采购物品名称"
+          },
+          "quantity": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Quantity",
+            "description": "采购数量"
+          },
+          "unit_price": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Unit Price",
+            "description": "预估单价"
+          },
+          "department": {
+            "type": "string",
+            "title": "Department",
+            "description": "申请部门"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "事由说明",
+            "default": "办公采购"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_name",
+          "quantity",
+          "unit_price",
+          "department"
+        ],
+        "title": "PurchaseCreateRequest"
+      },
+      "RoleEnum": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "manager",
+          "employee"
+        ],
+        "title": "RoleEnum"
+      },
+      "RoleSwitchRequest": {
+        "properties": {
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoleEnum"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "RoleSwitchRequest"
+      },
+      "SearchRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "description": "Query search string"
+          },
+          "top_k": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "description": "Top K documents to return",
+            "default": 5
+          },
+          "category_filter": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Filter",
+            "description": "Optional category filter (e.g. HR, PROCUREMENT)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "SearchRequest"
+      },
+      "SessionCreateRequest": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "会话标题",
+            "default": "新对话"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "所属用户 ID",
+            "default": "u_ws_default"
+          }
+        },
+        "type": "object",
+        "title": "SessionCreateRequest"
+      },
+      "SessionTitleUpdateRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "description": "新会话标题"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "SessionTitleUpdateRequest"
+      },
+      "StandardResponse": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "title": "Code",
+            "default": 200
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "success"
+          },
+          "data": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "title": "StandardResponse",
+        "description": "Standardized API Response Model."
+      },
+      "TicketCreateRequest": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "工单标题"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "故障或需求描述"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority",
+            "description": "工单优先级 (P0-P4)",
+            "default": "P3"
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department",
+            "description": "受理部门",
+            "default": "IT"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "description"
+        ],
+        "title": "TicketCreateRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WebhookEventPayload": {
+        "properties": {
+          "event_type": {
+            "type": "string",
+            "title": "Event Type",
+            "description": "事件类型 (e.g., 'approval.approved', 'approval.rejected', 'dify.sync', 'n8n.trigger', 'custom.workflow')"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "事件源系统 (e.g., 'ai_assistant', 'n8n', 'dify', 'erp')",
+            "default": "ai_assistant"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data",
+            "description": "事件携带的业务载荷数据"
+          },
+          "target_webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Webhook Url",
+            "description": "可选的外部 Webhook 回调地址 (n8n / Dify / 企微 Bot Webhook URL)"
+          },
+          "notify_wecom": {
+            "type": "boolean",
+            "title": "Notify Wecom",
+            "description": "是否同时向企业微信机器人发送卡片通知",
+            "default": true
+          },
+          "secret_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secret Token",
+            "description": "安全验证 Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_type"
+        ],
+        "title": "WebhookEventPayload"
+      },
+      "WebhookResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "processed_at": {
+            "type": "string",
+            "title": "Processed At"
+          },
+          "target_dispatched": {
+            "type": "boolean",
+            "title": "Target Dispatched"
+          },
+          "wecom_notified": {
+            "type": "boolean",
+            "title": "Wecom Notified"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "event_id",
+          "event_type",
+          "processed_at",
+          "target_dispatched",
+          "wecom_notified"
+        ],
+        "title": "WebhookResponse"
+      }
+    }
+  }
+}

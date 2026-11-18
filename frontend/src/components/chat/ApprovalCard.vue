@@ -62,7 +62,7 @@
         <div class="bg-slate-100/90 dark:bg-slate-900/80 p-3 rounded-xl border border-border-subtle flex flex-col justify-between">
           <span class="text-[11px] text-text-muted mb-1">申请部门与负责人</span>
           <span class="text-text-main font-medium truncate">
-            {{ displayData.department || '研发部 (AI 工程组)' }} · {{ displayData.applicant || '李工' }}
+            {{ displayData.department || '申请部门' }} · {{ displayData.applicant || '业务提交人' }}
           </span>
         </div>
 
@@ -86,38 +86,51 @@
 
       <!-- Action Section (Pending State) -->
       <div v-if="currentStatus === 'PENDING'" class="pt-2 space-y-3 border-t border-border-subtle">
-        <!-- Comment Input -->
-        <div class="relative">
-          <input
-            v-model="commentText"
-            type="text"
-            placeholder="填写审批批注意见（可选）..."
-            class="w-full px-3.5 py-2 text-xs bg-slate-100 dark:bg-slate-900/90 border border-border-subtle rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/30 transition-colors duration-150"
-            :disabled="isSubmitting"
-          />
-        </div>
+        <template v-if="canApprove">
+          <!-- Comment Input -->
+          <div class="relative">
+            <input
+              v-model="commentText"
+              type="text"
+              placeholder="填写审批批注意见（可选）..."
+              class="w-full px-3.5 py-2 text-xs bg-slate-100 dark:bg-slate-900/90 border border-border-subtle rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/30 transition-colors duration-150"
+              :disabled="isSubmitting"
+            />
+          </div>
 
-        <!-- Primary Action Buttons -->
-        <div class="flex items-center space-x-2.5">
-          <!-- Emerald Approve Button -->
-          <button
-            @click="handleDecision('approve')"
-            :disabled="isSubmitting"
-            class="interactive-action flex-1 py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-medium text-xs shadow-md shadow-emerald-600/20 hover:shadow-emerald-600/30 transition-colors duration-150 flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-          >
-            <Check class="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>{{ isSubmitting && lastAction === 'approve' ? '正在提交...' : '同意并提交采购' }}</span>
-          </button>
+          <!-- Primary Action Buttons -->
+          <div class="flex items-center space-x-2.5">
+            <!-- Emerald Approve Button -->
+            <button
+              @click="handleDecision('approve')"
+              :disabled="isSubmitting"
+              class="interactive-action flex-1 py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-medium text-xs shadow-md shadow-emerald-600/20 hover:shadow-emerald-600/30 transition-colors duration-150 flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+            >
+              <Check class="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>{{ isSubmitting && lastAction === 'approve' ? '正在提交...' : '同意并提交采购' }}</span>
+            </button>
 
-          <!-- Rose Reject Button -->
-          <button
-            @click="handleDecision('reject')"
-            :disabled="isSubmitting"
-            class="interactive-action py-2 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-900/90 hover:bg-rose-500/10 active:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 hover:border-rose-500/50 font-medium text-xs transition-colors duration-150 flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-          >
-            <X class="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>{{ isSubmitting && lastAction === 'reject' ? '正在驳回...' : '驳回申请' }}</span>
-          </button>
+            <!-- Rose Reject Button -->
+            <button
+              @click="handleDecision('reject')"
+              :disabled="isSubmitting"
+              class="interactive-action py-2 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-900/90 hover:bg-rose-500/10 active:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 hover:border-rose-500/50 font-medium text-xs transition-colors duration-150 flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+            >
+              <X class="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>{{ isSubmitting && lastAction === 'reject' ? '正在驳回...' : '驳回申请' }}</span>
+            </button>
+          </div>
+        </template>
+
+        <!-- Employee View: Read-Only Waiting Notice -->
+        <div
+          v-else
+          class="px-3.5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between gap-2"
+        >
+          <div class="flex items-center space-x-2">
+            <Lock class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>已提交至部门主管审批；当前身份为{{ authStore.roleLabel }}，暂无审批决策权限。</span>
+          </div>
         </div>
       </div>
 
@@ -143,7 +156,7 @@
               </span>
               <div class="text-[10px] opacity-80 mt-0.5 flex items-center space-x-1.5">
                 <UserCheck class="w-3 h-3" />
-                <span>审批人：{{ displayData.approver || '张经理 (研发主管)' }}</span>
+                <span>审批人：{{ displayApprover }}</span>
                 <span v-if="displayData.decision_time || finalizedTime">· {{ displayData.decision_time || finalizedTime }}</span>
               </div>
             </div>
@@ -159,15 +172,22 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import {
   FileCheck,
   Check,
   X,
   AlertCircle,
   ShieldCheck,
-  UserCheck
+  UserCheck,
+  Lock
 } from 'lucide-vue-next';
+import { useAuthStore } from '../../stores/authStore';
+import { useApprovalStore } from '../../stores/approvalStore';
+
+const authStore = useAuthStore();
+const approvalStore = useApprovalStore();
+const canApprove = computed(() => authStore.canApprove);
 
 const props = defineProps({
   approval: {
@@ -193,6 +213,24 @@ const displayData = computed(() => {
   return props.approval || props.approvalData || {};
 });
 
+watch(
+  () => displayData.value.approval_id || displayData.value.id,
+  () => {
+    localStatus.value = null;
+    finalizedComment.value = '';
+    finalizedTime.value = '';
+  }
+);
+
+watch(
+  () => displayData.value.status,
+  (newStatus) => {
+    if (newStatus && newStatus !== 'PENDING') {
+      localStatus.value = null;
+    }
+  }
+);
+
 const currentStatus = computed(() => {
   if (localStatus.value) return localStatus.value;
   return displayData.value.status || 'PENDING';
@@ -200,6 +238,12 @@ const currentStatus = computed(() => {
 
 const displayComment = computed(() => {
   return finalizedComment.value || displayData.value.comment || '';
+});
+
+const displayApprover = computed(() => {
+  if (displayData.value.approver) return displayData.value.approver;
+  if (localStatus.value) return authStore.approverSignature;
+  return '部门主管';
 });
 
 const formatCurrency = (val) => {
@@ -238,7 +282,7 @@ const headerIconColorClass = computed(() => {
 });
 
 const handleDecision = async (action) => {
-  if (isSubmitting.value) return;
+  if (isSubmitting.value || !canApprove.value) return;
   isSubmitting.value = true;
   lastAction.value = action;
 
@@ -248,10 +292,17 @@ const handleDecision = async (action) => {
   emit('decision', approvalId, action, comment);
   emit('action', approvalId, action, comment);
 
-  localStatus.value = action.toUpperCase() === 'APPROVE' ? 'APPROVED' : 'REJECTED';
-  finalizedComment.value = comment;
-  finalizedTime.value = new Date().toLocaleTimeString('zh-CN');
-
-  isSubmitting.value = false;
+  if (!approvalStore.loading) {
+    isSubmitting.value = false;
+  }
 };
+
+watch(
+  () => approvalStore.loading,
+  (loading) => {
+    if (!loading) {
+      isSubmitting.value = false;
+    }
+  }
+);
 </script>

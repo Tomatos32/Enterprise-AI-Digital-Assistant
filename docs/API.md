@@ -41,113 +41,52 @@
 
 #### 2.1.1 用户登录
 - **接口路径**：`POST /auth/login`
-- **功能描述**：输入账号密码，验证成功后返回 Access Token 及 Refresh Token。
+- **功能描述**：输入账号密码，验证成功后返回 JWT Access Token 及标准化身份元数据（`username`、`display_name`、`role`、`role_label`、`department`）。
 - **请求 Body (JSON)**:
   ```json
   {
-    "username": "zhangsan",
-    "password": "SecurePassword123"
+    "username": "manager",
+    "password": "<your-password>"
   }
   ```
-- **响应 Data**:
-  ```json
-  {
-    "code": 200,
-    "message": "登录成功",
-    "data": {
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVC...",
-      "token_type": "bearer",
-      "expires_in": 1800,
-      "user_info": {
-        "id": 1,
-        "username": "zhangsan",
-        "department": "R&D",
-        "role": "EMPLOYEE"
-      }
-    }
-  }
-  ```
-
-#### 2.1.2 令牌刷新
-- **接口路径**：`POST /auth/refresh`
-- **功能描述**：使用 Refresh Token 获取新的 Access Token，保持登录状态。
-- **请求 Body (JSON)**:
-  ```json
-  {
-    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVC..."
-  }
-  ```
-- **响应 Data**:
-  ```json
-  {
-    "code": 200,
-    "message": "token刷新成功",
-    "data": {
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "expires_in": 1800
-    }
-  }
-  ```
-
----
-
-### 2.2 会话管理 (Session Management)
-
-#### 2.2.1 获取历史会话列表
-- **接口路径**：`GET /chat/sessions`
-- **功能描述**：分页获取当前登录用户历史创建的所有会话列表。
-- **请求 Query 参数**:
-  - `page`: 整数，默认值 1
-  - `size`: 整数，默认值 20
 - **响应 Data**:
   ```json
   {
     "code": 200,
     "message": "success",
     "data": {
-      "total": 12,
-      "page": 1,
-      "size": 20,
-      "items": [
-        {
-          "session_id": "8f8b340a-24ad-47cc-980b-1934ba70a599",
-          "title": "关于采购开发服务器的咨询",
-          "langgraph_thread_id": "thread_8f8b340a_24ad",
-          "created_at": "2026-07-21T15:00:00Z",
-          "updated_at": "2026-07-21T15:10:00Z"
-        }
-      ]
+      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "token_type": "bearer",
+      "role": "manager",
+      "username": "manager",
+      "display_name": "陈志远",
+      "department": "采购管理部",
+      "role_label": "部门主管"
     }
   }
   ```
 
-#### 2.2.2 创建会话
-- **接口路径**：`POST /chat/sessions`
-- **功能描述**：新建一条会话 thread 并生成对应的唯一 ID。
-- **请求 Body (JSON)**:
-  ```json
-  {
-    "title": "新会话"
-  }
-  ```
+#### 2.1.2 获取当前认证用户档案
+- **接口路径**：`GET /auth/me`
+- **鉴权要求**：Header 携带 `Authorization: Bearer <access_token>`。
 - **响应 Data**:
   ```json
   {
     "code": 200,
-    "message": "会话创建成功",
+    "message": "success",
     "data": {
-      "session_id": "9a7d3bf0-15bd-44ee-a541-628b030bbbb0",
-      "title": "新会话",
-      "langgraph_thread_id": "thread_9a7d3bf0_15bd",
-      "created_at": "2026-07-21T15:52:00Z"
+      "username": "manager",
+      "display_name": "陈志远",
+      "role": "manager",
+      "department": "采购管理部",
+      "role_label": "部门主管"
     }
   }
   ```
 
-#### 2.2.3 获取会话详情消息历史
-- **接口路径**：`GET /chat/sessions/{session_id}/messages`
-- **功能描述**：获取当前会话历史的消息列表，供前端重塑渲染对话上下文。
+#### 2.1.3 获取演示身份列表（仅限开发/测试或 Mock 模式）
+- **接口路径**：`GET /auth/identities`
+- **功能描述**：返回用于角色上下文切换的非敏感身份列表（绝不包含密码或密码哈希）；在 `ENVIRONMENT=production` 且 `USE_MOCK_SYSTEMS=False` 时返回 `403`。
 - **响应 Data**:
   ```json
   {
@@ -155,42 +94,95 @@
     "message": "success",
     "data": [
       {
-        "id": 1001,
-        "role": "user",
-        "content": "请帮我查一下服务器的最新安全规范",
-        "tool_calls": null,
-        "created_at": "2026-07-21T15:01:00Z"
+        "username": "employee",
+        "display_name": "林小晴",
+        "role": "employee",
+        "role_label": "普通员工",
+        "department": "人力资源部"
       },
       {
-        "id": 1002,
-        "role": "assistant",
-        "content": "根据《企业核心服务器管理制度V2.0》，所有服务器...",
-        "tool_calls": null,
-        "created_at": "2026-07-21T15:01:05Z"
+        "username": "manager",
+        "display_name": "陈志远",
+        "role": "manager",
+        "role_label": "部门主管",
+        "department": "采购管理部"
+      },
+      {
+        "username": "admin",
+        "display_name": "周明辉",
+        "role": "admin",
+        "role_label": "系统管理员",
+        "department": "IT 系统管理部"
       }
     ]
   }
   ```
 
-#### 2.2.4 删除会话
-- **接口路径**：`DELETE /chat/sessions/{session_id}`
-- **功能描述**：级联删除会话及历史消息。
-- **响应 Data**:
+#### 2.1.4 快捷角色上下文切换（仅限开发/测试或 Mock 模式）
+- **接口路径**：`POST /auth/switch-role`
+- **功能描述**：在开发/演示模式下签发目标身份的真实 JWT Access Token；生产环境禁用并返回 `403`。
+- **请求 Body (JSON)**:
   ```json
   {
-    "code": 200,
-    "message": "会话删除成功",
-    "data": null
+    "username": "admin"
   }
   ```
+- **响应 Data**：与 `POST /auth/login` 保持一致。
+
+---
+
+### 2.2 会话管理 (Session Management)
+
+> **身份归属隔离约定**：当请求携带 `Authorization: Bearer <access_token>` 时，所有会话接口强制以当前认证用户 `current_user.username` 作为归属边界（忽略外部伪造的 `user_id` 参数），跨用户读写/改名/删除/中断会话返回 HTTP `403`。未携带 Header 时保持无头测试向后兼容。
+
+#### 2.2.1 获取历史会话列表
+- **接口路径**：`GET /chat/sessions`
+- **功能描述**：按 `updated_at` 倒序获取当前用户未删除的历史会话列表（携带 Bearer Token 时自动按 `current_user.username` 过滤）。
+- **请求 Query 参数**:
+  - `user_id`: 字符串（无 Token 时的兼容过滤键，默认值 `u_ws_default`）
+  - `limit`: 整数，默认值 `50`（1~100）
+  - `offset`: 整数，默认值 `0`
+- **响应 Data**:
+  ```json
+  [
+    {
+      "id": 1,
+      "session_id": "sess_9a7d3bf015bd",
+      "user_id": "employee",
+      "title": "关于采购开发服务器的咨询",
+      "is_deleted": false,
+      "created_at": "2026-11-16T15:00:00",
+      "updated_at": "2026-11-16T15:10:00"
+    }
+  ]
+  ```
+
+#### 2.2.2 创建会话
+- **接口路径**：`POST /chat/sessions`
+- **功能描述**：新建一条持久化会话；携带 Bearer Token 时强制绑定 `current_user.username`。
+- **请求 Body (JSON)**:
+  ```json
+  {
+    "title": "新对话",
+    "user_id": "employee"
+  }
+  ```
+
+#### 2.2.3 获取会话详情消息历史
+- **接口路径**：`GET /chat/sessions/{session_id}/messages`
+- **功能描述**：获取当前会话历史消息（含 `thought`、`duration_seconds`、`thought_steps`、`sources`），跨用户访问返回 `403`。
+
+#### 2.2.4 重命名与删除会话
+- **接口路径**：`PUT /chat/sessions/{session_id}/title`、`DELETE /chat/sessions/{session_id}`
+- **功能描述**：重命名或软删除指定会话，携带 Bearer Token 时校验会话归属权，越权返回 `403`。
 
 ---
 
 ### 2.3 实时流式通信 (WebSocket)
 
 #### 2.3.1 对话与执行流式管道 (Duplex Websocket)
-- **协议地址**：`WS /chat/ws/{session_id}`
-- **鉴权要求**：在握手 Query 中提供 Token。
+- **协议地址**：`WS /ws/chat/{client_id}?token=<access_token>`
+- **鉴权要求**：推荐在握手 Query `?token=<access_token>` 或 `Authorization: Bearer <token>` 中提供 JWT。若提供无效/过期 Token，服务端下发 `{"type": "error", "status": 401}` 并以关闭码 `4401` 断开；若绑定已有会话但归属其他用户，下发 `{"type": "error", "status": 403}` 拒绝写入。
 - **工作流向说明**：
   1. 客户端发送 JSON 格式的用户请求消息。
   2. 服务端实时推送各个中间节点状态（Intent Router、Retrieval、Tool Call 等）的事件，并以分片流式输出（Tokens Chunk）最终回复。
@@ -385,47 +377,54 @@
 
 ### 2.5 流程与审批控制 (Workflow & Approval)
 
-#### 2.5.1 获取当前待办审批列表
-- **接口路径**：`GET /workflow/approvals`
-- **功能描述**：主管级账户登录后，查询分配给其个人的待审批任务。
+> **角色权限边界**：当请求携带 `Authorization: Bearer <access_token>` 时，审批查询与审批决策接口严格限制 `manager`（部门主管）或 `admin`（系统管理员）访问；普通员工（`employee`）越权访问返回 HTTP `403`。
+
+#### 2.5.1 获取待审批与全量审批列表
+- **接口路径**：`GET /approval/pending`、`GET /approval/list`
+- **功能描述**：部门主管或系统管理员获取待处理（`PENDING`）或全部历史审批单据列表。
 - **响应 Data**:
   ```json
   {
-    "code": 200,
-    "message": "success",
+    "status": "SUCCESS",
+    "count": 1,
     "data": [
       {
-        "approval_id": 182,
-        "ticket_id": 10092,
-        "title": "研发部张三的测试机采购申请",
-        "description": "物料编码: PC-TEST-002, 数量: 3台, 总价: 13,500元",
-        "langgraph_thread_id": "thread_8f8b340a_24ad",
-        "created_at": "2026-07-21T15:53:00Z"
+        "approval_id": "APP-20261116-1001",
+        "thread_id": "sess_8f8b340a24ad",
+        "item_name": "MacBook Pro 16",
+        "quantity": 1,
+        "unit_price": 22999.0,
+        "total_price": 22999.0,
+        "department": "采购管理部",
+        "reason": "AI 数字人研发高配置要求",
+        "status": "PENDING",
+        "created_at": "2026-11-16 15:53:00"
       }
     ]
   }
   ```
 
 #### 2.5.2 处理审批单 (批准/拒绝)
-- **接口路径**：`POST /workflow/approvals/{approval_id}/action`
-- **功能描述**：审批同意或驳回。审批通过后，调用内部 LangGraph Thread Resume 命令，唤醒对应的智能体线程。
+- **接口路径**：`POST /approval/action`
+- **功能描述**：主管或管理员审批同意或驳回，唤醒对应的 LangGraph 挂起线程并附带动态审批人署名（`<姓名> (<部门> · <角色>)`）推送通知。
 - **请求 Body (JSON)**:
   ```json
   {
-    "status": "APPROVED",
-    "comments": "情况属实，予以通过"
+    "approval_id": "APP-20261116-1001",
+    "action": "approve",
+    "comment": "情况属实，予以通过"
   }
   ```
 - **响应 Data**:
   ```json
   {
-    "code": 200,
-    "message": "审批提交成功，相关智能体已恢复运行",
-    "data": {
-      "approval_id": 182,
-      "status": "APPROVED",
-      "resumed_thread_id": "thread_8f8b340a_24ad"
-    }
+    "status": "SUCCESS",
+    "approval_id": "APP-20261116-1001",
+    "thread_id": "sess_8f8b340a24ad",
+    "action": "approve",
+    "approver": "陈志远 (采购管理部 · 部门主管)",
+    "db_status": "APPROVED",
+    "graph_output": "Resumed"
   }
   ```
 
@@ -462,3 +461,65 @@
     }
   }
   ```
+
+---
+
+### 2.7 管理员大模型参数与节点配置中心 (Admin Control Plane)
+
+> **严格鉴权与零密钥外泄规范**：本分组全部接口强制要求 `Depends(require_role([RoleEnum.ADMIN]))`；未登录返回 HTTP `401`，普通员工（`employee`）与部门主管（`manager`）越权访问返回 HTTP `403`。所有响应均只返回脱敏后的密钥掩码与布尔配置状态，**严禁回传明文 `LLM_API_KEY` 或 `SECRET_KEY`**。
+
+#### 2.7.1 读取脱敏运行时配置与引擎预设
+- **接口路径**：`GET /admin/config`
+- **功能描述**：读取当前生效的白名单大模型参数、LangGraph / RAG 检索配置、脱敏凭据状态、引擎遥测及预设清单。
+- **响应 Data**:
+  ```json
+  {
+    "code": 200,
+    "message": "管理员运行时配置读取成功",
+    "data": {
+      "llm_provider": "auto",
+      "llm_model": "deepseek-chat",
+      "llm_api_base": null,
+      "llm_thinking": false,
+      "llm_temperature": 0.2,
+      "llm_max_tokens": 4096,
+      "rag_top_k": 3,
+      "rag_min_score": 0.16,
+      "system_prompt_instruction": "",
+      "api_key_configured": false,
+      "api_key_masked": "未配置",
+      "jwt_secret_configured": true,
+      "jwt_secret_masked": "****** (HS256 已启用保护)",
+      "active_engine": "LocalEnterpriseChatModel",
+      "updated_at": null,
+      "updated_by": null
+    }
+  }
+  ```
+
+#### 2.7.2 更新并热生效白名单参数
+- **接口路径**：`PUT /admin/config`
+- **功能描述**：校验并热更新白名单参数（同步刷新内存 `settings`、持久化非密钥字段至 `logs/runtime_config.json`，并立即作用于 `get_chat_llm`、`HybridRetriever`、`retrieve_node` 与 `generate_node`）。支持只写字段 `llm_api_key`（留空或含 `****` 掩码保留原值）与 `clear_api_key`。
+- **请求 Body (JSON)**:
+  ```json
+  {
+    "llm_provider": "ollama",
+    "llm_model": "qwen3.5:2b",
+    "llm_api_base": "http://127.0.0.1:11434",
+    "llm_thinking": true,
+    "llm_temperature": 0.25,
+    "llm_max_tokens": 4096,
+    "rag_top_k": 5,
+    "rag_min_score": 0.24,
+    "system_prompt_instruction": "涉及报销与采购金额时须列出审批层级。"
+  }
+  ```
+
+#### 2.7.3 恢复启动基线默认配置
+- **接口路径**：`POST /admin/config/reset`
+- **功能描述**：将全部运行时白名单参数与 `LLM_API_KEY` 恢复至进程启动期基线值，并清理 `logs/runtime_config.json` 覆盖文件。
+
+#### 2.7.4 非破坏性连通性探活测试
+- **接口路径**：`POST /admin/config/probe`
+- **功能描述**：针对当前或表单预览的 `llm_provider`、`llm_model`、`llm_api_base`、`llm_thinking` 执行非破坏性连通性探活（Ollama `/api/tags`、OpenAI 兼容 `/models` 或离线 `local_fallback`），并返回本地 Qdrant 向量集合健康点数与延迟毫秒数。
+

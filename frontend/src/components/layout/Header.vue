@@ -88,19 +88,14 @@
         <span>新对话</span>
       </button>
 
-      <!-- User Avatar Circle -->
-      <div
-        title="张经理 (研发部)"
-        class="w-8 h-8 rounded-full bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-700 border border-border-card flex items-center justify-center text-text-secondary hover:border-brand-primary/50 transition-colors duration-150 cursor-pointer shadow-sm"
-      >
-        <span class="text-xs font-bold text-slate-800 dark:text-slate-200">张</span>
-      </div>
+      <!-- Dynamic Identity & Role Context Switcher -->
+      <RoleSwitcherPopover />
     </div>
   </header>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import {
   Menu,
   Bot,
@@ -116,6 +111,8 @@ import {
   Moon
 } from 'lucide-vue-next';
 import { useChatStore } from '../../stores/chatStore';
+import { usePreferencesStore } from '../../stores/preferencesStore';
+import RoleSwitcherPopover from './RoleSwitcherPopover.vue';
 
 const props = defineProps({
   activeSessionTitle: {
@@ -131,35 +128,14 @@ const props = defineProps({
 defineEmits(['toggleSidebar']);
 
 const chatStore = useChatStore();
+const preferencesStore = usePreferencesStore();
 const isDropdownOpen = ref(false);
 const isOnline = computed(() => chatStore.isOnline);
-const isDark = ref(true);
+const isDark = computed(() => preferencesStore.isDark);
 
 const toggleTheme = () => {
-  isDark.value = !isDark.value;
-  if (typeof document !== 'undefined') {
-    if (isDark.value) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }
+  preferencesStore.toggleTheme();
 };
-
-onMounted(() => {
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem('theme');
-    if (saved === 'light') {
-      isDark.value = false;
-      document.documentElement.classList.remove('dark');
-    } else {
-      isDark.value = true;
-      document.documentElement.classList.add('dark');
-    }
-  }
-});
 
 const availableModes = [
   {

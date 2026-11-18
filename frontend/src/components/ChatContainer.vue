@@ -4,7 +4,12 @@
     <main
       ref="chatBox"
       @scroll="handleScroll"
-      class="flex-1 overflow-y-auto space-y-3.5 sm:space-y-5 p-2.5 sm:p-5 rounded-2xl glass-card border border-border-subtle relative scroll-smooth overscroll-contain"
+      class="flex-1 overflow-y-auto rounded-2xl glass-card border border-border-subtle relative scroll-smooth overscroll-contain transition-all duration-150"
+      :class="
+        preferencesStore.chatDensity === 'compact'
+          ? 'space-y-2 sm:space-y-2.5 p-2 sm:p-3.5'
+          : 'space-y-3.5 sm:space-y-5 p-2.5 sm:p-5'
+      "
     >
       <!-- Empty State Banner -->
       <div v-if="messages.length === 0" class="h-full flex flex-col items-center justify-center text-center p-4 sm:p-8">
@@ -22,7 +27,7 @@
             v-for="sample in samplePrompts"
             :key="sample"
             @click="sendSamplePrompt(sample)"
-            class="interactive-action px-3 py-2 min-h-[38px] text-[11px] sm:text-xs bg-slate-900/90 hover:bg-slate-800 border border-border-subtle hover:border-brand-primary/50 text-text-secondary hover:text-text-main rounded-xl shadow-sm flex items-center space-x-1.5 transition-colors duration-150 cursor-pointer active:scale-[0.98]"
+            class="interactive-action px-3 py-2 min-h-[38px] text-[11px] sm:text-xs bg-bg-card/90 hover:bg-bg-hover dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-border-subtle hover:border-brand-primary/50 text-text-secondary hover:text-text-main rounded-xl shadow-sm flex items-center space-x-1.5 transition-colors duration-150 cursor-pointer active:scale-[0.98]"
           >
             <Sparkles class="w-3.5 h-3.5 text-brand-primary shrink-0" />
             <span>{{ sample }}</span>
@@ -51,11 +56,11 @@
       <button
         v-if="!isAtBottom && messages.length > 0"
         @click="scrollToBottomManual"
-        class="interactive-action absolute bottom-24 sm:bottom-28 right-4 sm:right-8 z-20 px-3 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-text-main border border-border-card shadow-2xl flex items-center space-x-1.5 text-xs transition-colors duration-150 cursor-pointer active:scale-95"
+        class="interactive-action absolute bottom-24 sm:bottom-28 right-4 sm:right-8 z-20 px-3 py-1.5 rounded-full bg-bg-card/95 hover:bg-bg-hover dark:bg-slate-900/90 dark:hover:bg-slate-800 text-text-main border border-border-card shadow-2xl flex items-center space-x-1.5 text-xs transition-colors duration-150 cursor-pointer active:scale-95"
         title="快速回到底部"
       >
         <ArrowDown class="w-3.5 h-3.5 text-brand-primary animate-bounce" />
-        <span class="font-medium text-slate-200">最新消息</span>
+        <span class="font-medium text-text-main">最新消息</span>
       </button>
     </transition>
 
@@ -76,10 +81,14 @@ import { ref, nextTick, watch, onMounted } from 'vue';
 import { Bot, Sparkles, ArrowDown } from 'lucide-vue-next';
 import { useChatStream } from '../composables/useChatStream';
 import { useChatStore } from '../stores/chatStore';
+import { useAuthStore } from '../stores/authStore';
+import { usePreferencesStore } from '../stores/preferencesStore';
 import MessageItem from './chat/MessageItem.vue';
 import ChatInput from './chat/ChatInput.vue';
 
+const authStore = useAuthStore();
 const chatStore = useChatStore();
+const preferencesStore = usePreferencesStore();
 
 const {
   isConnected,
@@ -100,23 +109,43 @@ watch(isConnected, (val) => {
   chatStore.isOnline = val;
 }, { immediate: true });
 
+let lastSyncedSessionId = '';
+
+const syncActiveSessionMessages = async (sessionId) => {
+  if (!sessionId) return;
+  if (lastSyncedSessionId === sessionId && messages.value.length > 0) return;
+  lastSyncedSessionId = sessionId;
+  currentThreadId.value = sessionId;
+  isStreaming.value = false;
+  const history = await chatStore.loadSessionMessages(sessionId);
+  if (chatStore.activeSessionId !== sessionId) return;
+  messages.value = history || [];
+  autoScrollToBottom();
+};
+
 // 保持活跃会话与当前 threadId 同步并拉取历史记录
 watch(() => chatStore.activeSessionId, async (newId) => {
   if (newId) {
-    currentThreadId.value = newId;
-    isStreaming.value = false;
-    const history = await chatStore.loadSessionMessages(newId);
-    messages.value = history || [];
-    autoScrollToBottom();
+    await syncActiveSessionMessages(newId);
   }
 });
 
+// 监听当前登录身份切换，清理当前对话流状态等待会话切换自动同步
+watch(
+  () => authStore.currentUsername,
+  (newUser, oldUser) => {
+    if (newUser === oldUser) return;
+    lastSyncedSessionId = '';
+    isStreaming.value = false;
+    messages.value = [];
+  }
+);
+
 onMounted(async () => {
+  await authStore.ensureSession();
   await chatStore.fetchSessions();
   if (chatStore.activeSessionId) {
-    const history = await chatStore.loadSessionMessages(chatStore.activeSessionId);
-    messages.value = history || [];
-    autoScrollToBottom();
+    await syncActiveSessionMessages(chatStore.activeSessionId);
   }
 });
 
@@ -157,9 +186,16 @@ const scrollToBottomManual = () => {
 // 监听消息变化进行平滑贴底
 watch(messages, autoScrollToBottom, { deep: true });
 
-const handleSend = (payload) => {
+const handleSend = async (payload) => {
   const text = typeof payload === 'string' ? payload : (payload?.text || '');
   if (!text || isStreaming.value) return;
+
+  if (!chatStore.activeSessionId) {
+    await chatStore.createSession('新对话');
+    if (chatStore.activeSessionId) {
+      currentThreadId.value = chatStore.activeSessionId;
+    }
+  }
 
   // 自动将首条消息同步作为会话标题
   if (chatStore.activeSession && (chatStore.activeSession.title === '新对话' || !chatStore.activeSession.title)) {
@@ -181,7 +217,8 @@ const handleSend = (payload) => {
       item_name: 'MacBook Pro 16',
       quantity: 1,
       unit_price: 22999.0,
-      department: '研发部',
+      department: authStore.department,
+      applicant: authStore.displayName,
       reason: 'AI 数字人研发高配置要求'
     };
   }

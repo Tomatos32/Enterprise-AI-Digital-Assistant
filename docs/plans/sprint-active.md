@@ -137,6 +137,20 @@
   - [x] Checkpoint 2: 补充全部会话无缝保底渲染列表，确保无论展开还是收起，历史会话条数与展示完全对称一致
   - [x] Checkpoint 3: 将 `chatStore.js` 中的时间基准改造为动态计算，消除静态常驻时间戳造成的日期归类偏移
 
+- [x] **Sprint R-05 / Issue-0056: 用户身份认证、角色上下文切换基座与 RBAC 视图隔离（不含安全密级） - [100% COMPLETED]**
+  - [x] Checkpoint 1: 对齐后端 `rbac.py` 与 `auth.py` 身份属性及开发态快捷角色切换接口（不暴露密码）
+  - [x] Checkpoint 2: 实现 `chat.py`、`chat_ws.py` 与 `approval.py` 在携带 Token 时的会话归属隔离与审批权限/署名校验（向后兼容无头单测）
+  - [x] Checkpoint 3: 构建前端 `authStore.js` 与 `LoginView.vue`，重构 `chatStore.js`、`useChatStream.js`、`approvalStore.js` 消除 `u_vue3_user` 与「张经理」硬编码
+  - [x] Checkpoint 4: 改造 `Sidebar.vue`、`Header.vue`、`MobileDrawer.vue` 与 `router/index.js`，实现三角色菜单隔离、全局角色切换器、`/admin/*` 预留插槽及无权限中文提示守卫
+  - [x] Checkpoint 5: 编写 `test_auth_role_isolation.py`、登记全仓 Mock 至 `docs/MOCK_INVENTORY.md`，并通过 `ruff`、`pytest`、`vite build` 与 Reviewer 11 维审查归档 `.harness/runs/Issue-0056/`
+
+- [x] **Sprint R-05 / Issue-0057: 管理员专属·大模型参数与 LangGraph 节点配置中心 (`/admin/settings`) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 在 `.harness/runs/Issue-0057/` 初始化 `issue.md` 与 `plan.md` 并同步登记至 `docs/plans/sprint-active.md`
+  - [x] Checkpoint 2: 新建 `backend/core/runtime_config.py`（安全白名单持久化覆盖与密钥脱敏）并改造 `llm.py`、`retriever.py`、`knowledge_tools.py`、`retrieve_node.py`、`generate_node.py` 实现参数热生效
+  - [x] Checkpoint 3: 新建 `backend/api/v1/admin_config.py` 并挂载至 `backend/main.py`（`/api/v1/admin/config`，强制 `RoleEnum.ADMIN` 鉴权 + 探活/重置能力）
+  - [x] Checkpoint 4: 新建 `frontend/src/views/AdminSettingsView.vue`、`UserPreferencesModal.vue`、`preferencesStore.js` 并修改 `router/index.js`、`Sidebar.vue`、`MobileDrawer.vue`、`Header.vue`、`App.vue` 盘活分层 `<Settings />` 入口
+  - [x] Checkpoint 5: 编写 `test_admin_config_rbac.py` (7/7 PASS)，通过 `ruff` (0 errors)、`mypy` (改动文件 0 errors)、专项 `pytest` (48/48 PASS)、`vite build` (7,916 modules / 7.46s) 与 Reviewer 11 维审查并归档 `.harness/runs/Issue-0057/` 证据包
+
 ---
 
 ## Historical Achievements (已交付稳态资产):

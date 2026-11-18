@@ -1,10 +1,10 @@
 # Enterprise AI Digital Assistant - 前端现代化与 ChatGPT/Gemini 范式重构全景背书白皮书
 
 > **项目名称**：企业级 AI 数字员工平台 - 现代化终端体验重塑与 Copilot 架构升级  
-> **当前运行模式**：**FRONTEND MODERNIZATION MODE (前端工程演进与体验重构模式 · 规划就绪)**  
+> **当前运行模式**：**PRAGMATIC REALIZATION & ADMIN CONTROL PLANE MODE (Sprint F-01~F-09 与 R-01~R-04 已闭环 · 进入 Sprint R-05 身份基座与管理员控制面演进)**  
 > **设计范式标准**：**ChatGPT / Gemini 极简沉浸式 Web 范式 + UI/UX Pro Max 企业级生产力标准**  
 > **基准规范**：[docs/PROJECT_PROGRESS.md](file:///g:/LLM_Learning/product/docs/PROJECT_PROGRESS.md) · [docs/SPEC.MD](file:///g:/LLM_Learning/product/docs/SPEC.MD) · [AGENTS.md](file:///g:/LLM_Learning/product/AGENTS.md) · `ui-ux-pro-max`  
-> **系统最后更新**：2026-09-23  
+> **系统最后更新**：2026-11-17  
 
 ---
 
@@ -635,95 +635,92 @@ npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallCh
 ================================================
 请先读取并确认仓库以下核心规范与资产审计文档：
 1. AGENTS.md （全局路由导航与 DoD 交付契约）
-2. docs/PROJECT_PROGRESS.md （项目全量进展白皮书与模式看板）
+2. docs/PROJECT_PROGRESS.md （项目全量进展、RBAC 与管理员控制台规划及标准提示词库）
 3. docs/FRONTEND_PROGRESS.md （前端现代化与 ChatGPT/Gemini/Claude 范式重构白皮书）
 4. docs/PRODUCTION_SIGNOFF.md （终极投产验收签发白皮书与四方联签）
-5. docs/MOCK_INVENTORY.md （12 大 Mock 节点资产清单与生产真实割接规范）
+5. docs/MOCK_INVENTORY.md （真实化边界、本地模拟桩与配置规范）
 6. docs/harness/Runtime.md （唯一 Runtime 运行 Kernel 规范）
 7. docs/harness/Lifecycle.md （生命周期 10 阶段流转规范）
 8. docs/harness/Communication.md （Agent 间消息规范与 Interceptor Hook）
 
-当前 Repository 物理状态：
-- 运行模式：PRODUCTION & OPERATIONS MODE (生产运行与运维保障模式 · Day-2 状态)
-- 历史模式达成状态：
+当前 Repository 物理状态（对接至 2026-11-16 最新实测基线）：
+- 当前运行模式：PRAGMATIC REALIZATION & ADMIN CONTROL PLANE MODE (务实真实化收官与 RBAC 管理员控制面演进模式)
+- 历史模式与迭代达成状态：
   - BOOTSTRAP MODE：100% 验收达标已闭环 (Sprint 1~12 / Issue-0001~0019)
   - DEVELOPMENT MODE：100% 验收达标已闭环 (Sprint 13~25 / Issue-0020~0032)
   - STAGING & HARDENING MODE：100% 验收达标已闭环 (Sprint 26~30 / Issue-0033~0037)
   - FRONTEND MODERNIZATION MODE：Sprint F-01~F-09 全部闭环 (100% COMPLETED)
+  - PRAGMATIC REALIZATION (Sprint R-01 ~ R-04)：Issue-0038~0055 全部闭环 (100% COMPLETED，含会话数据库持久化、FastEmbed/Qdrant 真实向量库、NativeOllama 极速推理与 `LLM_THINKING` 切换、Vue Bits `<ThoughtLine />` 官方规范集成与 CoT 持久化、Query 改写拆分子查询与 Rerank 强阈值过滤、WebSocket 防重入隔离与 Abort 解闭锁、边栏会话展示对称修复)
+  - DAY-2 SRE OPERATIONS：Ops-0001、Ops-0002 已落盘归档
 - Python 专属虚拟环境：`backend/.venv/Scripts/python.exe`
-- 自动化测试健康度：216 / 216 项全量通过 (100% PASS)
-- 静态代码分析：Ruff 0 Errors / 0 Warnings
-- 投产签发结论：四方技术首脑（架构师、安全官、QA总监、SRE负责人）联合签署 APPROVED
-- 已交付核心生产基础设施与资产：
-  - 12 项企业系统生产适配器层与动态健康探针 (`backend/adapters/`, `GET /api/v1/health/integrations`)
-  - 云原生 CNCF Helm 3 生产编排与金丝雀发布路由 (`deployments/helm/enterprise-ai/`)
-  - AI 双向安全护栏、越狱攻击拦截与滑动窗口流式 PII 脱敏 (`backend/core/guardrails/`)
-  - 三态熔断器、带抖动退避重试与混沌自愈弹性 (`backend/core/circuit_breaker.py`)
-  - 1,000 用户并发长稳压测套件 (1,351 QPS, P99 692ms, 0 内存泄漏) (`benchmark/production_load_test.py`)
-  - 多模态文档解析、GraphRAG、向量多租户隔离、OpenTelemetry 全链路追踪、Prometheus 度量大盘
-  - MySQL 读写分离引擎、Redis Sentinel 哨兵集群容灾、RLHF/DPO 数据闭环、RAGAS 严格门禁
-  - 专职领域 Subgraphs (HR/Finance/IT/Compliance)、Swarm 跨部门移交总线、分布式 Saga 逆序补偿
-  - 前端现代化资产基准：Vue 3 + Vite + Tailwind CSS + Pinia + Lucide Icons + Vuebits (shadcn registry `@vue-bits`) + Hugeicons 矢量图标库 + 日间温润白/夜间曜石黑双主题系统
+- 自动化测试基线：全仓共收集 258 项测试（最近基线实测 `256 passed, 2 failed`，待对齐 2 项历史测试用例：`test_graph_unittest.py` 旧版 Mock 文案断言及 `test_thought_persistence.py` 独立建表前置）
+- 静态代码分析：`backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/` ➔ 0 Errors / 0 Warnings (All checks passed!)
+- 前端生产构建：`frontend/` `npm run build` (`vite build`) ➔ 7,906 modules transformed, built in 8.27s (0 Errors)
+- 已交付核心全栈资产：
+  - 会话持久化与 CoT 追溯：`ChatSession` / `ChatMessage`（含 `thought`、`duration_seconds`、`thought_steps`）、REST CRUD + WebSocket 双工流式写库
+  - 真实 RAG 与大模型驱动：`NativeOllamaChatModel` + `EnterpriseChatOpenAI` + `ResilientChatModel`、`HybridRetriever` (BM25 + Qdrant UUID5 幂等 + RRF + Reranker) + `QueryRewriter` + 6 个 `ToolRegistry` 函数工具
+  - 生产基础与韧性设施：12 项企业系统适配器与 Mock 桩 (`backend/adapters/`)、CNCF Helm 3 编排 (`deployments/helm/enterprise-ai/`)、双向安全护栏与流式 PII 脱敏 (`backend/core/guardrails/`)、三态熔断器 (`backend/core/circuit_breaker.py`)、Prometheus `/metrics` Collector (`backend/core/metrics.py`)、RBAC 核心后端 (`backend/core/rbac.py`, `backend/api/v1/auth.py`)
+  - 前端现代化旗舰底座：Vue 3 + Vite + Tailwind CSS + Pinia + Lucide Icons + Vuebits (`@vue-bits/*` 12 大组件，含 `PromptBar`, `ThoughtLine`, `CallChip`, `FolderFloat`, `LineSidebar`, `StatusMark`, `FuseButton`) + Hugeicons 矢量图标 + 日间温润白/夜间曜石黑双主题系统，已上线 `/`、`/approvals`、`/knowledge` 三大核心视图
 
 ================================================
 第二阶段：Issue / Ops 任务强制物理履约 SOP (Execution Contract)
 ================================================
-接收到任何新 Issue 或 Ops 运维任务（及前端现代战役 Sprint F-XXXX）时，必须严格按顺序扮演以下 Agent/角色，并向 `.harness/runs/Issue-XXXX/` 或 `.harness/runs/Ops-XXXX/` (前端为 `.harness/runs/Sprint-F-XXXX/`) 刷盘物理隔离的 8 大只读证据包，严禁跳过任何步骤或自写自审：
+接收到任何新 Issue 或 Ops 运维任务时，必须严格按顺序扮演以下 Agent/角色，并向 `.harness/runs/Issue-XXXX/`（或 `.harness/runs/Ops-XXXX/`）刷盘物理隔离的 8 大只读证据包，严禁跳过任何步骤或自写自审：
 
-1. [Orchestrator]: 在 `.harness/runs/Issue-XXXX/` (或 Ops-XXXX / Sprint-F-XXXX) 下创建 `issue.md` 锁存原始需求与运维目标。
+1. [Orchestrator]: 在 `.harness/runs/Issue-XXXX/`（或 `Ops-XXXX/`）下创建 `issue.md` 锁存原始需求与验收目标。
 2. [PlannerAgent]: 制定 Checkpoints 变动表，生成 `plan.md`，并同步更新 `docs/plans/sprint-active.md`。
-3. [DeveloperAgent]: 使用 `backend/.venv/Scripts/python.exe` 执行代码/脚本编写与自动化测试（前端执行 `npm run build`），将真实控制台测试日志刷入 `developer.md`。
-4. [ReviewerAgent]: 从架构、安全、性能、回滚机制等 11 个维度审计代码，计算 ReviewScore（需 ≥ 90），刷入 `review.md`。
-5. [DocumentationAgent]: 导出 API/配置变更，更新 API.md/Database.md/Runbook，生成 `documentation.md`。
+3. [DeveloperAgent]: 使用 `backend/.venv/Scripts/python.exe` 执行代码编写与自动化测试（前端执行 `npm run build`），将真实控制台测试日志刷入 `developer.md`。
+4. [ReviewerAgent]: 从架构、安全、性能、回滚机制与 RBAC 隔离等 11 个维度审计代码，计算 ReviewScore（需 ≥ 90），刷入 `review.md`。
+5. [DocumentationAgent]: 导出 API/配置变更，更新 API.md/Database.md/PROJECT_PROGRESS.md，生成 `documentation.md`。
 6. [VerifierAgent]: 进行物理文件存在性与锁定状态静态审计，生成 `verification.md`。
 7. [HarnessRecorder]: 刷盘元数据文件 `summary.json`、`timeline.md` 与 `runtime.log`，闭环关单并更新进度大盘。
 
 ================================================
-第三阶段：Day-2 生产运维与前端现代化实战任务索引
+第三阶段：现阶段待指派任务索引与范围边界 (对接 Sprint R-05)
 ================================================
-当前处于【生产运行与运维保障模式 (PRODUCTION & OPERATIONS MODE)】，待指派任务索引：
+当前处于【Sprint R-05：身份基座优先与管理员控制面闭环阶段】，待指派任务必须严格遵守如下依赖顺序与范围裁剪（标准执行提示词见 `docs/PROJECT_PROGRESS.md` 第 5 节）：
 
-1. Day-2 生产运维实战任务 (Ops-0001 ~ Ops-0005)：
-- Ops-0001：金丝雀发布流量权重调整与灰度验证 (Canary Rollout)
-- Ops-0002：生产突发故障排查、熔断降级审计与哨兵集群切换 (Emergency Disaster Recovery)
-- Ops-0003：生产级监控指标大盘巡检与告警阈值动态调优 (Telemetry Auditing & Alerting)
-- Ops-0004：生产大模型影子流量对比与零中断切流 (Model Shadow Cutover)
-- Ops-0005：敏感数据脱敏合规审计与红蓝安全渗透巡检 (Security Compliance Pen-Testing)
+1. 核心排期任务索引（Issue-0056 ~ Issue-0059，全部依赖 P0 身份基座）：
+- [P0 前置基座] Issue-0056：用户身份认证、角色上下文切换与 RBAC 视图隔离（`employee` / `manager` / `admin`，**明确去除 4 级安全密级开发**，替换硬编码“张经理”）
+- [P1 置于 P0 之后] Issue-0057：管理员专属·大模型参数与 LangGraph 节点配置中心 (`/admin/settings`，仅限 `admin` 调配，盘活 `<Settings />` 按钮，普通用户仅见外观偏好)
+- [P2 管理员范围] Issue-0058：管理员专属·知识文档上传与异步解析任务中心 (`/admin/tasks`，限 `admin` 操作，打通拖拽上传、Celery 进度与 Qdrant 状态同步)
+- [P3 管理员范围] Issue-0059：管理员专属·系统遥测、工具审计与 SLA 监控看板 (`/admin/monitoring`，限 `admin` 操作，对接 `/metrics` 指标与 SLA 履约统计)
 
-2. 前端现代化进阶战役任务 (Sprint F-01 ~ F-09)：
-- Sprint F-01：设计系统重塑、依赖装配与 Tailwind 色彩原子定义 (Design System & Shell)
-- Sprint F-02：ChatGPT 式折叠侧边栏、顶栏与会话状态 Pinia 仓储 (Collapsible Sidebar & Sessions)
-- Sprint F-03：Gemini 风格思考折叠胶囊与无黑话消息渲染组件 (Gemini Thought & Clean Message Stream)
-- Sprint F-04：底部居中悬浮输入框、多行自适应撑高与平滑中止 (Floating Capsule Input & Abort)
-- Sprint F-05：原生企业协同审批卡片与 LangGraph 人机无感中断对接 (Natural Approval Card & Workflow)
-- Sprint F-06：独立“待我审批”与“规章检索”业务工作区视图 (Approval Queue & Knowledge Workspace)
-- Sprint F-07：移动端折叠抽屉与 375px~1440px 响应式断点适配 (Mobile Drawer & Responsive Hardening)
-- Sprint F-08：全链路走查、Lighthouse 调优与终极体验验收签发 (E2E UX Hardening & Frontend Sign-off)
-- Sprint F-09：ChatGPT / Claude 原生 Web 交互与 Vuebits 旗舰动效组件集成 (Vuebits Flagship Integration)
+2. 运维保留任务索引（Day-2 Operations Remaining）：
+- Ops-0003：生产级监控指标大盘巡检与告警阈值动态调优
+- Ops-0004：生产大模型影子流量对比与零中断切流
+- Ops-0005：敏感数据脱敏合规审计与红蓝安全渗透巡检
+
+3. 明确剔除与暂缓搁置清单（严禁私自扩 scope 开发）：
+- [已剔除] 4 级安全密级（1=公开/2=内部/3=机密/4=绝密）前端切换演示与密级权限测试
+- [已搁置] 外部工作流平台集成与 Webhook 编排前端视图 (`/workflows` - Dify/N8N 前端编排与企微模拟历史)
+- [已搁置] 交互反馈标注与 DPO 数据集导出工作台 (`/eval` / `/feedback`)
 
 ================================================
 红线禁令 (Strict Invariants)
 ================================================
-❌ 严禁直接修改业务代码而不建立 `.harness/runs/Issue-XXXX/` (或 `Ops-XXXX/` / `Sprint-F-XXXX/`) 沙盒证据包。
+❌ 严禁直接修改业务代码而不建立 `.harness/runs/Issue-XXXX/`（或 `Ops-XXXX/`）沙盒证据包。
 ❌ 严禁使用系统全局 Python，必须统一使用 `backend/.venv/Scripts/python.exe`。
-❌ 严禁未运行实际 pytest/unittest 测试命令即宣称“测试通过”。
-❌ 严禁破坏现有 216 项单元测试与 0 Ruff 告警的生产高可用稳态。
+❌ 严禁未运行实际 pytest/ruff/vite build 命令即宣称“测试或构建通过”。
+❌ 严禁破坏现有 256+ 项通过的自动化测试与 0 Ruff 告警稳态（新开发与重构需保障全量测试全通）。
 ❌ 严禁将证据文件写入仓库外的缓存区，必须落盘至项目根目录下的 `.harness/runs/` 路径。
+❌ 严禁在普通员工视图中暴露任何管理员级大模型参数、节点配置、文档上传入库或系统遥测监控入口；严禁向前端接口明文回传 API Key / Secret Key。
 ❌ 严禁在界面使用任何系统 Emoji (⚡/📋/💬/🤖/💡/⚠️/⚙️/✅/❌) 或暴露任何代码注释/技术调试占位符，必须统一使用 `lucide-vue-next` 与 `@hugeicons/vue` 矢量图标。
 ❌ 严禁破坏日间白色主基调与夜间 Dark style 的背景拟合体系（暗色正文对比度 ≥ 4.5:1，日间正文对比度 ≥ 7:1，均须符合 WCAG AA/AAA）。
 
 确认理解上述 Harness 规范后，请输出你的 Onboarding 诊断结果，并等待我的下一个任务指派。
-
----
-
-三、当前运行验证与健康度状态
-
-- 单元测试套件：backend/.venv/Scripts/python.exe -m pytest backend/tests/ -q ➔ 216 passed (100% PASS)
-- 代码静态质量：backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/ ➔ 0 errors, 0 warnings (All checks passed)
-- 生产系统状态：PRODUCTION & OPERATIONS MODE 就绪，随时可接收 Day-2 SRE 运维与生产演练任务！
 ```
 
 ---
-*全景背书白皮书已于 2026-09-23 升级优化，全面完成 Harness SOP 与 UI/UX Pro Max 双轨工程治理绑定。*
+
+### 三、当前运行验证与健康度状态 (2026-11-17 实测基线 · Issue-0056~0057 闭环)
+
+- 单元测试套件：`backend/.venv/Scripts/python.exe -m pytest backend/tests/ -q` ➔ 实测 `269 passed, 2 failed`（Issue-0056/0057 专项 10 个核心单测套件 48/48 全通，含 `test_auth_role_isolation.py` 6/6 与 `test_admin_config_rbac.py` 7/7；存留 2 项既有历史用例：`test_graph_unittest.py` 旧 Mock 文案断言及 `test_thought_persistence.py` 受前置 `test_mock_systems.py` 未清 `dependency_overrides` 影响，单独复跑 `1 passed`）
+- 代码静态质量：`backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/` ➔ 0 errors, 0 warnings (`All checks passed!`)；Issue-0057 改动/新增 8 个后端文件 `mypy` 检查 0 errors
+- 前端生产构建：`frontend/` `npm run build` (`vite build`) ➔ `7,916 modules transformed`，0 errors（已交付 `/login`、`authStore`、`preferencesStore`、`UserPreferencesModal.vue`、`/admin/settings` `AdminSettingsView.vue` 与分层 `<Settings />` 入口）
+- 当前工程态：`PRAGMATIC REALIZATION & ADMIN CONTROL PLANE MODE`（Sprint R-05 已闭环 **Issue-0056** 与 **Issue-0057**），下一任务可按序启动 **Issue-0058 (`/admin/tasks` 管理员文档上传与异步解析任务中心)**！
+
+---
+*全景背书白皮书已于 2026-11-17 升级对齐，全面完成现有进度同步、Harness SOP 契约更新与 Sprint R-05 (Issue-0056~0057) 控制面进度对接。*
 
 

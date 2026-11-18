@@ -1,6 +1,8 @@
 import { ref, onMounted, onUnmounted } from 'vue';
+import { useAuthStore } from '../stores/authStore';
 
 export function useWebSocket(clientId = 'vue3_client_001') {
+  const authStore = useAuthStore();
   const isConnected = ref(false);
   const isStreaming = ref(false);
   const messages = ref([]);
@@ -18,15 +20,16 @@ export function useWebSocket(clientId = 'vue3_client_001') {
   };
 
   const connect = () => {
+    if (!authStore.token) return;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/api/v1/ws/chat/${clientId}`;
+    const wsUrl = `${protocol}//${host}/api/v1/ws/chat/${clientId}?token=${encodeURIComponent(authStore.token)}`;
 
     ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       isConnected.value = true;
-      console.log('[WebSocket] Connected to', wsUrl);
+      console.log('[WebSocket] Connected to', `${protocol}//${host}/api/v1/ws/chat/${clientId}`);
     };
 
     ws.onmessage = (event) => {
@@ -43,10 +46,16 @@ export function useWebSocket(clientId = 'vue3_client_001') {
       isConnected.value = false;
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       isConnected.value = false;
-      console.log('[WebSocket] Disconnected. Reconnecting in 3s...');
-      setTimeout(connect, 3000);
+      if (event && event.code === 4401) {
+        authStore.handleUnauthorized();
+        return;
+      }
+      if (authStore.token) {
+        console.log('[WebSocket] Disconnected. Reconnecting in 3s...');
+        setTimeout(connect, 3000);
+      }
     };
   };
 
@@ -194,7 +203,7 @@ export function useWebSocket(clientId = 'vue3_client_001') {
     const payload = {
       message: text,
       thread_id: currentThreadId.value,
-      user_id: 'u_vue3_user',
+      user_id: authStore.currentUsername || 'employee',
       session_id: `s_vue3_${Date.now()}`,
       metadata: customMetadata,
     };
@@ -207,7 +216,7 @@ export function useWebSocket(clientId = 'vue3_client_001') {
     try {
       await fetch('/api/v1/chat/abort', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authStore.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ thread_id: currentThreadId.value })
       });
     } catch (err) {
@@ -219,7 +228,7 @@ export function useWebSocket(clientId = 'vue3_client_001') {
     try {
       const resp = await fetch('/api/v1/approval/action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authStore.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           approval_id: approvalId,
           action,

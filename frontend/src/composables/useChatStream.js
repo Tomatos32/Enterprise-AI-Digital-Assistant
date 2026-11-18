@@ -1,7 +1,9 @@
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { useApprovalStore } from '../stores/approvalStore';
+import { useAuthStore } from '../stores/authStore';
 
 export function useChatStream(clientId = 'vue3_client_stream') {
+  const authStore = useAuthStore();
   const isConnected = ref(false);
   const isStreaming = ref(false);
   const messages = ref([]);
@@ -10,6 +12,8 @@ export function useChatStream(clientId = 'vue3_client_stream') {
 
   let ws = null;
   let heartbeatTimer = null;
+  let reconnectTimer = null;
+  let isIntentionalClose = false;
 
   const nodeNaturalMapping = {
     router: '意图理解与咨询范畴分析',
@@ -40,18 +44,29 @@ export function useChatStream(clientId = 'vue3_client_stream') {
     }
   };
 
+  const clearReconnectTimer = () => {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+  };
+
   let isConnecting = false;
 
   const connect = () => {
+    if (!authStore.token) return;
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
       return;
     }
     if (isConnecting) return;
     isConnecting = true;
+    isIntentionalClose = false;
+    clearReconnectTimer();
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/api/v1/ws/chat/${clientId}`;
+    const tokenQuery = `?token=${encodeURIComponent(authStore.token)}`;
+    const wsUrl = `${protocol}//${host}/api/v1/ws/chat/${clientId}${tokenQuery}`;
 
     try {
       ws = new WebSocket(wsUrl);
@@ -64,7 +79,7 @@ export function useChatStream(clientId = 'vue3_client_stream') {
       isConnecting = false;
       isConnected.value = true;
       startHeartbeat();
-      console.log('[ChatStream] WebSocket Connected:', wsUrl);
+      console.log('[ChatStream] WebSocket Connected:', `${protocol}//${host}/api/v1/ws/chat/${clientId}`);
     };
 
     ws.onmessage = (event) => {
@@ -83,13 +98,32 @@ export function useChatStream(clientId = 'vue3_client_stream') {
       isConnected.value = false;
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       isConnecting = false;
       isConnected.value = false;
       stopHeartbeat();
-      console.log('[ChatStream] Disconnected. Silent auto-reconnect in 3s...');
-      setTimeout(connect, 3000);
+      if (isIntentionalClose) return;
+      if (event && event.code === 4401) {
+        authStore.handleUnauthorized();
+        return;
+      }
+      if (authStore.token) {
+        console.log('[ChatStream] Disconnected. Silent auto-reconnect in 3s...');
+        reconnectTimer = setTimeout(connect, 3000);
+      }
     };
+  };
+
+  const disconnect = () => {
+    isIntentionalClose = true;
+    clearReconnectTimer();
+    stopHeartbeat();
+    isConnecting = false;
+    if (ws) {
+      ws.close();
+      ws = null;
+    }
+    isConnected.value = false;
   };
 
   const handleWsEvent = (event) => {
@@ -240,7 +274,10 @@ export function useChatStream(clientId = 'vue3_client_stream') {
 
       case 'error':
         if (currentMsg) {
-          currentMsg.content += `\n\n> *系统服务暂时繁忙，已为您自动转入离线工单保障状态。*`;
+          const detailText = event.status === 403
+            ? (message || '当前账号无权操作该会话。')
+            : '系统服务暂时繁忙，已为您自动转入离线工单保障状态。';
+          currentMsg.content += `\n\n> *${detailText}*`;
           currentMsg.completed = true;
           currentMsg.isStreaming = false;
         }
@@ -291,9 +328,14 @@ export function useChatStream(clientId = 'vue3_client_stream') {
     const payload = {
       message: text,
       thread_id: currentThreadId.value,
-      user_id: 'u_vue3_user',
+      user_id: authStore.currentUsername || 'employee',
       session_id: targetSessionId,
-      metadata: customMetadata,
+      metadata: {
+        ...customMetadata,
+        user_role: authStore.currentRole,
+        department: authStore.department,
+        display_name: authStore.displayName,
+      },
     };
 
     ws.send(JSON.stringify(payload));
@@ -304,7 +346,7 @@ export function useChatStream(clientId = 'vue3_client_stream') {
     try {
       await fetch('/api/v1/chat/abort', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authStore.getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ thread_id: currentThreadId.value })
       });
       // 客户端主动停止状态
@@ -321,9 +363,16 @@ export function useChatStream(clientId = 'vue3_client_stream') {
   };
 
   const submitApprovalAction = async (approvalId, action, comment = '') => {
+    if (!authStore.canApprove) {
+      authStore.setPermissionNotice('当前身份为普通员工，无权直接批复大额采购单，请切换至部门主管或系统管理员身份处理。');
+      return;
+    }
     try {
       const approvalStore = useApprovalStore();
       const res = await approvalStore.submitDecision(approvalId, action, comment);
+      if (!res || !res.success) {
+        return;
+      }
 
       const msg = messages.value.find(
         (m) =>
@@ -333,7 +382,7 @@ export function useChatStream(clientId = 'vue3_client_stream') {
       if (msg) {
         msg.interruptData.status = action.toUpperCase() === 'APPROVE' ? 'APPROVED' : 'REJECTED';
         msg.interruptData.comment = comment;
-        msg.interruptData.approver = '张经理 (研发主管)';
+        msg.interruptData.approver = res.approver || authStore.approverSignature;
         msg.interruptData.decision_time = new Date().toLocaleTimeString('zh-CN');
         if (res && res.graph_output && res.graph_output !== 'Resumed') {
           msg.content = res.graph_output;
@@ -354,13 +403,25 @@ export function useChatStream(clientId = 'vue3_client_stream') {
     currentThreadId.value = `thread_ws_${Date.now().toString().slice(-6)}`;
   };
 
+  watch(
+    () => authStore.token,
+    (newToken, oldToken) => {
+      if (newToken === oldToken) return;
+      disconnect();
+      if (newToken) {
+        connect();
+      }
+    }
+  );
+
   onMounted(() => {
-    connect();
+    if (authStore.token) {
+      connect();
+    }
   });
 
   onUnmounted(() => {
-    stopHeartbeat();
-    if (ws) ws.close();
+    disconnect();
   });
 
   return {

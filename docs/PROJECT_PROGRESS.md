@@ -1,180 +1,236 @@
-# Enterprise AI Digital Assistant - 项目进展与真实化落地攻坚路线图
-# Project Progress & Pragmatic Realization Roadmap
+# Enterprise AI Digital Assistant - 项目进展与重构规划路线图
+# Project Progress, RBAC & Admin Control Plane Roadmap
 
-> **项目名称**：基于 LangGraph + RAG + 混合检索 + 开源工作流的企业级 AI 数字员工平台  
-> **当前运行模式**：**PRAGMATIC REALIZATION & HARDENING MODE (务实真实化重构与交付攻坚模式)**  
-> **模式说明**：面向个人开发者真实可运行、可交付、可 Demo 体验视角，卸除虚假宣传与不可及的企业假设，主攻核心链路真闭环  
-> **基准规范**：[docs/MOCK_INVENTORY.md](file:///g:/LLM_Learning/product/docs/MOCK_INVENTORY.md) · [AGENTS.md](file:///g:/LLM_Learning/product/AGENTS.md) · [docs/SPEC.MD](file:///g:/LLM_Learning/product/docs/SPEC.MD)  
-> **系统最后更新**：2026-09-23  
+> **项目名称**：基于 LangGraph + RAG + 混合检索的企业级 AI 数字员工平台  
+> **当前运行模式**：**PRAGMATIC REALIZATION & ADMIN CONTROL PLANE MODE (真实化闭环收官与 RBAC 管理员控制面演进模式)**  
+> **模式说明**：已完成底层数据库持久化、真实向量底座、Ollama/OpenAI 流式推理与 Vuebits 原生交互重构；当前进入「角色身份隔离 + 管理员专属控制面」精细化交付阶段  
+> **基准规范**：[AGENTS.md](file:///g:/LLM_Learning/product/AGENTS.md) · [docs/FRONTEND_PROGRESS.md](file:///g:/LLM_Learning/product/docs/FRONTEND_PROGRESS.md) · [docs/MOCK_INVENTORY.md](file:///g:/LLM_Learning/product/docs/MOCK_INVENTORY.md) · [Runtime.md](file:///g:/LLM_Learning/product/docs/harness/Runtime.md)  
+> **系统最后更新**：2026-11-17
 
 ---
 
-## 1. 全局真实现状诊断与纠偏看板 (Reality-Check Master Dashboard)
+## 1. 全局真实现状与基线诊断看板 (Reality-Check Master Dashboard)
 
 ```text
 ====================================================================================================
-【核心基础设施与前端界面】       ████████████████████████████████ 100% (Vue3 现代界面/路由框架/测试基础设施已交付)
-【核心业务链路真实性差距】       ██████████░░░░░░░░░░░░░░░░░░░░ 30% (存在假Embedding/硬编码生成/缺失会话表)
-【目标模式：个人高保真真闭环】   ████████████████░░░░░░░░░░░░░░░░ 50% (全面转向个人可及技术栈：LLM/Qdrant/Dify/N8N)
+【工程底座与生产化硬化】   ████████████████████████████████ 100% (Bootstrap / Dev / Staging Issue-0001~0037)
+【前端现代交互工作台】     ████████████████████████████████ 100% (Sprint F-01~F-09 + Vuebits 12 组件全交付)
+【真实化链路 R-01~R-04】   ████████████████████████████████ 100% (Issue-0038~0055 会话/向量/RAG/CoT全闭环)
+【RBAC 基座与管理员后台】  ████████████████░░░░░░░░░░░░░░░░  50% (Issue-0056~0057 已闭环; Issue-0058~0059 待执行)
 ====================================================================================================
 ```
 
-| 治理维度 | 物理排查结论与真实现状 | 纠偏决策与整改目标 |
+| 治理维度 | 当前物理基线状态 (2026-11-17 实测核验) | 现存业务差距与下阶段决策 |
 | :--- | :--- | :--- |
-| **数据库持久化** | 🔴 **严重缺失**：仅有 User/Inventory/Ticket/Approval，**完全缺少**会话表（`chat_sessions`）与历史消息表（`chat_messages`）；LangGraph 仅用内存 `MemorySaver` | 🎯 **Sprint R-01 攻坚**：新建 `ChatSession` 与 `ChatMessage` 表，提供分页历史查询 API 与持久化存储，前端支持历史会话回显与切换 |
-| **向量库与 Embedding** | 🔴 **伪算法与黑盒**：`get_embedding` 采用 `sha256 + sin` 计算伪 1024 维向量；Qdrant 掉线静默退化到内存；每次检索临时读文件临时 upsert；开发者无法得知库内现状 | 🎯 **Sprint R-02 攻坚**：替换为真实轻量级 Embedding（`fastembed` / BGE / API）；编写一键切片入库脚本 `scripts/ingest_knowledge.py`；新增 `/api/v1/knowledge/status` 探针 |
-| **RAG 检索与生成链路** | 🔴 **假回显无真实 LLM**：`generate_node.py` 将检索前 150 字符硬编码拼装为假文本；无真实模型调用；无语义 Rerank 与检索自校验机制 | 🎯 **Sprint R-03 攻坚**：重构 `generate_node`，接入真实 LLM 流式生成（打字机效果）；增加相关性阈值过滤与无上下文时的优雅自校验反思 |
-| **大模型推理引擎 (LLM)** | 🟡 **调用层空置**：`llm_gateway.py` 为模拟休眠与假字符串生成，未真正接入任何 API 提供商或本地推理服务 | 🎯 **Sprint R-03/04 攻坚**：封装统一的通用 OpenAI 兼容客户端，一键配置商用 API（DeepSeek / Qwen / OpenAI）或本地推理引擎（vLLM / Ollama） |
-| **开源工作流平台 (Dify/n8n)**| 🟡 **内存伪事件**：`workflow.py` 仅在内存列表记录事件，未真正与外部自动化工作流对接 | 🎯 **Sprint R-04 攻坚**：主攻个人可自建部署的 **Dify**（Workflow/Agent API）与 **N8N**（Webhook 自动化编排），实现真实的双向事件联动 |
-| **外部企业系统 (HR/ERP/OA)**| 🟢 **定位纠偏**：飞书人事、SAP ERP、泛微 OA 等企业专有系统个人无账号无内网，强行割接不现实 | 🎯 **保持高质量标准化模拟桩**：保留本地 REST API 模拟桩（完整覆盖员工、库存、采购、工单读写与单据流转），无需采购商业软件 |
-| **前端终端体验** | 🟢 **100% 验收就绪**：Vue 3 + Tailwind + Lucide + 零黑话，支持流式对话卡片、审批卡片、移动端视口适配 | 🎯 **持续保持**：与后端新持久化 API 对接，打通历史会话抽屉与多轮对话连续性 |
+| **数据库与会话持久化** | 🟢 **已全量闭环 (`Issue-0038`, `Issue-0054`, `Issue-0056`)**：`chat_sessions` 与 `chat_messages`（含 `thought`、`duration_seconds`、`thought_steps`）已持久化，且已按 JWT Bearer Token / WS Token 实现 `employee`/`manager`/`admin` 会话归属隔离 | 🟢 `chatStore.js` 与 WebSocket 已彻底移除 `u_vue3_user`，按当前认证用户名严格隔离 |
+| **向量库与真实 RAG** | 🟢 **已全量闭环 (`Issue-0039`, `Issue-0040`, `Issue-0048~0051`)**：`fastembed` / BGE / LocalSemantic + Qdrant UUID5 幂等入库 + `QueryRewriter` 子查询拆分 + `Reranker` 强阈值截断 + 6 个 `ToolRegistry` 函数全量注册 | 🟡 后端上传/同步 API (`backend/api/v1/knowledge.py`) 与 Celery 进度接口 (`backend/api/v1/tasks.py`) 已就绪，留待 `Issue-0058` 交付管理员上传与任务中心 |
+| **大模型推理与思考流** | 🟢 **已全量闭环 (`Issue-0043~0053`, `Issue-0057`)**：`NativeOllamaChatModel` + `EnterpriseChatOpenAI` + `LLM_THINKING` 思考开关，支持 Vue Bits `<ThoughtLine />` 真实推理流，并已落地 `backend/core/runtime_config.py` 与 `/api/v1/admin/config` 管理员 Web 实时热调配台 | 🟢 管理员可通过 `/admin/settings` 动态调整模型引擎、思考模式、采样温度、Max Tokens、`rag_top_k`/`rag_min_score` 与附加系统行为规范指令 |
+| **前端工作台与双主题** | 🟢 **身份基座与配置中心已就绪 (`Issue-0056~0057`)**：已上线 `authStore`、`/login`、角色切换器、`router.beforeEach` 守卫、`/admin/settings` 管理员配置中心与角色分层 `<Settings />` 偏好弹层 (`preferencesStore`) | 🟡 管理员剩余两大控制面实体页面（`/admin/tasks`、`/admin/monitoring`）待 `Issue-0058~0059` 依次落地 |
+| **工程质量与测试基线** | 🟢 **静态与构建全绿**：`ruff check backend/ benchmark/` 0 错误；Issue-0057 改造/新增 8 个后端文件 `mypy` 0 错误；`vite build` 7,916 模块 7.46s 0 错误；专项 48/48 全通（`test_admin_config_rbac.py` 7/7 全通），全量 `pytest` 实测 `269 passed, 2 failed`；全仓 Mock 资产已更新至 `docs/MOCK_INVENTORY.md` (V2.2) | 🟡 存留 2 项既有历史测试（`test_graph_unittest.py` 旧 Mock 文案断言、`test_thought_persistence.py` 受前置 `test_mock_systems.py` 未清 `dependency_overrides` 影响，单独复跑 `1 passed`）；全仓 `mypy backend/` 存在既有 `backend/core/metrics.py:21` 类型注释语法提示 |
 
 ---
 
-## 2. 用户视角实操痛点归因与差距分析 (Gap Analysis)
+## 2. 规划纠偏、范围裁剪与优先级重构决议 (Scope Re-Prioritization)
 
-在真实 Demo 使用过程中暴露的四大核心短板与物理成因：
+基于产品实际使用场景与用户角色职责边界的深度评估，对剩余未开发页面模块执行如下**战略级优先级重排与范围裁剪**：
 
 ```mermaid
-graph TD
-    subgraph Reality_Gaps [四大核心物理脱节成因]
-        G1[痛点 1: 刷新页面历史全无<br/>· 缺少 chat_sessions / chat_messages 表<br/>· MemorySaver 内存状态易失]
-        G2[痛点 2: 向量检索语义失效且黑盒<br/>· sha256 + sin 伪数学向量<br/>· 检索时临时 upsert 内存<br/>· 无集合状态与点数探针]
-        G3[痛点 3: RAG 没有真实大模型参与<br/>· generate_node 截取 150 字拼装假响应<br/>· 缺乏语义 Rerank 与检索自校验<br/>· WebSocket 未触发真实 Token 流]
-        G4[痛点 4: 外部系统脱离个人实际<br/>· 盲目规划飞书/SAP/泛微<br/>· 忽视个人可及的 vLLM/Dify/N8N]
+flowchart TD
+    P0["P0 核心基座 · Issue-0056<br/>用户身份认证与角色切换中心<br/>(employee / manager / admin)<br/>× 明确去除安全密级开发"] --> P1["P1 · Issue-0057 (置于 P0 之后)<br/>管理员专属：大模型参数与节点配置中心<br/>(/admin/settings)"]
+    P0 --> P2["P2 · Issue-0058 (管理员操作范围)<br/>管理员专属：知识文档上传与异步解析任务中心<br/>(/admin/tasks)"]
+    P0 --> P3["P3 · Issue-0059 (管理员操作范围)<br/>管理员专属：系统遥测、工具审计与 SLA 监控看板<br/>(/admin/monitoring)"]
+
+    subgraph Deferred_And_Excluded ["明确剔除与暂缓搁置范围"]
+        EX["× 已剔除：4级安全密级前端演示与密级过滤测试"]
+        DF1["⏸ 暂缓搁置：外部工作流平台与 Webhook 编排页 (/workflows)"]
+        DF2["⏸ 暂缓搁置：交互反馈标注与 DPO 数据集导出台 (/eval)"]
     end
-    Reality_Gaps --> Refocus[系统性纠偏与落地路线图]
 ```
 
-### 痛点 1：数据库遗漏会话历史与工单审批上下文孤岛
-- **现象**：用户在前端发消息聊天后，刷新页面聊天记录无法找回；工单和审批记录散落在单点接口中，未与特定会话线程强绑定。
-- **成因**：前序设计侧重于单次请求的单元测试通过率，仅在 LangGraph 中使用了内存型的 `MemorySaver()`，未在 SQLAlchemy 中建立 `chat_sessions` 和 `chat_messages` 实体表。
-
-### 痛点 2：向量库黑盒且使用伪向量算法
-- **现象**：开发者在本地启动项目后，完全不知道 Qdrant 有没有部署、规章制度文档有没有切片入库、检索到底有没有命中。
-- **成因**：`backend/rag/vector_store.py` 内部使用 `hashlib.sha256 + sin` 计算假向量，无法度量语义相似度；每次查询时重新扫描本地文件插入内存，缺乏持久化的知识库离线构建管道。
-
-### 痛点 3：RAG 全链路无真实大模型流式生成与自校验
-- **现象**：用户提问任何规章制度，系统返回的都是一段机械的 `[RAG Answer]: Based on corporate knowledge base...` 开头的截取文本。
-- **成因**：`generate_node.py` 中写死了纯字符串拼接逻辑，完全没有通过 LangChain 或 SDK 调用真实大模型（OpenAI/DeepSeek 等）；也缺少判断检索内容是否相关的自校验（Self-Correction）机制。
-
-### 痛点 4：对接方向脱离个人实际
-- **现象**：文档中规划了大量“无感割接到飞书、SAP ERP、泛微 OA、企业微信”，但个人开发者既无企业凭证也无企业内网，造成大量代码空置。
-- **成因**：规划初期直接套用了大型外企架构蓝图。纠偏后，应坚决将企业系统降级为**本地高质量模拟桩**，将精力聚焦于个人完全可玩转的 **OpenAI兼容大模型 / 本地 vLLM / Ollama** 以及 **开源自建工作流平台 Dify / N8N**。
+### 核心决策说明
+1. **第五点（用户身份与角色切换）跃升为第一优先级前置基座 (`P0 / Issue-0056`)**：
+   - 大模型参数、LangGraph 节点策略、知识库文档入库以及系统遥测监控，**绝不是普通员工需要考虑和接触的功能**，而应由企业系统管理员（`admin`）依据公司安全、算力与业务规范统一调配。
+   - 因此，必须先建立身份认证与角色上下文切换基座，实现前后端 RBAC 菜单与接口权限隔离，后续所有管理能力才能安全挂载。
+2. **明确去除“安全密级”功能开发（Scope Removal）**：
+   - 本项目主要聚焦职责角色权限隔离（普通员工 / 部门主管 / 系统管理员）与企业业务闭环。
+   - 决定**去除“4 级安全密级（1=公开 / 2=内部 / 3=机密 / 4=绝密）”的前端切换演示与密级访问阻断开发**（`backend/rag/vector_store.py` 既有历史元数据字段保持向后兼容、不破坏现有单测即可，前端与新业务不再围绕密级展开）。
+3. **管理员专属核心三模块建立在 P0 之上依次交付 (`P1 ~ P3`)**：
+   - **P1 (`Issue-0057`)**：管理员专属·大模型参数与 LangGraph 节点配置中心（`/admin/settings`，置于身份切换之后；普通用户点击左下角设置仅见外观主题等个人偏好，管理员可进入完整模型与节点调配台）。
+   - **P2 (`Issue-0058`)**：管理员专属·知识文档上传与异步解析任务中心（`/admin/tasks`，限 `admin` 操作，接通上传、Celery 解析进度与 Qdrant 状态重建）。
+   - **P3 (`Issue-0059`)**：管理员专属·系统遥测、工具审计与 SLA 监控看板（`/admin/monitoring`，限 `admin` 操作，展示指标监控与工具/工单履约情况）。
+4. **明确暂缓搁置范围（Deferred Scope）**：
+   - **原第三点**：外部工作流平台集成与 Webhook 编排前端视图（`/workflows`，Dify/N8N 编排台与企微消息模拟器）—— **暂缓搁置**（保留现有后端 `backend/api/v1/workflow.py` 接口）。
+   - **原第六点**：交互反馈标注与 DPO 数据集导出工作台（`/eval` / `/feedback`）—— **暂缓搁置**（保留现有后端 `backend/api/v1/feedback.py` 接口）。
 
 ---
 
-## 3. 务实攻坚路线图与阶段规划 (Pragmatic Sprint Plan)
+## 3. 已闭环务实攻坚里程碑归档 (Completed Realization Sprints R-01 ~ R-04)
 
-为了面向用户视角彻底打通真实的端到端体验，制定以下四个真实化攻坚 Sprint：
+| 阶段 / Issue | 核心交付内容 | 关键资产落盘 | 状态 |
+| :--- | :--- | :--- | :---: |
+| **Sprint R-01 (`Issue-0038`)** | 数据库会话历史持久化、`ChatSession`/`ChatMessage` ORM 与 REST/WS 双向落库 | `backend/models/chat.py`, `backend/api/v1/chat.py`, `test_chat_persistence.py` | ✅ COMPLETED (98分) |
+| **Sprint R-02 (`Issue-0039`)** | 真实 Embedding 引擎（FastEmbed/OpenAI/LocalSemantic）、离线切片入库 CLI 与 Qdrant 状态探针 | `backend/rag/embeddings.py`, `backend/scripts/ingest_knowledge.py`, `backend/api/v1/knowledge.py` | ✅ COMPLETED (99分) |
+| **Sprint R-03 (`Issue-0040`)** | 统一 LLM 客户端封装、RAG 自校验反思（Self-Correction）与 WebSocket 逐字 Token 流式输出 | `backend/core/llm.py`, `backend/graph/nodes/generate_node.py`, `test_rag_pipeline_and_streaming.py` | ✅ COMPLETED (99分) |
+| **Sprint R-04 (`Issue-0041~0045`)** | 前端多会话真实拉取、Windows 批处理编码自愈、本地回环禁用代理破除 502、WS 断连防御与人设去套话 | `backend/core/llm.py`, `backend/api/v1/chat_ws.py`, `frontend/src/stores/chatStore.js`, `*.bat` | ✅ COMPLETED |
+| **Sprint R-04 (`Issue-0046~0049`)** | Vue Bits `<ThoughtLine />` 官方规范集成、实时思考计时、WS 心跳/Abort 独立协程隔离、RAG-First 路由与 `search_knowledge_base` 工具注册、TTFT 预热提速 | `frontend/src/components/ui/ThoughtLine.vue`, `backend/tools/impl/knowledge_tools.py`, `backend/main.py` | ✅ COMPLETED (100分) |
+| **Sprint R-04 (`Issue-0050~0055`)** | 根除 2B 模型思考死锁与假制度倒流、Query 改写拆分子查询与 Rerank 强阈值截断、消除 Emoji 统一字体、`NativeOllamaChatModel` 与 `LLM_THINKING` 极速切换、思考链历史持久化、边栏会话展示对称修复 | `backend/rag/query_rewriter.py`, `backend/core/llm.py`, `backend/models/chat.py`, `frontend/src/components/layout/Sidebar.vue` | ✅ COMPLETED (100分) |
+
+---
+
+## 4. 下一阶段攻坚规划：Sprint R-05 身份基座与管理员控制台闭环
 
 ```text
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                        PRAGMATIC REALIZATION: 4 大真实化攻坚 Sprint 规划                               │
-├───────────────────┬───────────────────┬────────────────────┬───────────────────────────────────────────┤
-│ Sprint R-01       │ Sprint R-02       │ Sprint R-03        │ Sprint R-04                               │
-├───────────────────┼───────────────────┼────────────────────┼───────────────────────────────────────────┤
-│ 数据库与会话持久化 │ 真实向量库与构建探针 │ 真实 RAG 与 LLM 生成│ 个人工作流与引擎集成                      │
-│ (Chat Persistence)│ (Real Vector KB)  │ (Real RAG Pipeline)│ (vLLM / Dify / N8N Integration)           │
-│                   │                   │                    │                                           │
-│ · 新增 Session 表 │ · 真实 Embedding  │ · 接入真实大模型   │ · 适配 OpenAI / DeepSeek / vLLM / Ollama  │
-│ · 新增 Message 表 │ · 离线切片入库脚本│ · 重构生成节点     │ · Dify Workflow API 真实调用              │
-│ · 历史列表与回显  │ · 向量状态监控探针│ · 检索自校验反思   │ · N8N Webhook 真实事件通知                │
-│ · 状态机持久化    │ · 语义相似度测试  │ · 真实流式 Token   │ · 完善个人一键启动部署指南                │
-└───────────────────┴───────────────────┴────────────────────┴───────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                     Sprint R-05: 身份基座优先 + 管理员专属控制面三剑客规划矩阵                              │
+├───────────────────────────┬───────────────────────────┬───────────────────────────┬──────────────────────┤
+│ P0: Issue-0056            │ P1: Issue-0057            │ P2: Issue-0058            │ P3: Issue-0059       │
+├───────────────────────────┼───────────────────────────┼───────────────────────────┼──────────────────────┤
+│ 身份认证与角色切换基座      │ 管理员大模型与节点配置中心  │ 管理员文档上传与任务中心    │ 管理员遥测与 SLA 看板 │
+│ (不含安全密级)             │ (/admin/settings)         │ (/admin/tasks)            │ (/admin/monitoring)  │
+│                           │                           │                           │                      │
+│ · authStore + JWT 鉴权    │ · 仅 admin 角色可访        │ · 仅 admin 角色可访        │ · 仅 admin 角色可访   │
+│ · 员工/主管/管理员一键切换 │ · 思考模式/温度/Token热配 │ · 批量拖拽上传 PDF/Word   │ · TTFT/Token 指标图表 │
+│ · 替换硬编码"张经理"       │ · RAG 阈值与节点策略调节   │ · Celery 进度轮询监控      │ · Tool调用成功率审计 │
+│ · 动态路由与侧栏权限隔离   │ · 盘活底部 Settings 死按钮 │ · Qdrant 点位与一键 Sync  │ · P0~P4 SLA 履约监控  │
+└───────────────────────────┴───────────────────────────┴───────────────────────────┴──────────────────────┘
+```
+
+### 角色权限隔离矩阵 (Role-Based Access Matrix — 无安全密级)
+
+| 角色 (`RoleEnum`) | 默认演示账号 (参考 `backend/core/rbac.py`) | 可访问工作台与路由 | 禁用与隐藏模块 |
+| :--- | :--- | :--- | :--- |
+| **`employee` (普通员工)** | `employee` / `emp123` (HR) | `/` (AI 对话工作台)、`/knowledge` (规章制度阅读)、个人主题外观偏好弹窗 | 隐藏 `/approvals` 审批操作或仅看个人申请；**完全隐藏并禁止访问** `/admin/settings`、`/admin/tasks`、`/admin/monitoring` |
+| **`manager` (部门主管)** | `manager` / `manager123` (Procurement) | `/` (AI 对话工作台)、`/approvals` (待我审批与批量核准)、`/knowledge` (规章制度阅读)、个人主题外观偏好弹窗 | **禁止访问**管理员级大模型参数调配、知识库入库运维与全局遥测看板 |
+| **`admin` (系统管理员)** | `admin` / `admin123` (IT Management) | **全部工作台** + 管理员控制域：`/admin/settings` (模型与节点配置)、`/admin/tasks` (文档上传与任务中心)、`/admin/monitoring` (系统遥测与 SLA 监控) | — |
+
+---
+
+## 5. Harness Engineering 规范标准提示词库 (Standardized Harness Prompts for Execution)
+
+> **使用说明**：当需要启动以下任意一个 Issue 的开发任务时，请将「5.0 全局前置约束」与对应 Issue 的标准提示词一并发送给 Agent。严禁跳过 `.harness/runs/Issue-XXXX/` 证据包流程或违背 `Runtime.md` / `FRONTEND_PROGRESS.md` 规范。
+
+### 5.0 全局 Harness 执行总控前置声明 (Mandatory Harness Preamble)
+
+```markdown
+请严格遵循仓库 Harness Engineering 最高规范执行本次任务：
+1. 先行读取 `AGENTS.md`、`docs/harness/Runtime.md`、`docs/harness/Lifecycle.md`、`docs/harness/evidence-design.md` 与 `docs/FRONTEND_PROGRESS.md`（第 9 节）。
+2. 严禁裸写代码：必须在 `.harness/runs/Issue-XXXX/` 下按顺序生成物理隔离的 8 大只读证据包（`issue.md`, `plan.md`, `developer.md`, `review.md`, `documentation.md`, `verification.md`, `summary.json`, `timeline.md`/`runtime.log`），并同步更新 `docs/plans/sprint-active.md`。
+3. 后端 Python 命令必须统一使用 `backend/.venv/Scripts/python.exe`；每次提交前必须实测运行 `ruff check backend/ benchmark/`、`pytest` 与前端 `npm run build`（`vite build`）。
+4. 前端严格遵循“双零铁律”与双主题拟合规范：严禁任何系统 Emoji 与技术调试黑话（如 `thread_id`/`TTFT` 严禁泄漏给普通员工终端视图，管理员监控大屏仅以规范中文业务指标呈现）；统一使用 `lucide-vue-next` 与 `@hugeicons/vue` 矢量图标；保证日间温润白与夜间曜石灰双主题 WCAG AA/AAA 对比度。
+5. 架构边界硬约束：严格剔除“安全密级 (Security Clearance)”相关开发；严格按 `employee` / `manager` / `admin` 职责角色做路由、菜单与后端 `require_role` 鉴权隔离。
 ```
 
 ---
 
-### 3.1 Sprint R-01: 数据库与会话持久化真身落地 (Chat & Session Persistence)
+### 5.1 P0 前置基座：`Prompt-Issue-0056-IdentityAndRoleSwitching`
 
-* **攻坚目标**：补齐数据库中缺失的对话实体表，打通会话历史持久化，使前端支持刷新后多轮历史回显与多会话管理。
-* **交付内容**：
-  1. **新建 SQLAlchemy 模型**（`backend/models/chat.py`）：
-     - `ChatSession`：会话唯一标识 `session_id`、用户 ID、会话标题 `title`、创建与更新时间、软删除标记。
-     - `ChatMessage`：消息 ID、关联 `session_id`、角色 `role`（user / assistant / system / tool）、消息文本 `content`、检索引用的源文件元数据 `sources`、时间戳。
-  2. **会话管理 REST API**（`backend/api/v1/chat.py`）：
-     - `GET /api/v1/chat/sessions`：获取当前用户的历史会话列表（分页、按最新更新时间倒序）。
-     - `GET /api/v1/chat/sessions/{session_id}/messages`：获取指定会话的历史消息记录。
-     - `DELETE /api/v1/chat/sessions/{session_id}`：删除指定会话及其消息。
-     - `PUT /api/v1/chat/sessions/{session_id}/title`：修改会话标题。
-  3. **WebSocket 与状态机持久化联动**：
-     - 用户通过 WebSocket 发送消息时，自动创建/更新 `ChatSession`，并向 `ChatMessage` 插入用户提问。
-     - LLM 生成回答完毕后，自动向 `ChatMessage` 插入助手回复与引用溯源。
-     - 前端左侧历史会话抽屉对接上述 API，点击历史会话即可无缝加载上下文。
+```markdown
+请按照 Harness Engineering 规范接收并执行 **Issue-0056：“用户身份认证、角色上下文切换基座与 RBAC 视图隔离（不含安全密级）”**。
 
----
+【工程目标与范围边界】：
+作为 Sprint R-05 的最高优先级前置基座，彻底移除前端硬编码的“张经理 / 研发部”与固定 `u_vue3_user`，打通后端 `/api/v1/auth/login` 与 `/api/v1/auth/me` JWT 鉴权链路，构建 Pinia `authStore` 与全局角色切换器，实现 `employee`（普通员工）、`manager`（部门主管）、`admin`（系统管理员）三角色路由守卫、菜单隔离及会话数据隔离。
+**明确范围剔除**：不开发任何 4 级安全密级（Security Clearance）前端切换或密级访问阻断演示功能。
 
-### 3.2 Sprint R-02: 真实向量库底座与知识库离线构建全可观测 (Real Vector & Ingestion)
+【落实步骤 (Step-by-Step Flow)】：
+- Step 1 [Harness 沙盒初始化与拆解]：在 `.harness/runs/Issue-0056/` 创建 `issue.md` 与 `plan.md`，同步将 `Issue-0056` 登记至 `docs/plans/sprint-active.md`。
+- Step 2 [后端鉴权与角色接口对齐]：核查 `backend/core/rbac.py` 与 `backend/api/v1/auth.py`，补充面向演示与开发的快捷身份列表查询/角色切换支撑接口（或标准化登录返回 `username`、`display_name`、`role`、`department`），确保 `backend/api/v1/chat.py`、`backend/api/v1/approval.py` 在携带 Bearer Token 时优先按当前认证用户身份隔离会话与审批人署名（同时保持无头单元测试向后兼容）。
+- Step 3 [前端认证仓储与请求注入]：新建 `frontend/src/stores/authStore.js`，管理 `token`、`user` (`username`, `displayName`, `role`, `department`)、`isAuthenticated`、`isAdmin`、`isManager`，持久化至 `localStorage` 并提供一键演示角色切换方法（普通员工 / 部门主管 / 系统管理员）与标准账号登录页/弹窗；重构 `frontend/src/stores/chatStore.js` 与 `useChatStream.js`，将写死的 `u_vue3_user` 替换为当前 `authStore.user.username`，切换身份后自动刷新会话列表。
+- Step 4 [侧边栏、顶栏与移动端头像改造]：改造 `frontend/src/components/layout/Sidebar.vue`、`Header.vue`、`MobileDrawer.vue`，消除硬编码的“张经理 / 研发部”，动态渲染当前角色名、部门与角色徽章；新增角色切换触发入口；仅当 `role === 'manager' || role === 'admin'` 时显示待审批导航权限（或明确审批操作权限边界），仅当 `role === 'admin'` 时显示「系统管理控制台」导航分组入口（为 Issue-0057~0059 预留标准导航插槽）。
+- Step 5 [Vue Router 角色路由守卫]：更新 `frontend/src/router/index.js`，新增 `/login` 登录视图（或快捷角色切换引导）及基于 `meta.roles` 的 `router.beforeEach` 守卫，拦截普通员工/主管越权直访 `/admin/*` 路径并给出优雅的中文无权限提示跳转。
+- Step 6 [测试、构建与证据归档]：编写后端 RBAC 鉴权与会话隔离测试 `backend/tests/unit/test_auth_role_isolation.py`；运行 `backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/`、`pytest` 与 `frontend` `npm run build`；完成 Reviewer 11 维审查（ReviewScore ≥ 90）并归档 `.harness/runs/Issue-0056/` 全套 8 大证据包。
 
-* **攻坚目标**：彻底消灭伪哈希向量算法，接入真实轻量级 Embedding，提供一键离线切片入库工具与向量库运行状态探针。
-* **交付内容**：
-  1. **真实 Embedding 引擎接入**（`backend/rag/embeddings.py`）：
-     - 引入轻量级、免本地复杂 GPU 环境的 `fastembed`（默认载入 `BAAI/bge-small-zh-v1.5`，CPU 秒级运行，纯本地推理零成本），或支持配置 OpenAI 兼容的远程 Embedding API。
-  2. **一键离线切片入库脚本**（`backend/scripts/ingest_knowledge.py`）：
-     - 递归读取 `docs/sample_kb/` 及自定义知识库目录下的 Markdown、PDF、Excel、TXT 文件。
-     - 按照递归字符/语义规则分块（Chunking），提取元数据（部门、分类、安全密级）。
-     - 批量调用真实 Embedding 并持久化写入 Qdrant 集合中。
-     - 控制台打印明晰日志：解析文件数、切片 Chunk 数、写入 Point 数、耗时，并自动运行 1 道测试 Query 验证召回正确性。
-  3. **知识库状态可观测探针**（`backend/api/v1/knowledge.py`）：
-     - `GET /api/v1/knowledge/status`：返回 Qdrant 运行状态、当前集合 Point 总数、向量维度与度量方式、已入库文件清单与切片分布。
+【核心受影响资产】：
+- 后端：`backend/core/rbac.py`, `backend/api/v1/auth.py`, `backend/api/v1/chat.py`, `backend/api/v1/approval.py`, `backend/tests/unit/test_auth_role_isolation.py`
+- 前端：`frontend/src/stores/authStore.js`, `frontend/src/stores/chatStore.js`, `frontend/src/router/index.js`, `frontend/src/views/LoginView.vue`, `frontend/src/components/layout/{Sidebar,Header,MobileDrawer}.vue`
+```
 
 ---
 
-### 3.3 Sprint R-03: 端到端真实 RAG 闭环与大模型流式生成 (Real RAG Pipeline & LLM)
+### 5.2 P1（置于 P0 之后）：`Prompt-Issue-0057-AdminLLMAndNodeSettings`
 
-* **攻坚目标**：重构生成节点，接入真实大模型进行语义理解与内容生成，实现真正的打字机流式输出、检索自校验与引用溯源。
-* **交付内容**：
-  1. **统一大模型调用层**（`backend/core/llm.py`）：
-     - 封装 `get_chat_llm()`，提供通用 OpenAI 兼容协议支持。
-     - 用户只需在 `.env` 中配置 `OPENAI_API_BASE`、`OPENAI_API_KEY` 与 `LLM_MODEL`，即可零代码接入 DeepSeek、通义千问 Qwen、OpenAI 或本地部署的 vLLM / Ollama。
-  2. **重构生成节点**（`backend/graph/nodes/generate_node.py`）：
-     - 注入系统角色设定（System Prompt）：企业数字员工助理，基于知识库真实严谨作答。
-     - 将检索到的候选 Context 与历史对话注入 Prompt，调用真实模型完成回答合成。
-     - 对接 WebSocket 的 `on_chat_model_stream` 事件，实现真正的逐字 Token 流式推送。
-  3. **检索质量自校验与反思机制 (Self-Correction)**：
-     - 引入相似度阈值过滤（如 Rerank/Vector 得分 < 0.25 的切片自动过滤）。
-     - 若未检索到高相关性内容，触发自校验优雅反思：“在当前企业知识库中未找到与您问题直接匹配的制度条款，建议咨询 HR/IT 相关负责人或调整提问关键词”，杜绝模型凭空编造。
-  4. **精确引用溯源**：在回复末尾清晰标注文档名与对应章节（如 `[参考: 采购审批管理制度.md (第 3 章 审批权限)]`）。
+```markdown
+请按照 Harness Engineering 规范接收并执行 **Issue-0057：“管理员专属·大模型参数与 LangGraph 节点配置中心 (`/admin/settings`)”**。
 
----
+【前置依赖校验】：
+必须确认 **Issue-0056 (P0 身份认证与角色切换基座)** 已完成并合入。普通员工与部门主管严禁看到或修改任何模型推理参数与节点配置，本页面严格限定 `RoleEnum.ADMIN` 专属操作。
 
-### 3.4 Sprint R-04: 个人可及的开源工作流集成与部署指南 (Workflows & Runbook)
+【工程目标】：
+打通前后端管理员级大模型参数与节点策略动态配置能力，使企业管理员可根据公司算力预算、合规要求与业务精度动态调配推理模式（极速模式 vs 深度思考 `LLM_THINKING`）、模型底座、采样参数及 RAG/LangGraph 节点行为，并盘活侧边栏与移动端抽屉左下角死链 `<Settings />` 按钮（普通用户仅打开个人主题/界面偏好轻量抽屉，管理员可直达 `/admin/settings`）。
 
-* **攻坚目标**：打通自建开源工作流平台（Dify、N8N）的真实调用，收拢规范 HR/ERP/OA 本地模拟桩，提供个人一键启动与使用白皮书。
-* **交付内容**：
-  1. **N8N 真实 Webhook 联动**：
-     - 当系统触发采购审批、报修工单时，真正通过 HTTP POST 向用户配置的 N8N Webhook 发送 JSON 载荷，验证 N8N 自动化流的触发与执行。
-  2. **Dify Workflow API 联动**：
-     - 编写 Dify 客户端适配器，支持向本地或云端部署的 Dify 发起任务请求并解析结构化返回。
-  3. **HR / ERP / OA 本地标准化模拟桩固化**：
-     - 明确其作为“开箱即用优质模拟桩”的定位，确保即使在完全离线无外部企业账号的情况下，员工查询、库存增减、采购单创建、工单流转也 100% 能够自闭环运行。
-  4. **个人高保真部署与运行指南**（`docs/PERSONAL_RUNBOOK.md`）：
-     - 提供极简的一键环境拉起（Docker 运行 Qdrant/MySQL，或单机免 Docker 的 SQLite+本地Embedding+商用API）。
-     - 提供保姆级 `.env` 配置说明与常见问题排查指南。
+【落实步骤 (Step-by-Step Flow)】：
+- Step 1 [Harness 沙盒初始化与拆解]：在 `.harness/runs/Issue-0057/` 创建 `issue.md` 与 `plan.md`，同步更新 `docs/plans/sprint-active.md`。
+- Step 2 [后端运行时配置服务与管理员 API]：新建 `backend/core/runtime_config.py`（支持读写并持久化覆盖 `settings` 中的安全可调白名单参数，严禁向前端明文回传 `LLM_API_KEY` 与 `SECRET_KEY`，仅回传脱敏掩码状态），新建 `backend/api/v1/admin_config.py` 并挂载至 `backend/main.py`（`/api/v1/admin/config`），使用 `Depends(require_role([RoleEnum.ADMIN]))` 强制拦截非管理员请求（HTTP 403）。可调配置项包括：`LLM_PROVIDER`、`LLM_MODEL`、`LLM_API_BASE`、`LLM_THINKING`（极速/深度思考开关）、`LLM_TEMPERATURE`、`LLM_MAX_TOKENS`、RAG 检索 `top_k` 与 `min_score` 阈值、以及企业助手系统级行为规范附加指令；确保 `backend/core/llm.py` (`get_chat_llm`) 与 `backend/rag/retriever.py` / `generate_node.py` 动态读取生效参数。
+- Step 3 [前端管理员配置工作台]：新建 `frontend/src/views/AdminSettingsView.vue` 并注册路由 `/admin/settings`（`meta: { roles: ['admin'] }`），采用 `ui-ux-pro-max` 双主题毛玻璃卡片设计（零 Emoji、Lucide/Hugeicons 矢量图标）：包含「推理引擎与思考模式」切换卡（极速 2.8s 响应 vs 深度思考展示 CoT）、「模型参数滑块」(`Temperature` / `Max Tokens`)、「LangGraph 节点与 RAG 检索策略」调参面板、「连通性探活测试」与「恢复默认配置」操作。
+- Step 4 [盘活设置按钮与分层入口]：修改 `frontend/src/components/layout/Sidebar.vue` 与 `MobileDrawer.vue` 中原本无事件的 `<Settings />` 按钮——若当前为 `admin`，提供直达 `/admin/settings` 入口；若为普通员工/主管，仅弹出「个人外观与显示偏好」轻量弹层（日夜主题切换、会话视图偏好），彻底隔离大模型底层参数。
+- Step 5 [测试、构建与证据归档]：编写 `backend/tests/unit/test_admin_config_rbac.py`（覆盖普通员工/主管 403 拒绝、管理员读写、API Key 脱敏不回显、配置热生效）；运行 `ruff`、`pytest` 与 `npm run build`；完成 Reviewer 审计（ReviewScore ≥ 90）并落盘 `.harness/runs/Issue-0057/` 8 大证据包。
+
+【核心受影响资产】：
+- 后端：`backend/core/runtime_config.py`, `backend/api/v1/admin_config.py`, `backend/core/llm.py`, `backend/graph/nodes/generate_node.py`, `backend/main.py`, `backend/tests/unit/test_admin_config_rbac.py`
+- 前端：`frontend/src/views/AdminSettingsView.vue`, `frontend/src/router/index.js`, `frontend/src/components/layout/{Sidebar,MobileDrawer}.vue`
+```
 
 ---
 
-## 4. 历史阶段已交付稳态资产 (Preserved Foundations)
+### 5.3 P2（管理员操作范围）：`Prompt-Issue-0058-AdminKnowledgeTasksCenter`
 
-前序开发中已经沉淀的扎实工程骨架将被 100% 继承并作为坚实底座：
+```markdown
+请按照 Harness Engineering 规范接收并执行 **Issue-0058：“管理员专属·知识文档上传与异步解析任务中心 (`/admin/tasks`)”**。
 
-1. **前端 ChatGPT / Gemini 现代化终端体验 (100% 交付)**：
-   - Vue 3 + Tailwind CSS + Lucide 图标库；
-   - 响应式侧边栏、移动端抽屉、Markdown 实时渲染、流式打字机视觉组件；
-   - 采购与审批人机协同卡片交互。
-2. **LangGraph 状态机拓扑与核心骨架 (100% 交付)**：
-   - 完整的 StateGraph 意图路由节点、条件边流转、工具调用节点（Tool Node）以及中断挂起（Interrupt）机制。
-3. **工程合规与测试框架 (100% 交付)**：
-   - `ruff check` 0 告警代码质量控制；
-   - 模块化单测套件与自动化测试基线；
-   - 统一配置管理 `backend/core/config.py` 与异常处理基类。
+【前置依赖校验】：
+建立在 **Issue-0056 (P0 身份基座)** 的 `admin` 管理员操作范围内。普通员工仅保留 `/knowledge` 的制度阅读与提问权限，知识库文档上传、任务调度与全库重建索引统一归口管理员控制面。
+
+【工程目标】：
+为管理员打造可视化的企业知识库摄入与任务监控中心，打通后端已有 `POST /api/v1/knowledge/upload`、`POST /api/v1/knowledge/sync`、`GET /api/v1/knowledge/status` 与 `GET /api/v1/tasks/{task_id}/status` 链路，并收紧写操作 RBAC 鉴权为管理员权限。
+
+【落实步骤 (Step-by-Step Flow)】：
+- Step 1 [Harness 沙盒初始化与拆解]：在 `.harness/runs/Issue-0058/` 创建 `issue.md` 与 `plan.md`，同步更新 `docs/plans/sprint-active.md`。
+- Step 2 [后端管理员权限收紧与任务台账增强]：修改 `backend/api/v1/knowledge.py`，将 `upload_knowledge_file` 与 `sync_knowledge_base` 的 RBAC 鉴权收紧至 `require_role([RoleEnum.ADMIN])`（同步保留 `get_knowledge_status` 与 `/search` 给已登录员工/主管），补充已上传文件历史列表/单文件校验与异步降级兜底状态返回（确保未开启 Celery Worker 时同步模式亦可流畅反馈进度与结果）。
+- Step 3 [前端拖拽上传与异步解析看板]：新建 `frontend/src/views/AdminTasksView.vue` 并注册路由 `/admin/tasks`（`meta: { roles: ['admin'] }`），实现：
+  1. 知识库向量底座概览卡片（Qdrant 运行模式、已入库 Point 总数、向量维度、Embedding 引擎与已索引文档清单）；
+  2. 多格式文件（`.md`, `.pdf`, `.xlsx`, `.xls`, `.txt`）拖拽上传区与业务分类选择器（同步快速入库 / Celery 异步入库切换）；
+  3. 实时任务进度追踪列表（轮询 `/api/v1/tasks/{task_id}/status`，结合 `@vue-bits/StatusMark` 展现排队 -> 文档解析 -> 语义切片 -> 向量入库 -> 完成/失败状态）；
+  4. 「一键全量增量同步 (`Sync`)」按钮与二次确认保护（`@vue-bits/FuseButton`）。
+- Step 4 [侧边栏管理入口挂接与测试归档]：在 `Sidebar.vue` 与 `MobileDrawer.vue` 的管理员菜单区挂载「知识库运维与任务中心」入口；编写 `backend/tests/unit/test_admin_knowledge_tasks.py` 验证非管理员上传/同步返回 403、管理员状态探针与上传闭环；运行 `ruff`、`pytest` 与 `npm run build`；落盘 `.harness/runs/Issue-0058/` 8 大证据包（ReviewScore ≥ 90）。
+
+【核心受影响资产】：
+- 后端：`backend/api/v1/knowledge.py`, `backend/api/v1/tasks.py`, `backend/tests/unit/test_admin_knowledge_tasks.py`
+- 前端：`frontend/src/views/AdminTasksView.vue`, `frontend/src/router/index.js`, `frontend/src/components/layout/{Sidebar,MobileDrawer}.vue`
+```
 
 ---
 
-## 5. 总结与下一步行动
+### 5.4 P3（管理员操作范围）：`Prompt-Issue-0059-AdminTelemetryAndSLADashboard`
 
-通过本次重整：
-- 我们坦诚直面了前序阶段在**会话持久化、向量化有效性、真实大模型接入与可及性边界**上的差距；
-- 确立了以**“个人可运行、高保真、真闭环”**为核心指导思想的 4 个真实化攻坚 Sprint（R-01 ~ R-04）；
-- 接下来即可依据此路线图，逐项落地真实代码与数据库表结构，将企业级 AI 数字员工平台打造成真正经得起用户深度实操的优质产品！
+```markdown
+请按照 Harness Engineering 规范接收并执行 **Issue-0059：“管理员专属·系统遥测、工具审计与 SLA 监控看板 (`/admin/monitoring`)”**。
+
+【前置依赖校验】：
+建立在 **Issue-0056 (P0 身份基座)** 的 `admin` 管理员操作范围内，严禁普通员工与主管访问全局系统监控指标与调用审计明细。
+
+【工程目标】：
+把后端已沉淀的 `backend/core/metrics.py` Prometheus 指标（TTFT 分布、Token 消耗、Prompt Cache 命中、活跃 WS 连接）、Tool 执行审计与业务工单 SLA 数据转化为前端可视化管理大屏，帮助管理员实时掌握系统健康度、推理耗时与业务闭环效率。
+
+【落实步骤 (Step-by-Step Flow)】：
+- Step 1 [Harness 沙盒初始化与拆解]：在 `.harness/runs/Issue-0059/` 创建 `issue.md` 与 `plan.md`，同步更新 `docs/plans/sprint-active.md`。
+- Step 2 [后端结构化遥测与 SLA 聚合 API]：新建 `backend/api/v1/monitoring.py` 并挂载至 `backend/main.py`（`/api/v1/admin/monitoring/overview`），强制使用 `Depends(require_role([RoleEnum.ADMIN]))` 保护；从 `prometheus_client.REGISTRY`（`backend/core/metrics.py`）以及数据库会话/审批/工单表（`ChatSession`, `ChatMessage`, `Approval`, `Ticket`）聚合生成结构化 JSON 数据：包含总会话与消息量、TTFT 分桶统计、输入/输出 Token 累计、缓存命中率、工具调用统计与 P0~P4 工单 SLA 履约率。
+- Step 3 [前端系统遥测与 SLA 大屏]：新建 `frontend/src/views/AdminMonitoringView.vue` 并注册路由 `/admin/monitoring`（`meta: { roles: ['admin'] }`），遵守 `ui-ux-pro-max` 双主题对比度与零 Emoji 规范，实现：
+  1. 核心 KPI 状态卡片（活跃连接数、累计 Token 消耗、缓存命中率、待办与已闭环审批数）；
+  2. TTFT 首字延迟分布与工具调用统计可视化图表（响应式 SVG/轻量图表，适配日夜主题）；
+  3. 企业工单与服务 SLA 履约追踪表格（P0~P4 响应时效与当前状态）；
+  4. 支持手动刷新与自动静默轮询（15s/30s 可切换）。
+- Step 4 [侧边栏挂接、测试与证据归档]：在 `Sidebar.vue` 与 `MobileDrawer.vue` 管理员区域挂接「系统监控与 SLA 看板」入口；编写 `backend/tests/unit/test_admin_monitoring_api.py` 验证 RBAC 隔离与指标聚合正确性；运行 `ruff`、`pytest` 与 `npm run build`；落盘 `.harness/runs/Issue-0059/` 8 大证据包（ReviewScore ≥ 90）。
+
+【核心受影响资产】：
+- 后端：`backend/api/v1/monitoring.py`, `backend/core/metrics.py`, `backend/main.py`, `backend/tests/unit/test_admin_monitoring_api.py`
+- 前端：`frontend/src/views/AdminMonitoringView.vue`, `frontend/src/router/index.js`, `frontend/src/components/layout/{Sidebar,MobileDrawer}.vue`
+```
+
+---
+
+## 6. 暂缓搁置与明确剔除清单 (Deferred & Excluded Backlog)
+
+| 原规划项 | 处置决议 | 架构原因与保留边界 |
+| :--- | :--- | :--- |
+| **原第五点内嵌子项：4 级安全密级（Security Clearance）前端切换与密级测试** | **❌ 明确去除开发** | 非本项目核心关注点，避免引入冗余密级管理复杂度；权限体系聚焦纯粹的 `employee` / `manager` / `admin` 职责角色隔离 |
+| **原第三点：外部工作流平台集成与 Webhook 编排前端视图 (`/workflows`)** | **⏸️ 暂缓搁置** | 优先确保内部员工对话、主管审批与管理员三大控制台真闭环；后端 `backend/api/v1/workflow.py` 保持可用不删除 |
+| **原第六点：交互反馈标注与 DPO 数据集导出工作台 (`/eval` / `/feedback`)** | **⏸️ 暂缓搁置** | DPO 数据标注工作台属于离线模型对齐进阶需求，当前版本暂不排期前端界面；后端 `backend/api/v1/feedback.py` 保持可用不删除 |

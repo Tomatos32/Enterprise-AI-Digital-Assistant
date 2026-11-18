@@ -20,6 +20,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, SystemMessage
 from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 from backend.core.config import settings
 
@@ -36,6 +37,7 @@ class LocalEnterpriseChatModel(BaseChatModel):
 
     model_name: str = "local-enterprise-agent-v1"
     temperature: float = 0.2
+    max_tokens: int = 4096
     streaming: bool = True
 
     @property
@@ -53,8 +55,11 @@ class LocalEnterpriseChatModel(BaseChatModel):
             elif msg.type == "human":
                 query = str(msg.content)
 
+        # Strip appended admin policy footer so fallback context/tool regex extraction stays pure
+        clean_system_text = re.split(r"\n+【企业管理员附加行为规范指令】：", system_text, maxsplit=1)[0]
+
         # 0. Check for self-correction / low confidence flag
-        if "[Self-Correction: Low Confidence / No Direct Match]" in system_text:
+        if "[Self-Correction: Low Confidence / No Direct Match]" in clean_system_text:
             return (
                 f"[RAG Answer]: 经企业现行制度知识库检索与自校验：\n\n"
                 f"暂未在知识库中检索到与「{query}」直接相关的规章制度条款。\n\n"
@@ -66,8 +71,8 @@ class LocalEnterpriseChatModel(BaseChatModel):
             )
 
         # 1. Check for tool execution status
-        if "[Tool Execution Result]" in system_text:
-            match = re.search(r"\[Tool Execution Result\]:\s*(.*)", system_text, re.DOTALL)
+        if "[Tool Execution Result]" in clean_system_text:
+            match = re.search(r"\[Tool Execution Result\]:\s*(.*)", clean_system_text, re.DOTALL)
             tool_res = match.group(1).strip() if match else "操作已成功提交"
             return (
                 f"[Tool Answer]: 业务操作执行完成。\n\n"
@@ -76,8 +81,8 @@ class LocalEnterpriseChatModel(BaseChatModel):
             )
 
         # 2. Check for RAG context in system message
-        if "【参考制度依据】" in system_text or "参考制度" in system_text:
-            match = re.search(r"【参考制度依据】：\s*(.*)", system_text, re.DOTALL)
+        if "【参考制度依据】" in clean_system_text or "参考制度" in clean_system_text:
+            match = re.search(r"【参考制度依据】：\s*(.*)", clean_system_text, re.DOTALL)
             if match and match.group(1).strip():
                 raw_context = match.group(1).strip()
                 # Parse doc titles and relevant lines from actual retrieved text
@@ -201,6 +206,7 @@ class NativeOllamaChatModel(BaseChatModel):
     base_url: str = "http://127.0.0.1:11434"
     think: bool = False
     temperature: float = 0.1
+    max_tokens: int = 4096
     streaming: bool = True
 
     @property
@@ -230,7 +236,7 @@ class NativeOllamaChatModel(BaseChatModel):
             "messages": self._convert_messages(messages),
             "stream": False,
             "think": self.think,
-            "options": {"temperature": self.temperature},
+            "options": {"temperature": self.temperature, "num_predict": self.max_tokens},
         }
         with httpx.Client(trust_env=False, timeout=60.0) as client:
             res = client.post(f"{self.base_url}/api/chat", json=payload)
@@ -251,7 +257,7 @@ class NativeOllamaChatModel(BaseChatModel):
             "messages": self._convert_messages(messages),
             "stream": False,
             "think": self.think,
-            "options": {"temperature": self.temperature},
+            "options": {"temperature": self.temperature, "num_predict": self.max_tokens},
         }
         async with httpx.AsyncClient(trust_env=False, timeout=60.0) as client:
             res = await client.post(f"{self.base_url}/api/chat", json=payload)
@@ -272,7 +278,7 @@ class NativeOllamaChatModel(BaseChatModel):
             "messages": self._convert_messages(messages),
             "stream": True,
             "think": self.think,
-            "options": {"temperature": self.temperature},
+            "options": {"temperature": self.temperature, "num_predict": self.max_tokens},
         }
         async with httpx.AsyncClient(trust_env=False, timeout=60.0) as client:
             async with client.stream("POST", f"{self.base_url}/api/chat", json=payload) as response:
@@ -349,16 +355,16 @@ class ResilientChatModel(BaseChatModel):
         if self.primary_model is not None:
             try:
                 streamed = False
-                async for chunk in self.primary_model.astream(messages, stop=stop, **kwargs):
-                    has_content = bool(chunk and hasattr(chunk, "content") and chunk.content)
+                async for msg_chunk in self.primary_model.astream(messages, stop=stop, **kwargs):
+                    has_content = bool(msg_chunk and hasattr(msg_chunk, "content") and msg_chunk.content)
                     has_reasoning = bool(
-                        chunk and hasattr(chunk, "additional_kwargs") and (
-                            chunk.additional_kwargs.get("reasoning_content") or chunk.additional_kwargs.get("reasoning")
+                        msg_chunk and hasattr(msg_chunk, "additional_kwargs") and (
+                            msg_chunk.additional_kwargs.get("reasoning_content") or msg_chunk.additional_kwargs.get("reasoning")
                         )
                     )
                     if has_content or has_reasoning:
                         streamed = True
-                        yield ChatGenerationChunk(message=chunk)
+                        yield ChatGenerationChunk(message=msg_chunk)
                 if streamed:
                     return
             except Exception as exc:
@@ -367,8 +373,8 @@ class ResilientChatModel(BaseChatModel):
                     exc,
                 )
 
-        async for chunk in self.fallback_model._astream(messages, stop=stop, run_manager=run_manager, **kwargs):
-            yield chunk
+        async for gen_chunk in self.fallback_model._astream(messages, stop=stop, run_manager=run_manager, **kwargs):
+            yield gen_chunk
 
 
 def get_chat_llm(
@@ -378,22 +384,40 @@ def get_chat_llm(
     api_key: Optional[str] = None,
     api_base: Optional[str] = None,
     provider: Optional[str] = None,
+    max_tokens: Optional[int] = None,
+    thinking: Optional[bool] = None,
 ) -> BaseChatModel:
     """Factory function providing configured LangChain BaseChatModel instance.
 
     Priority:
-    1. If explicit API key or API base is set (e.g. DeepSeek, OpenAI, vLLM, Ollama):
-       Returns `ResilientChatModel` wrapping `ChatOpenAI` with automatic fallback.
-    2. Fallback:
+    1. If runtime/explicit provider is 'local_fallback': returns LocalEnterpriseChatModel.
+    2. If explicit API key, API base, or remote/local provider is set (DeepSeek, OpenAI, vLLM, Ollama):
+       Returns `ResilientChatModel` wrapping `NativeOllamaChatModel` or `EnterpriseChatOpenAI` with automatic fallback.
+    3. Fallback:
        Returns high-fidelity `LocalEnterpriseChatModel` for self-contained, zero-cost,
        100% offline development and unit tests.
     """
-    effective_provider = provider or settings.LLM_PROVIDER
-    effective_key = api_key or settings.LLM_API_KEY
-    effective_base = api_base or settings.LLM_API_BASE
-    effective_model = model or settings.LLM_MODEL
-    effective_temp = temperature if temperature is not None else settings.LLM_TEMPERATURE
+    from backend.core.runtime_config import get_runtime_config
+
+    runtime_cfg = get_runtime_config()
+
+    effective_provider = provider or runtime_cfg.llm_provider
+    effective_key = api_key if api_key is not None else settings.LLM_API_KEY
+    effective_base = api_base if api_base is not None else runtime_cfg.llm_api_base
+    effective_model = model or runtime_cfg.llm_model
+    effective_temp = temperature if temperature is not None else runtime_cfg.llm_temperature
+    effective_max_tokens = max_tokens if max_tokens is not None else runtime_cfg.llm_max_tokens
+    effective_thinking = thinking if thinking is not None else runtime_cfg.llm_thinking
     effective_stream = stream if stream is not None else settings.LLM_STREAM
+
+    if effective_provider == "local_fallback":
+        logger.info("[LLM] Initializing LocalEnterpriseChatModel (Admin Forced Offline Mode)")
+        return LocalEnterpriseChatModel(
+            model_name="local-enterprise-agent-v1",
+            temperature=effective_temp,
+            max_tokens=effective_max_tokens,
+            streaming=effective_stream,
+        )
 
     # Provider preset mappings
     if effective_provider == "deepseek" and not effective_base:
@@ -413,16 +437,18 @@ def get_chat_llm(
             if effective_provider == "ollama":
                 native_base = effective_base.replace("/v1", "").rstrip("/") if effective_base else "http://127.0.0.1:11434"
                 logger.info(
-                    "[LLM] Initializing ResilientChatModel with NativeOllamaChatModel (model=%s, think=%s, base=%s)",
+                    "[LLM] Initializing ResilientChatModel with NativeOllamaChatModel (model=%s, think=%s, max_tokens=%s, base=%s)",
                     effective_model,
-                    settings.LLM_THINKING,
+                    effective_thinking,
+                    effective_max_tokens,
                     native_base,
                 )
                 ollama_model = NativeOllamaChatModel(
                     model_name=effective_model,
                     base_url=native_base,
-                    think=settings.LLM_THINKING,
+                    think=effective_thinking,
                     temperature=effective_temp,
+                    max_tokens=effective_max_tokens,
                     streaming=effective_stream,
                 )
                 return ResilientChatModel(
@@ -430,13 +456,15 @@ def get_chat_llm(
                     fallback_model=LocalEnterpriseChatModel(
                         model_name="local-enterprise-agent-v1",
                         temperature=effective_temp,
+                        max_tokens=effective_max_tokens,
                         streaming=effective_stream,
                     ),
                 )
 
             logger.info(
-                "[LLM] Initializing ResilientChatModel with primary ChatOpenAI (model=%s, base_url=%s)",
+                "[LLM] Initializing ResilientChatModel with primary ChatOpenAI (model=%s, max_tokens=%s, base_url=%s)",
                 effective_model,
+                effective_max_tokens,
                 effective_base,
             )
             # Disable system proxy inheritance for local loopback to avoid 502 Bad Gateway from local proxy tools (e.g. Clash/V2Ray)
@@ -452,9 +480,10 @@ def get_chat_llm(
 
             chat_openai = EnterpriseChatOpenAI(
                 model=effective_model,
-                api_key=effective_key or "ollama",
+                api_key=SecretStr(effective_key or "ollama"),
                 base_url=effective_base,
                 temperature=effective_temp,
+                max_completion_tokens=effective_max_tokens,
                 streaming=effective_stream,
                 http_async_client=custom_async_client,
                 http_client=custom_sync_client,
@@ -464,6 +493,7 @@ def get_chat_llm(
                 fallback_model=LocalEnterpriseChatModel(
                     model_name="local-enterprise-agent-v1",
                     temperature=effective_temp,
+                    max_tokens=effective_max_tokens,
                     streaming=effective_stream,
                 ),
             )
@@ -475,19 +505,27 @@ def get_chat_llm(
     return LocalEnterpriseChatModel(
         model_name="local-enterprise-agent-v1",
         temperature=effective_temp,
+        max_tokens=effective_max_tokens,
         streaming=effective_stream,
     )
 
 
 def get_llm_info() -> Dict[str, Any]:
     """Returns diagnostics and configuration telemetry for the LLM subsystem."""
-    has_key = bool(settings.LLM_API_KEY)
+    from backend.core.runtime_config import get_runtime_config, resolve_active_engine_name
+
+    cfg = get_runtime_config()
+    has_key = bool(settings.LLM_API_KEY and settings.LLM_API_KEY.strip())
+    active_engine = resolve_active_engine_name(cfg)
+
     return {
-        "provider": settings.LLM_PROVIDER,
-        "model": settings.LLM_MODEL,
-        "api_base": settings.LLM_API_BASE or "built-in-local",
+        "provider": cfg.llm_provider,
+        "model": cfg.llm_model,
+        "api_base": cfg.llm_api_base or "built-in-local",
         "has_api_key": has_key,
-        "temperature": settings.LLM_TEMPERATURE,
+        "thinking": cfg.llm_thinking,
+        "temperature": cfg.llm_temperature,
+        "max_tokens": cfg.llm_max_tokens,
         "streaming": settings.LLM_STREAM,
-        "active_engine": "ChatOpenAI" if (has_key or settings.LLM_API_BASE) else "LocalEnterpriseChatModel",
+        "active_engine": active_engine,
     }

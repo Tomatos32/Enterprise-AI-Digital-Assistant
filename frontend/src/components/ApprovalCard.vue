@@ -25,11 +25,9 @@ const emit = defineEmits(['action', 'decision']);
 
 const handleDecision = (id, action, comment) => {
   emit('decision', id, action, comment);
-  emit('action', id, action, comment);
 };
 
 const handleAction = (id, action, comment) => {
   emit('action', id, action, comment);
-  emit('decision', id, action, comment);
 };
 </script>

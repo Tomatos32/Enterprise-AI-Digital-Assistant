@@ -20,6 +20,7 @@ from backend.core.exceptions import (
 )
 from backend.api.v1.health import router as health_router
 from backend.api.v1.auth import router as auth_router
+from backend.api.v1.admin_config import router as admin_config_router
 from backend.api.v1.knowledge import router as knowledge_router
 from backend.api.v1.mock import hr_router, erp_router, oa_router
 from backend.api.v1.approval import router as approval_router
@@ -62,6 +63,7 @@ app.add_middleware(
 # Include Routers
 app.include_router(health_router, prefix=settings.API_V1_STR, tags=["Health"])
 app.include_router(auth_router, prefix=f"{settings.API_V1_STR}/auth", tags=["Auth & RBAC"])
+app.include_router(admin_config_router, prefix=f"{settings.API_V1_STR}/admin/config", tags=["Admin Control Plane"])
 app.include_router(knowledge_router, prefix=f"{settings.API_V1_STR}/knowledge", tags=["Knowledge Base"])
 
 # Enterprise Mock System Routers

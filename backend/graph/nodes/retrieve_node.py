@@ -9,6 +9,8 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List
 
+from langchain_core.messages import BaseMessage
+
 from backend.core.graph_rag import default_enterprise_kg
 from backend.graph.state import AgentState
 from backend.rag.query_rewriter import get_query_rewriter
@@ -23,8 +25,9 @@ async def retrieve_node(state: AgentState) -> Dict[str, Any]:
     enforcing dynamic RBAC and multi-tenancy security from state metadata,
     and writes the fused results into state['context'].
     """
-    messages = state.get("messages", [])
-    query = messages[-1].content if messages else ""
+    messages: List[BaseMessage] = list(state.get("messages", []))
+    raw_query = messages[-1].content if messages else ""
+    query = raw_query if isinstance(raw_query, str) else str(raw_query)
 
     # Extract user RBAC and tenant credentials from state or metadata
     metadata = state.get("metadata", {}) or {}
@@ -43,10 +46,14 @@ async def retrieve_node(state: AgentState) -> Dict[str, Any]:
     product_root = Path(__file__).resolve().parent.parent.parent.parent
     sample_kb_dir = product_root / "docs" / "sample_kb"
 
+    from backend.core.runtime_config import get_runtime_config
+
+    runtime_cfg = get_runtime_config()
     retriever = get_hybrid_retriever(sample_kb_dir=sample_kb_dir)
     docs = retriever.retrieve(
         query=rewritten.standalone_query,
-        top_k=3,
+        top_k=runtime_cfg.rag_top_k,
+        min_score=runtime_cfg.rag_min_score,
         tenant_id=tenant_id,
         user_department=user_department,
         clearance_level=clearance_level,

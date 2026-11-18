@@ -7,12 +7,20 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
+from backend.core.exceptions import PermissionDeniedError
+from backend.core.rbac import UserPayload, get_optional_current_user
 from backend.core.task_manager import task_manager
 from backend.db.session import get_db
 from backend.graph.workflow import graph
 from backend.models.chat import ChatMessage, ChatSession
 
 router = APIRouter()
+
+
+def _assert_session_owner(session: ChatSession, current_user: Optional[UserPayload]) -> None:
+    """Enforces per-user session ownership when request carries an authenticated identity."""
+    if current_user is not None and session.user_id != current_user.username:
+        raise PermissionDeniedError("无权访问或修改其他用户的对话会话")
 
 
 # ---------------------------------------------------------
@@ -64,12 +72,14 @@ class ChatMessageResponse(BaseModel):
 async def create_chat_session(
     req: SessionCreateRequest,
     db: Session = Depends(get_db),
+    current_user: Optional[UserPayload] = Depends(get_optional_current_user),
 ):
     """Creates a new persistent chat session."""
     new_session_id = f"sess_{uuid.uuid4().hex[:12]}"
+    effective_user_id = current_user.username if current_user else (req.user_id or "u_ws_default")
     session = ChatSession(
         session_id=new_session_id,
-        user_id=req.user_id or "u_ws_default",
+        user_id=effective_user_id,
         title=req.title or "新对话",
     )
     db.add(session)
@@ -84,11 +94,13 @@ async def list_chat_sessions(
     limit: int = Query(50, ge=1, le=100, description="返回数量"),
     offset: int = Query(0, ge=0, description="偏移量"),
     db: Session = Depends(get_db),
+    current_user: Optional[UserPayload] = Depends(get_optional_current_user),
 ):
     """Lists active (non-deleted) chat sessions for the specified user ordered by last updated."""
+    effective_user_id = current_user.username if current_user else user_id
     query = (
         db.query(ChatSession)
-        .filter(ChatSession.user_id == user_id, ChatSession.is_deleted == False)  # noqa: E712
+        .filter(ChatSession.user_id == effective_user_id, ChatSession.is_deleted == False)  # noqa: E712
         .order_by(ChatSession.updated_at.desc())
         .offset(offset)
         .limit(limit)
@@ -100,6 +112,7 @@ async def list_chat_sessions(
 async def get_session_messages(
     session_id: str,
     db: Session = Depends(get_db),
+    current_user: Optional[UserPayload] = Depends(get_optional_current_user),
 ):
     """Retrieves all chat messages for a specific session ordered by creation time."""
     # Ensure session exists and not deleted
@@ -110,6 +123,8 @@ async def get_session_messages(
     )
     if not session:
         raise HTTPException(status_code=404, detail=f"Chat session '{session_id}' not found or has been deleted.")
+
+    _assert_session_owner(session, current_user)
 
     messages = (
         db.query(ChatMessage)
@@ -125,6 +140,7 @@ async def update_session_title(
     session_id: str,
     req: SessionTitleUpdateRequest,
     db: Session = Depends(get_db),
+    current_user: Optional[UserPayload] = Depends(get_optional_current_user),
 ):
     """Renames an existing chat session."""
     session = (
@@ -134,6 +150,8 @@ async def update_session_title(
     )
     if not session:
         raise HTTPException(status_code=404, detail=f"Chat session '{session_id}' not found.")
+
+    _assert_session_owner(session, current_user)
 
     session.title = req.title.strip()
     session.updated_at = datetime.utcnow()
@@ -146,6 +164,7 @@ async def update_session_title(
 async def delete_chat_session(
     session_id: str,
     db: Session = Depends(get_db),
+    current_user: Optional[UserPayload] = Depends(get_optional_current_user),
 ):
     """Soft-deletes a chat session so it no longer appears in active history."""
     session = (
@@ -156,6 +175,8 @@ async def delete_chat_session(
     if not session:
         raise HTTPException(status_code=404, detail=f"Chat session '{session_id}' not found.")
 
+    _assert_session_owner(session, current_user)
+
     session.is_deleted = True
     session.updated_at = datetime.utcnow()
     db.commit()
@@ -165,12 +186,23 @@ async def delete_chat_session(
 @router.post("/abort", tags=["Chat Control"])
 async def abort_chat_generation(
     req: ChatAbortRequest,
+    db: Session = Depends(get_db),
+    current_user: Optional[UserPayload] = Depends(get_optional_current_user),
 ) -> Dict[str, Any]:
     """Three-Layer AI Abort API:
 
     1. Cancels active running asyncio Task for thread_id.
     2. Updates LangGraph Checkpointer state metadata to status='CANCELLED'.
     """
+    if current_user is not None:
+        session = (
+            db.query(ChatSession)
+            .filter(ChatSession.session_id == req.thread_id, ChatSession.is_deleted == False)  # noqa: E712
+            .first()
+        )
+        if session is not None:
+            _assert_session_owner(session, current_user)
+
     # 1. Cancel active running asyncio Task (Layer 2 Cancellation)
     task_cancelled = task_manager.abort_task(req.thread_id)
 

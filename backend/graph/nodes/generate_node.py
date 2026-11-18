@@ -6,12 +6,13 @@ from typing import Any, Dict, List
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from backend.core.llm import get_chat_llm
+from backend.core.runtime_config import get_runtime_config
 from backend.graph.state import AgentState
 
 logger = logging.getLogger(__name__)
 
 
-def _is_low_confidence_context(context: List[Dict[str, Any]]) -> bool:
+def _is_low_confidence_context(context: List[Dict[str, Any]], min_score: float = 0.16) -> bool:
     """Evaluates whether retrieved documents have sufficient relevance confidence
 
     or should trigger Self-Correction reflection to prevent hallucination.
@@ -19,7 +20,8 @@ def _is_low_confidence_context(context: List[Dict[str, Any]]) -> bool:
     if not context:
         return True
 
-    # If all docs have rerank_score below threshold (0.10)
+    # Evaluate against admin-configured min_score floor (with sane lower guard)
+    effective_floor = max(0.01, float(min_score))
     has_confident_doc = False
     for doc in context:
         meta = doc.get("metadata", {})
@@ -28,10 +30,10 @@ def _is_low_confidence_context(context: List[Dict[str, Any]]) -> bool:
         bm25_score = meta.get("bm25_score")
 
         # Any explicit score above minimal baseline counts as confident
-        if rerank_score is not None and rerank_score >= 0.15:
+        if rerank_score is not None and rerank_score >= effective_floor:
             has_confident_doc = True
             break
-        if dense_score is not None and dense_score >= 0.20:
+        if dense_score is not None and dense_score >= max(0.20, effective_floor):
             has_confident_doc = True
             break
         if bm25_score is not None and bm25_score > 0.0:
@@ -50,17 +52,18 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
 
     and tool execution status via LangChain Chat Model to produce final AI response.
     """
-    messages: List[BaseMessage] = state.get("messages", [])
+    messages: List[BaseMessage] = list(state.get("messages", []))
     last_query = messages[-1].content if messages else "您好"
     context = state.get("context", [])
     intent = state.get("intent", "chat")
     metadata = state.get("metadata", {})
 
+    runtime_cfg = get_runtime_config()
     llm = get_chat_llm()
 
     # 1. RAG Knowledge Retrieval Branch
     if intent == "retrieve":
-        is_low_conf = _is_low_confidence_context(context)
+        is_low_conf = _is_low_confidence_context(context, min_score=runtime_cfg.rag_min_score)
 
         if is_low_conf or not context:
             system_prompt = (
@@ -70,8 +73,9 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
                 "请严格遵循合规自反思原则，告知用户暂无直接依据，提供合理的归口部门咨询建议，严禁捏造事实。"
             )
         else:
-            context_blocks = []
-            seen_fingerprints = set()
+            context_blocks: List[str] = []
+            seen_fingerprints: set[str] = set()
+            max_context_blocks = max(2, min(runtime_cfg.rag_top_k, 6))
             for doc in context:
                 content_snippet = doc.get("content", "").strip()
                 if not content_snippet:
@@ -88,7 +92,7 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
                 sec = meta.get("section_header") or ""
                 header_str = f"【参考制度 {len(context_blocks) + 1}】《{fname}》" + (f" - {sec}" if sec else "")
                 context_blocks.append(f"{header_str}\n{content_snippet}")
-                if len(context_blocks) >= 2:
+                if len(context_blocks) >= max_context_blocks:
                     break
 
             context_text = "\n\n".join(context_blocks)
@@ -121,6 +125,11 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
             "简明介绍你能协助用户处理的业务范围（解读规章制度、审批门禁指引、工单流转与协同处理等）。"
         )
 
+    # Inject administrator-configured enterprise behavioral policy instruction if present
+    extra_instruction = runtime_cfg.system_prompt_instruction.strip()
+    if extra_instruction:
+        system_prompt = f"{system_prompt}\n\n【企业管理员附加行为规范指令】：\n{extra_instruction}"
+
     # Build prompt messages for LLM execution
     prompt_messages: List[BaseMessage] = [SystemMessage(content=system_prompt)]
 
@@ -137,7 +146,8 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
     # Invoke LLM (under LangGraph astream_events, this triggers on_chat_model_stream)
     try:
         response = await llm.ainvoke(prompt_messages)
-        answer_text = response.content if hasattr(response, "content") else str(response)
+        raw_content = response.content if hasattr(response, "content") else response
+        answer_text = raw_content if isinstance(raw_content, str) else str(raw_content)
         if not answer_text or not answer_text.strip():
             logger.warning("[GenerateNode] LLM returned empty content. Using domain fallback synthesis.")
             from backend.core.llm import LocalEnterpriseChatModel

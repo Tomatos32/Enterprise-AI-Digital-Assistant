@@ -248,7 +248,7 @@ class HybridRetriever:
     def retrieve(
         self,
         query: str,
-        top_k: int = 5,
+        top_k: Optional[int] = None,
         category_filter: Optional[str] = None,
         candidate_k: int = 20,
         tenant_id: Optional[str] = "default",
@@ -256,11 +256,18 @@ class HybridRetriever:
         clearance_level: Optional[int] = 1,
         sub_queries: Optional[List[str]] = None,
         primary_domain: Optional[str] = None,
+        min_score: Optional[float] = None,
     ) -> List[Document]:
         """Performs hybrid retrieval pipeline with RBAC Security:
 
         Dense Search + BM25 Search (across all sub-queries) -> RRF Fusion -> Category Filter -> Reranker -> Top-K Docs.
         """
+        from backend.core.runtime_config import get_runtime_config
+
+        runtime_cfg = get_runtime_config()
+        effective_top_k = top_k if top_k is not None else runtime_cfg.rag_top_k
+        effective_min_score = min_score if min_score is not None else runtime_cfg.rag_min_score
+
         all_dense_results: List[List[Document]] = []
         all_bm25_results: List[List[Document]] = []
 
@@ -308,8 +315,8 @@ class HybridRetriever:
         final_results = reranker.rerank(
             query=query,
             docs=fused_results,
-            top_k=top_k,
-            min_score=0.16,
+            top_k=effective_top_k,
+            min_score=effective_min_score,
             relative_threshold=0.60,
             primary_domain=effective_cat,
         )
