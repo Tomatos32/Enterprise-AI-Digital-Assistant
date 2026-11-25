@@ -29,10 +29,25 @@ def route_intent(state: AgentState) -> str:
         return "generate"
 
 
+def route_after_retrieve(state: AgentState) -> str:
+    """
+    Conditional post-retrieval edge supporting compound intents
+    (e.g., retrieve -> tool or retrieve -> approval) while keeping the graph acyclic.
+    """
+    secondary = state.get("secondary_intent", "")
+    if secondary == "tool":
+        return "tool"
+    if secondary == "approval":
+        return "approval"
+    return "generate"
+
+
 def build_graph():
     """
     Constructs and compiles the StateGraph for Enterprise AI Agent.
-    Topology: START -> router -> (retrieve / tool / approval / generate) -> generate -> END
+    Topology:
+      START -> router -> (retrieve | tool | approval | generate)
+      retrieve -> (tool | approval | generate) -> generate -> END
     """
     builder = StateGraph(AgentState)
 
@@ -57,8 +72,17 @@ def build_graph():
         },
     )
 
+    builder.add_conditional_edges(
+        "retrieve",
+        route_after_retrieve,
+        {
+            "tool": "tool",
+            "approval": "approval",
+            "generate": "generate",
+        },
+    )
+
     # 3. Direct Edges
-    builder.add_edge("retrieve", "generate")
     builder.add_edge("tool", "generate")
     builder.add_edge("approval", "generate")
     builder.add_edge("generate", END)

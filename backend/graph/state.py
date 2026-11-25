@@ -16,4 +16,5 @@ class AgentState(TypedDict, total=False):
     current_step: str
     metadata: dict[str, Any]
     intent: str
+    secondary_intent: str
     context: list[dict[str, Any]]

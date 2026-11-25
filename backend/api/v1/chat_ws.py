@@ -234,6 +234,9 @@ async def process_ws_chat_stream(
         "user_id": user_id,
         "session_id": session_id,
         "current_step": "init",
+        "intent": "",
+        "secondary_intent": "",
+        "context": [],
         "metadata": metadata,
     }
     config = {"configurable": {"thread_id": thread_id}}
@@ -336,6 +339,14 @@ async def process_ws_chat_stream(
 
             # 2. LLM Streaming Tokens
             elif kind == "on_chat_model_stream":
+                # Isolate internal router LLM calls so internal JSON never leaks into WS stream or TTFT
+                event_meta = event.get("metadata") or {}
+                event_tags = event.get("tags") or []
+                if (
+                    event_meta.get("langgraph_node") == "router"
+                    or "internal_router" in event_tags
+                ):
+                    continue
                 # Deduplicate nested ChatOpenAI / EnterpriseChatOpenAI / NativeOllamaChatModel stream events when wrapped in ResilientChatModel
                 if event.get("name") in ["ChatOpenAI", "EnterpriseChatOpenAI", "NativeOllamaChatModel"]:
                     continue

@@ -58,7 +58,36 @@ class LocalEnterpriseChatModel(BaseChatModel):
         # Strip appended admin policy footer so fallback context/tool regex extraction stays pure
         clean_system_text = re.split(r"\n+【企业管理员附加行为规范指令】：", system_text, maxsplit=1)[0]
 
-        # 0. Check for self-correction / low confidence flag
+        # 0. Check for explicit slash commands (/help, /audit read-only summary)
+        if "[Slash Command: /help]" in clean_system_text:
+            return (
+                "您好！我是您的企业智能助手，可以协助您高效处理以下日常业务：\n\n"
+                "1. **企业规章与制度解读**：查询考勤休假、差旅报销标准、办公设备借用、信息安全及客户服务规范；\n"
+                "2. **业务数据实时查询**：查询同事部门/职级/联系方式，核对办公设备与物料实时库存；\n"
+                "3. **工单报修与协同通知**：快速提交 IT 运维/故障报修工单、发送业务通知邮件；\n"
+                "4. **采购申请与人机协同审批**：根据金额标准自动审核小额采购或发起大额采购主管审批。\n\n"
+                "**快捷交互提示**：\n"
+                "- 输入 `@` 可指定参考数据源（规章制度库、业务台账或采购供应链）；\n"
+                "- 输入 `/kb` 精准检索制度条款，输入 `/audit` 发起审批或查看待审进度，输入 `/help` 随时呼出本指引。"
+            )
+
+        if "[Slash Command: /audit_status]" in clean_system_text:
+            match = re.search(r"\[Audit Summary\]:\s*(.*)", clean_system_text, re.DOTALL)
+            audit_summary = match.group(1).strip() if match else "当前暂无待处理审批单据。"
+            return f"{audit_summary}"
+
+        # 0.5. Check for approval execution outcome (including compound retrieve -> approval)
+        if "[Approval Execution Result]" in clean_system_text:
+            match = re.search(r"\[Approval Execution Result\]:\s*(.*)", clean_system_text, re.DOTALL)
+            approval_res = match.group(1).strip() if match else "审批流程已处理完成。"
+            if "【参考制度依据】" in clean_system_text:
+                cited_docs = re.findall(r"【参考制度[^】]*】《(.*?)》", clean_system_text)
+                if cited_docs:
+                    unique_docs = "、".join(f"《{d}》" for d in dict.fromkeys(cited_docs))
+                    return f"{approval_res}\n\n【依据制度】：{unique_docs}"
+            return approval_res
+
+        # 0.8. Check for self-correction / low confidence flag
         if "[Self-Correction: Low Confidence / No Direct Match]" in clean_system_text:
             return (
                 f"[RAG Answer]: 经企业现行制度知识库检索与自校验：\n\n"
@@ -70,14 +99,21 @@ class LocalEnterpriseChatModel(BaseChatModel):
                 f"【依据制度】：暂无直接命中条款（系统已启动自校验反思，避免事实幻觉）"
             )
 
-        # 1. Check for tool execution status
+        # 1. Check for tool execution status (supports compound RAG + Tool grounding)
         if "[Tool Execution Result]" in clean_system_text:
-            match = re.search(r"\[Tool Execution Result\]:\s*(.*)", clean_system_text, re.DOTALL)
-            tool_res = match.group(1).strip() if match else "操作已成功提交"
+            tool_section = clean_system_text.split("[Tool Execution Result]:", 1)[1]
+            tool_section = tool_section.split("【参考制度依据】", 1)[0].strip()
+            tool_res = tool_section or "操作已成功提交"
+            rag_note = ""
+            if "【参考制度依据】" in clean_system_text:
+                cited_docs = re.findall(r"【参考制度[^】]*】《(.*?)》", clean_system_text)
+                if cited_docs:
+                    unique_docs = "、".join(f"《{d}》" for d in dict.fromkeys(cited_docs))
+                    rag_note = f"\n\n【依据制度】：{unique_docs}"
             return (
                 f"[Tool Answer]: 业务操作执行完成。\n\n"
                 f"**执行结果**：\n{tool_res}\n\n"
-                f"系统已记录本次调用审计流水，如有审批节点流转，您可随时在控制台查看进展。"
+                f"系统已记录本次调用审计流水，如有审批节点流转，您可随时在控制台查看进展。{rag_note}"
             )
 
         # 2. Check for RAG context in system message
@@ -208,10 +244,15 @@ class NativeOllamaChatModel(BaseChatModel):
     temperature: float = 0.1
     max_tokens: int = 4096
     streaming: bool = True
+    request_timeout: float = 60.0
 
     @property
     def _llm_type(self) -> str:
         return "native_ollama_chat"
+
+    def _build_timeout(self) -> httpx.Timeout:
+        t = max(0.5, float(self.request_timeout))
+        return httpx.Timeout(connect=min(5.0, t), read=t, write=min(10.0, t), pool=min(5.0, t))
 
     def _convert_messages(self, messages: List[BaseMessage]) -> List[Dict[str, str]]:
         converted = []
@@ -238,7 +279,7 @@ class NativeOllamaChatModel(BaseChatModel):
             "think": self.think,
             "options": {"temperature": self.temperature, "num_predict": self.max_tokens},
         }
-        with httpx.Client(trust_env=False, timeout=60.0) as client:
+        with httpx.Client(trust_env=False, timeout=self._build_timeout()) as client:
             res = client.post(f"{self.base_url}/api/chat", json=payload)
             res.raise_for_status()
             data = res.json()
@@ -259,7 +300,7 @@ class NativeOllamaChatModel(BaseChatModel):
             "think": self.think,
             "options": {"temperature": self.temperature, "num_predict": self.max_tokens},
         }
-        async with httpx.AsyncClient(trust_env=False, timeout=60.0) as client:
+        async with httpx.AsyncClient(trust_env=False, timeout=self._build_timeout()) as client:
             res = await client.post(f"{self.base_url}/api/chat", json=payload)
             res.raise_for_status()
             data = res.json()
@@ -280,7 +321,7 @@ class NativeOllamaChatModel(BaseChatModel):
             "think": self.think,
             "options": {"temperature": self.temperature, "num_predict": self.max_tokens},
         }
-        async with httpx.AsyncClient(trust_env=False, timeout=60.0) as client:
+        async with httpx.AsyncClient(trust_env=False, timeout=self._build_timeout()) as client:
             async with client.stream("POST", f"{self.base_url}/api/chat", json=payload) as response:
                 async for line in response.aiter_lines():
                     if line:
@@ -507,6 +548,98 @@ def get_chat_llm(
         temperature=effective_temp,
         max_tokens=effective_max_tokens,
         streaming=effective_stream,
+    )
+
+
+def _build_lightweight_non_thinking_llm(
+    timeout_sec: float = 2.5,
+    max_tokens: int = 200,
+    purpose: str = "router",
+) -> Optional[BaseChatModel]:
+    """Builds a fast, non-thinking, non-streaming LLM client for internal cognitive tasks.
+
+    Returns None when running in offline/local_fallback mode so internal classifiers/rewriters
+    fall back immediately to their deterministic engines with zero latency.
+    """
+    from backend.core.runtime_config import get_runtime_config
+
+    runtime_cfg = get_runtime_config()
+    effective_provider = runtime_cfg.llm_provider
+    if effective_provider == "local_fallback":
+        return None
+
+    effective_key = settings.LLM_API_KEY
+    effective_base = runtime_cfg.llm_api_base
+    effective_model = runtime_cfg.llm_model
+
+    if effective_provider == "deepseek" and not effective_base:
+        effective_base = "https://api.deepseek.com/v1"
+    elif effective_provider == "ollama" and not effective_base:
+        effective_base = "http://127.0.0.1:11434/v1"
+    elif effective_provider == "vllm" and not effective_base:
+        effective_base = "http://127.0.0.1:8000/v1"
+
+    if effective_base and "localhost" in effective_base:
+        effective_base = effective_base.replace("localhost", "127.0.0.1")
+
+    has_live_backend = bool(
+        effective_key
+        or effective_base
+        or effective_provider in ("openai", "deepseek", "vllm", "ollama")
+    )
+    if not has_live_backend:
+        return None
+
+    bounded_timeout = max(0.5, float(timeout_sec))
+    bounded_tokens = max(64, int(max_tokens))
+    try:
+        if effective_provider == "ollama":
+            native_base = (
+                effective_base.replace("/v1", "").rstrip("/")
+                if effective_base
+                else "http://127.0.0.1:11434"
+            )
+            return NativeOllamaChatModel(
+                model_name=effective_model,
+                base_url=native_base,
+                think=False,
+                temperature=0.0,
+                max_tokens=bounded_tokens,
+                streaming=False,
+                request_timeout=bounded_timeout,
+            )
+
+        is_local = any(h in (effective_base or "") for h in ["127.0.0.1", "localhost", "0.0.0.0"])
+        custom_async_client = httpx.AsyncClient(
+            trust_env=not is_local,
+            timeout=httpx.Timeout(
+                connect=min(1.0, bounded_timeout),
+                read=bounded_timeout,
+                write=min(5.0, bounded_timeout),
+                pool=min(2.0, bounded_timeout),
+            ),
+        )
+        return ChatOpenAI(
+            model=effective_model,
+            api_key=SecretStr(effective_key or "ollama"),
+            base_url=effective_base,
+            temperature=0.0,
+            max_completion_tokens=bounded_tokens,
+            streaming=False,
+            max_retries=0,
+            http_async_client=custom_async_client,
+        )
+    except Exception as exc:
+        logger.debug("[LLM] Unable to instantiate lightweight %s LLM: %s", purpose, exc)
+        return None
+
+
+def get_router_llm(timeout_sec: float = 2.5) -> Optional[BaseChatModel]:
+    """Returns a fast, non-thinking, non-streaming LLM client for intent classification."""
+    return _build_lightweight_non_thinking_llm(
+        timeout_sec=timeout_sec,
+        max_tokens=200,
+        purpose="router",
     )
 
 

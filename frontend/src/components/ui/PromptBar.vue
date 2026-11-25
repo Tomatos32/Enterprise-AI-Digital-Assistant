@@ -81,12 +81,23 @@
         <!-- Top Toolbar inside PromptBar: Tags & Actions -->
         <div class="flex items-center justify-between px-1">
           <div class="flex items-center space-x-1.5 sm:space-x-2">
+            <!-- Quick Data Source Trigger (@) -->
+            <button
+              type="button"
+              @click.stop="toggleAtMenu"
+              title="指定企业数据源 (@)"
+              class="hidden sm:inline-flex items-center space-x-1 px-2 py-0.8 text-[11px] font-medium rounded-lg text-text-secondary hover:text-text-main hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+            >
+              <Database class="w-3 h-3 text-brand-primary" />
+              <span>@数据源</span>
+            </button>
+
             <!-- Quick Command Trigger (/) -->
             <button
               type="button"
               @click.stop="toggleSlashMenu"
               title="常用指令 (/)"
-              class="hidden sm:inline-flex items-center space-x-1 px-2 py-0.8 text-[11px] font-medium rounded-lg text-text-secondary hover:text-text-main hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+              class="hidden sm:inline-flex items-center space-x-1 px-2 py-0.8 text-[11px] font-medium rounded-lg text-text-secondary hover:text-text-main hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
             >
               <Terminal class="w-3 h-3 text-brand-primary" />
               <span>/指令</span>
@@ -98,8 +109,8 @@
               class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[10px] font-medium"
             >
               <BookOpen class="w-2.5 h-2.5" />
-              <span class="max-w-[100px] truncate">{{ attachedSource }}</span>
-              <X class="w-2.5 h-2.5 cursor-pointer hover:text-rose-500" @click="attachedSource = ''" />
+              <span class="max-w-[120px] truncate">{{ attachedSource }}</span>
+              <X class="w-2.5 h-2.5 cursor-pointer hover:text-rose-500" @click="clearAttachedSource" />
             </span>
           </div>
 
@@ -221,6 +232,7 @@ const fileInputRef = ref(null);
 const barContainerRef = ref(null);
 const isRecordingVoice = ref(false);
 const attachedSource = ref('');
+const attachedSourceId = ref('');
 
 const showAtMenu = ref(false);
 const showSlashMenu = ref(false);
@@ -282,10 +294,17 @@ const toggleSlashMenu = () => {
   showAtMenu.value = false;
 };
 
+const clearAttachedSource = () => {
+  attachedSource.value = '';
+  attachedSourceId.value = '';
+};
+
 const insertDataSource = (source) => {
   attachedSource.value = source.name;
+  attachedSourceId.value = source.id || '';
   if (inputContent.value.endsWith('@')) {
     inputContent.value = inputContent.value.slice(0, -1);
+    emit('update:modelValue', inputContent.value);
   }
   showAtMenu.value = false;
   textareaRef.value?.focus();
@@ -296,6 +315,7 @@ const insertCommand = (cmd) => {
     inputContent.value = inputContent.value.slice(0, -1);
   }
   inputContent.value += `${cmd.command} `;
+  emit('update:modelValue', inputContent.value);
   showSlashMenu.value = false;
   autoResize();
   textareaRef.value?.focus();
@@ -320,13 +340,17 @@ const handleSend = () => {
   const text = inputContent.value.trim();
   if (!text || props.isStreaming) return;
   isSending = true;
+  const slashMatch = text.match(/^\/([a-zA-Z]+)(?:\s+|$)/);
+  const slashCommand = slashMatch ? slashMatch[1].toLowerCase() : '';
   emit('send', {
     text,
     source: attachedSource.value,
+    sourceId: attachedSourceId.value,
+    slashCommand,
   });
   inputContent.value = '';
   emit('update:modelValue', '');
-  attachedSource.value = '';
+  clearAttachedSource();
   showAtMenu.value = false;
   showSlashMenu.value = false;
   setTimeout(() => {
@@ -352,6 +376,7 @@ const handleFileChange = (e) => {
   const file = e.target.files?.[0];
   if (file) {
     attachedSource.value = file.name;
+    attachedSourceId.value = 'kb_all';
   }
 };
 

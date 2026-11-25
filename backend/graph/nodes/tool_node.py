@@ -42,23 +42,32 @@ async def tool_node(state: AgentState) -> Dict[str, Any]:
             )
             metadata["tool_output"] = content_str
     else:
-        # 2. Fallback keyword-based execution for state intent == "tool"
-        query = str(getattr(last_msg, "content", "")) if last_msg else ""
+        # 2. Fallback dispatch honoring cognitive router tool_hint (full semantic slot extraction in Issue-0062)
+        raw_query = str(getattr(last_msg, "content", "")) if last_msg else ""
+        query = str(metadata.get("normalized_query") or raw_query).strip() or raw_query
         q_lower = query.lower()
+        tool_hint = str(metadata.get("tool_hint") or "").strip()
 
-        if "工单" in q_lower or "ticket" in q_lower:
+        if tool_hint == "create_ticket" or (not tool_hint and ("工单" in q_lower or "ticket" in q_lower)):
             res = await registry.execute_tool("create_ticket", {"title": "客服支持工单", "description": query, "priority": "P2"})
             tool_name = "create_ticket"
-        elif "采购" in q_lower or "purchase" in q_lower:
-            res = await registry.execute_tool("create_purchase", {"item_name": "办公硬件设备", "quantity": 1, "unit_price": 6000.0, "department": "IT运维部", "reason": query})
+        elif tool_hint == "create_purchase" or (not tool_hint and ("采购" in q_lower or "purchase" in q_lower)):
+            parsed_amt = metadata.get("parsed_purchase_amount")
+            unit_price = float(parsed_amt) if isinstance(parsed_amt, (int, float)) and parsed_amt > 0 else 6000.0
+            res = await registry.execute_tool(
+                "create_purchase",
+                {"item_name": "办公硬件设备", "quantity": 1, "unit_price": unit_price, "department": metadata.get("department", "IT运维部"), "reason": query},
+            )
             tool_name = "create_purchase"
-        elif "邮件" in q_lower or "email" in q_lower:
+        elif tool_hint == "send_email" or (not tool_hint and ("邮件" in q_lower or "email" in q_lower)):
             res = await registry.execute_tool("send_email", {"to_email": "admin@company.com", "subject": "系统自动化通知", "body": query})
             tool_name = "send_email"
-        elif "员工" in q_lower or "employee" in q_lower:
+        elif tool_hint == "query_employee" or (not tool_hint and ("员工" in q_lower or "employee" in q_lower)):
             res = await registry.execute_tool("query_employee", {"name": "张伟"})
             tool_name = "query_employee"
-        elif any(k in q_lower for k in ["检索", "制度", "规章", "搜索知识", "查文档", "search_knowledge"]):
+        elif tool_hint == "search_knowledge_base" or (
+            not tool_hint and any(k in q_lower for k in ["检索", "制度", "规章", "搜索知识", "查文档", "search_knowledge"])
+        ):
             res = await registry.execute_tool("search_knowledge_base", {"query": query})
             tool_name = "search_knowledge_base"
             if isinstance(res, dict) and "documents" in res:

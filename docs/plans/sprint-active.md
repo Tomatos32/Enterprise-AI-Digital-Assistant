@@ -164,6 +164,13 @@
   - [x] Checkpoint 3 (Step 3): 新建 `frontend/src/views/AdminMonitoringView.vue` 并替换 `/admin/monitoring` 路由占位组件（KPI 卡片、TTFT/Tool 双主题响应式 SVG 图表、P0~P4 SLA 履约表、手动刷新与 15s/30s 静默轮询）
   - [x] Checkpoint 4 (Step 4): 更新 `Sidebar.vue` 与 `MobileDrawer.vue` 管理员「系统监控与 SLA 看板」入口，编写 `test_admin_monitoring_api.py` (4/4 PASS)，执行 `ruff`/`mypy`/`pytest`/`npm run build`，同步文档/Schema 并归档 `.harness/runs/Issue-0059/` 证据包
 
+- [x] **Sprint R-06 / Issue-0060: 多轮上下文感知的混合认知意图识别引擎与数据源/指令路由重构 - [100% COMPLETED]**
+  - [x] Checkpoint 1: 在 `.harness/runs/Issue-0060/` 初始化 `issue.md` 与 `plan.md`，同步更新 `docs/plans/sprint-active.md`
+  - [x] Checkpoint 2: 升级 `config.py`、`llm.py`、`state.py` 与 `workflow.py`（新增路由轻量非思考模型工厂 `get_router_llm`、无环复合意图边 `retrieve -> tool/approval/generate` 与离线合成兼容）
+  - [x] Checkpoint 3: 重构 `router_node.py` 为三层混合认知路由引擎（Tier 1 确定性指令/`@数据源`/寒暄护栏 + Tier 2 轻量 LLM 6 轮上下文分类与严格超时兜底 + Tier 3 增强多轮上下文/动态金额/政策与执行消歧引擎），同步升级 `generate_node.py`（含 `/audit` fail-closed RBAC）、`retrieve_node.py`、`tool_node.py` 与 `chat_ws.py` 事件隔离
+  - [x] Checkpoint 4: 对齐 `PromptBar.vue` 与 `ChatContainer.vue` 的 `@数据源` (`kb_all`/`db_mysql`/`erp_sap`) 与 `/` 指令 (`/audit`/`/kb`/`/help`) 元数据透传契约
+  - [x] Checkpoint 5: 编写 `test_cognitive_router.py` (12/12 PASS)，通过 `ruff` (0 errors)、10 文件 `mypy` (0 errors)、12 套件联测 (68/68 PASS)、全仓 `pytest` (291 passed, 2 pre-existing failed)、`vite build` (7,920 modules) 与 Reviewer 11 维审查 (Score: 95, `APPROVED`)，更新文档并归档 `.harness/runs/Issue-0060/` 9 份完整证据包
+
 ---
 
 ## Historical Achievements (已交付稳态资产):

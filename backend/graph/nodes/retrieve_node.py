@@ -30,7 +30,10 @@ async def retrieve_node(state: AgentState) -> Dict[str, Any]:
     query = raw_query if isinstance(raw_query, str) else str(raw_query)
 
     # Extract user RBAC and tenant credentials from state or metadata
-    metadata = state.get("metadata", {}) or {}
+    metadata = dict(state.get("metadata", {}) or {})
+    normalized = str(metadata.get("normalized_query") or "").strip()
+    if normalized:
+        query = normalized
     user_info = metadata.get("user") or {}
 
     tenant_id = user_info.get("tenant_id") or metadata.get("tenant_id") or "default"

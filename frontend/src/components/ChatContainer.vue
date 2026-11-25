@@ -204,10 +204,16 @@ const handleSend = async (payload) => {
     chatStore.renameSession(chatStore.activeSessionId, newTitle);
   }
 
-  // 采购查询时自动携带 purchase_args 参数
+  // 透传数据源 (@) 与快捷指令 (/) 元数据供后端混合认知路由器对齐
   let customMetadata = {};
   if (typeof payload === 'object' && payload.source) {
     customMetadata.data_source = payload.source;
+  }
+  if (typeof payload === 'object' && payload.sourceId) {
+    customMetadata.data_source_id = payload.sourceId;
+  }
+  if (typeof payload === 'object' && payload.slashCommand) {
+    customMetadata.slash_command = payload.slashCommand;
   }
   if (typeof payload === 'object' && payload.model) {
     customMetadata.model = payload.model;
