@@ -1,21 +1,29 @@
-"""Hybrid Retrieval (BM25 + Qdrant Dense Vector) & Reranker Engine with RBAC Security."""
+"""Hybrid Retrieval (BM25 + Qdrant Dense Vector) & Soft-Weighted Cross-Domain Reranker Engine with RBAC Security."""
 
 import hashlib
+import inspect
+import logging
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence, Set
 
 from langchain_core.documents import Document
 from rank_bm25 import BM25Okapi
 
 from backend.core.config import settings
-from backend.rag.loader import load_sample_kb_documents
+from backend.rag.loader import load_sample_kb_documents, load_uploaded_data_documents
 from backend.rag.splitter import split_documents
 from backend.rag.vector_store import (
     get_qdrant_client,
     search_similar_documents,
     upsert_documents,
 )
+
+logger = logging.getLogger(__name__)
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_SAMPLE_KB_DIR = _PROJECT_ROOT / "docs" / "sample_kb"
+DEFAULT_UPLOADED_DATA_DIR = _PROJECT_ROOT / "backend" / "data"
 
 
 def tokenize_text(text: str) -> List[str]:
@@ -27,6 +35,33 @@ def tokenize_text(text: str) -> List[str]:
         return []
     tokens = re.findall(r"[一-龥]|[a-zA-Z]+|\d+", text.lower())
     return tokens if tokens else [text.lower()]
+
+
+def _compute_token_overlap(query_tokens: Set[str], doc_tokens: Set[str]) -> float:
+    """Computes blended query coverage (75%) + Jaccard similarity (25%) between token sets."""
+    if not query_tokens or not doc_tokens:
+        return 0.0
+    overlap = len(query_tokens.intersection(doc_tokens))
+    query_coverage = overlap / len(query_tokens)
+    jaccard_sim = overlap / len(query_tokens.union(doc_tokens))
+    return 0.75 * query_coverage + 0.25 * jaccard_sim
+
+
+def _get_uploaded_category_overrides() -> Dict[str, str]:
+    """Safely fetches admin-assigned category overrides from the persistent knowledge ledger."""
+    try:
+        from backend.core.knowledge_ledger import get_uploaded_documents_map
+
+        doc_map = get_uploaded_documents_map()
+        overrides: Dict[str, str] = {}
+        for filename, entry in doc_map.items():
+            cat = entry.get("category")
+            if isinstance(cat, str) and cat.strip():
+                overrides[filename] = cat.strip().upper()
+        return overrides
+    except Exception as exc:
+        logger.debug("Unable to read uploaded document category overrides: %s", exc)
+        return {}
 
 
 class BM25Retriever:
@@ -121,7 +156,16 @@ def reciprocal_rank_fusion(
             content_hash = hashlib.md5(content_clean.encode("utf-8")).hexdigest()
             # Normalize doc_id so identical chunks from relative/absolute paths merge seamlessly
             doc_id = f"{norm_name}__chunk_{chunk_idx}__{content_hash}"
-            doc_map[doc_id] = doc
+            if doc_id not in doc_map:
+                doc_map[doc_id] = doc
+            else:
+                # Preserve highest dense similarity score across sub-queries if present
+                existing_dense = float(doc_map[doc_id].metadata.get("score", 0.0) or 0.0)
+                new_dense = float(meta.get("score", 0.0) or 0.0)
+                if new_dense > existing_dense:
+                    merged_meta = doc_map[doc_id].metadata.copy()
+                    merged_meta["score"] = new_dense
+                    doc_map[doc_id] = Document(page_content=doc_map[doc_id].page_content, metadata=merged_meta)
 
             score = 1.0 / (k + (rank + 1))
             rrf_scores[doc_id] = rrf_scores.get(doc_id, 0.0) + score
@@ -140,7 +184,34 @@ def reciprocal_rank_fusion(
 
 
 class Reranker:
-    """Semantic Reranker to score and refine top candidate documents with dynamic truncation."""
+    """Semantic Reranker with soft multi-domain weighting, sub-query awareness, and dynamic noise truncation."""
+
+    def _resolve_domain_weights(
+        self,
+        primary_domain: Optional[str],
+        domains: Optional[Sequence[str]],
+        domain_weights: Optional[Dict[str, float]],
+    ) -> Dict[str, float]:
+        """Normalizes inferred target domains into a soft weight map in [0.0, 1.0]."""
+        if domain_weights:
+            cleaned = {
+                str(k).strip().upper(): max(0.0, min(1.0, float(v)))
+                for k, v in domain_weights.items()
+                if str(k).strip()
+            }
+            if cleaned:
+                return cleaned
+        if domains:
+            weights: Dict[str, float] = {}
+            for idx, dom in enumerate(domains):
+                d_up = str(dom).strip().upper()
+                if d_up and d_up not in weights:
+                    weights[d_up] = round(max(0.50, 1.0 - idx * 0.12), 4)
+            if weights:
+                return weights
+        if primary_domain and str(primary_domain).strip():
+            return {str(primary_domain).strip().upper(): 1.0}
+        return {}
 
     def rerank(
         self,
@@ -150,34 +221,62 @@ class Reranker:
         min_score: Optional[float] = None,
         relative_threshold: Optional[float] = None,
         primary_domain: Optional[str] = None,
+        domains: Optional[List[str]] = None,
+        domain_weights: Optional[Dict[str, float]] = None,
+        sub_queries: Optional[List[str]] = None,
     ) -> List[Document]:
-        """Calculates cross-semantic relevance scores for query and candidates,
-
-        returning top_k refined documents with optional low-relevance noise truncation.
-        """
+        """Calculates cross-semantic relevance scores with soft multi-domain weights and diversity preservation."""
         if not docs:
             return []
 
         query_tokens = set(tokenize_text(query))
+        sub_token_sets: List[Set[str]] = []
+        if sub_queries and len(sub_queries) > 1:
+            for sq in sub_queries:
+                toks = set(tokenize_text(sq))
+                if toks:
+                    sub_token_sets.append(toks)
+
+        effective_weights = self._resolve_domain_weights(primary_domain, domains, domain_weights)
+        is_multi_domain = len(effective_weights) >= 2
 
         scored_docs: List[Document] = []
         for doc in docs:
             doc_tokens = set(tokenize_text(doc.page_content))
+            full_overlap = _compute_token_overlap(query_tokens, doc_tokens)
 
-            # Compute token overlap & query coverage
-            overlap = len(query_tokens.intersection(doc_tokens))
-            query_coverage = overlap / (len(query_tokens) or 1.0)
-            jaccard_sim = overlap / (len(query_tokens.union(doc_tokens)) or 1.0)
-            semantic_overlap = 0.75 * query_coverage + 0.25 * jaccard_sim
+            # Sub-query aware semantic overlap prevents cross-domain token dilution
+            if sub_token_sets:
+                best_sub_overlap = max(_compute_token_overlap(sq_toks, doc_tokens) for sq_toks in sub_token_sets)
+                semantic_overlap = max(full_overlap, 0.90 * best_sub_overlap)
+            else:
+                semantic_overlap = full_overlap
 
-            rrf_score = doc.metadata.get("rrf_score", 0.0)
-            dense_score = doc.metadata.get("score", 0.0)
+            rrf_score = float(doc.metadata.get("rrf_score", 0.0) or 0.0)
+            dense_score = float(doc.metadata.get("score", 0.0) or 0.0)
 
-            # Combined hybrid rerank score
-            combined_score = 0.5 * semantic_overlap + 0.3 * rrf_score + 0.2 * dense_score
+            base_score = 0.5 * semantic_overlap + 0.3 * rrf_score + 0.2 * dense_score
+
+            # Soft domain weighting (never hard-drops GENERAL or uploaded custom docs)
+            doc_cat = str(doc.metadata.get("category", "") or "").upper()
+            domain_factor = 1.0
+            applied_weight = 1.0
+            if effective_weights:
+                if doc_cat in effective_weights:
+                    applied_weight = effective_weights[doc_cat]
+                    domain_factor = 1.0 + 0.18 * applied_weight
+                elif doc_cat in ("", "GENERAL"):
+                    applied_weight = 1.0
+                    domain_factor = 1.0
+                else:
+                    applied_weight = 0.0
+                    domain_factor = 0.80 if is_multi_domain else 0.72
+
+            combined_score = base_score * domain_factor
 
             meta = doc.metadata.copy()
             meta["rerank_score"] = round(float(combined_score), 4)
+            meta["domain_weight"] = round(float(applied_weight), 4)
             scored_docs.append(Document(page_content=doc.page_content, metadata=meta))
 
         scored_docs.sort(key=lambda x: x.metadata["rerank_score"], reverse=True)
@@ -186,34 +285,96 @@ class Reranker:
             return []
 
         # If no cutoff parameters provided, return top_k candidates directly
-        if min_score is None and relative_threshold is None and primary_domain is None:
+        if min_score is None and relative_threshold is None and not effective_weights:
             return scored_docs[:top_k]
 
-        # Floor and relative dropoff filtering
         top_score = scored_docs[0].metadata["rerank_score"]
-        top_cat = scored_docs[0].metadata.get("category", "")
-        target_domain = primary_domain or top_cat
+        top_cat = str(scored_docs[0].metadata.get("category", "") or "").upper()
+        single_target_domain = (
+            next(iter(effective_weights.keys()))
+            if len(effective_weights) == 1
+            else (top_cat if not effective_weights else "")
+        )
 
+        # Multi-domain diversity selection: ensure each matched domain with an eligible hit gets representation
+        if is_multi_domain and top_k >= 2:
+            selected: List[Document] = []
+            selected_ids: Set[int] = set()
+            relaxed_rel = min(relative_threshold, 0.42) if relative_threshold is not None else None
+
+            # Pass 1: Reserve top eligible candidate per target domain
+            for target_dom in effective_weights.keys():
+                for idx, doc in enumerate(scored_docs):
+                    if idx in selected_ids:
+                        continue
+                    cat = str(doc.metadata.get("category", "") or "").upper()
+                    score = doc.metadata["rerank_score"]
+                    if cat != target_dom:
+                        continue
+                    if min_score is not None and score < min_score:
+                        continue
+                    if relaxed_rel is not None and score < top_score * relaxed_rel:
+                        continue
+                    selected.append(doc)
+                    selected_ids.add(idx)
+                    break
+                if len(selected) >= top_k:
+                    break
+
+            # Pass 2: Always guarantee the global #1 hit is included
+            if 0 not in selected_ids:
+                selected.insert(0, scored_docs[0])
+                selected_ids.add(0)
+
+            # Pass 3: Fill remaining slots by descending rerank score under quality gates
+            for idx, doc in enumerate(scored_docs):
+                if len(selected) >= top_k:
+                    break
+                if idx in selected_ids:
+                    continue
+                score = doc.metadata["rerank_score"]
+                cat = str(doc.metadata.get("category", "") or "").upper()
+                if min_score is not None and score < min_score:
+                    continue
+                is_target_cat = cat in effective_weights or cat in ("", "GENERAL")
+                rel_gate = relaxed_rel if is_target_cat else relative_threshold
+                if rel_gate is not None and score < top_score * rel_gate:
+                    continue
+                if not is_target_cat and score < 0.28:
+                    continue
+                selected.append(doc)
+                selected_ids.add(idx)
+
+            selected.sort(key=lambda x: x.metadata["rerank_score"], reverse=True)
+            return selected[:top_k]
+
+        # Single-domain or domain-agnostic dynamic truncation
         filtered_docs: List[Document] = [scored_docs[0]]
-        for d in scored_docs[1:]:
-            s = d.metadata["rerank_score"]
-            cat = d.metadata.get("category", "")
-
-            # 1. Floor cutoff
-            if min_score is not None and s < min_score:
-                continue
-
-            # 2. Relative dropoff cutoff (drop if score is < 60% of top hit)
-            if relative_threshold is not None and s < top_score * relative_threshold:
-                continue
-
-            # 3. Cross-domain noise cutoff: if top hit is IT, and doc is FINANCE with much lower score, drop
-            if target_domain and cat and cat.upper() != target_domain.upper() and s < 0.25:
-                continue
-
-            filtered_docs.append(d)
+        for doc in scored_docs[1:]:
             if len(filtered_docs) >= top_k:
                 break
+            score = doc.metadata["rerank_score"]
+            cat = str(doc.metadata.get("category", "") or "").upper()
+
+            # 1. Floor cutoff
+            if min_score is not None and score < min_score:
+                continue
+
+            # 2. Relative dropoff cutoff
+            if relative_threshold is not None and score < top_score * relative_threshold:
+                continue
+
+            # 3. Single-domain cross-domain noise cutoff (never hard-drops GENERAL/uploaded docs)
+            if (
+                single_target_domain
+                and cat
+                and cat != "GENERAL"
+                and cat != single_target_domain
+                and score < max(0.28, top_score * 0.80)
+            ):
+                continue
+
+            filtered_docs.append(doc)
 
         return filtered_docs
 
@@ -221,18 +382,44 @@ class Reranker:
 class HybridRetriever:
     """Main Hybrid Retriever orchestrator combining:
 
-    1. Sparse BM25 Keyword Search (with RBAC)
-    2. Dense Qdrant Vector Search (with RBAC Payload Filter)
-    3. RRF Fusion
-    4. Category Filtering
-    5. Reranker Refinement
+    1. Startup synchronization of built-in docs/sample_kb + admin-uploaded backend/data/ into BM25
+    2. Sparse BM25 Keyword Search (with RBAC)
+    3. Dense Qdrant Vector Search (with RBAC Payload Filter)
+    4. RRF Fusion
+    5. Explicit Category Filter (only when caller explicitly specifies category_filter)
+    6. Soft-Weighted Cross-Domain Reranker Refinement
     """
 
-    def __init__(self, sample_kb_dir: Optional[Path] = None, sync_to_qdrant: bool = True):
-        kb_path = sample_kb_dir or Path("docs/sample_kb")
-        raw_docs = load_sample_kb_documents(kb_path)
+    def __init__(
+        self,
+        sample_kb_dir: Optional[Path] = None,
+        uploaded_data_dir: Optional[Path] = None,
+        sync_to_qdrant: bool = True,
+        include_uploaded_data: bool = True,
+    ):
+        kb_path = sample_kb_dir if sample_kb_dir is not None else DEFAULT_SAMPLE_KB_DIR
+        builtin_raw_docs = load_sample_kb_documents(kb_path)
+
+        uploaded_raw_docs: List[Document] = []
+        if include_uploaded_data:
+            data_path = uploaded_data_dir if uploaded_data_dir is not None else DEFAULT_UPLOADED_DATA_DIR
+            category_overrides = _get_uploaded_category_overrides()
+            uploaded_raw_docs = load_uploaded_data_documents(
+                data_path,
+                category_overrides=category_overrides,
+            )
+
+        raw_docs = builtin_raw_docs + uploaded_raw_docs
         self.sample_docs = split_documents(raw_docs, chunk_size=500, chunk_overlap=50) if raw_docs else []
         self.bm25_retriever = BM25Retriever(self.sample_docs)
+
+        if uploaded_raw_docs:
+            logger.info(
+                "[HybridRetriever] Initialized BM25 with %d builtin + %d uploaded raw docs (%d chunks).",
+                len(builtin_raw_docs),
+                len(uploaded_raw_docs),
+                len(self.sample_docs),
+            )
 
         # Ensure sample docs are indexed in Qdrant as well, but skip re-indexing if points already exist
         if sync_to_qdrant and self.sample_docs:
@@ -257,11 +444,10 @@ class HybridRetriever:
         sub_queries: Optional[List[str]] = None,
         primary_domain: Optional[str] = None,
         min_score: Optional[float] = None,
+        domains: Optional[List[str]] = None,
+        domain_weights: Optional[Dict[str, float]] = None,
     ) -> List[Document]:
-        """Performs hybrid retrieval pipeline with RBAC Security:
-
-        Dense Search + BM25 Search (across all sub-queries) -> RRF Fusion -> Category Filter -> Reranker -> Top-K Docs.
-        """
+        """Performs hybrid retrieval pipeline with RBAC Security and soft multi-domain ranking."""
         from backend.core.runtime_config import get_runtime_config
 
         runtime_cfg = get_runtime_config()
@@ -300,26 +486,38 @@ class HybridRetriever:
         combined_lists = all_dense_results + all_bm25_results
         fused_results = reciprocal_rank_fusion(combined_lists, k=60)
 
-        # 4. Category Filter (if specified)
-        effective_cat = category_filter or primary_domain
-        if effective_cat:
+        # 4. Explicit Hard Category Filter ONLY when caller explicitly specifies category_filter
+        if category_filter:
             cat_matched = [
                 doc for doc in fused_results
-                if doc.metadata.get("category", "").upper() == effective_cat.upper()
+                if doc.metadata.get("category", "").upper() == category_filter.upper()
             ]
             if cat_matched:
                 fused_results = cat_matched
 
-        # 5. Reranker 精排与强阈值截断
+        # 5. Soft-Weighted Multi-Domain Reranker & Dynamic Truncation
         reranker = Reranker()
-        final_results = reranker.rerank(
-            query=query,
-            docs=fused_results,
-            top_k=effective_top_k,
-            min_score=effective_min_score,
-            relative_threshold=0.60,
-            primary_domain=effective_cat,
-        )
+        rerank_kwargs: Dict[str, Any] = {
+            "query": query,
+            "docs": fused_results,
+            "top_k": effective_top_k,
+            "min_score": effective_min_score,
+            "relative_threshold": 0.60,
+            "primary_domain": category_filter or primary_domain,
+        }
+        try:
+            sig_params = inspect.signature(reranker.rerank).parameters
+            accepts_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig_params.values())
+            if not category_filter and domains and (accepts_var_kw or "domains" in sig_params):
+                rerank_kwargs["domains"] = domains
+            if not category_filter and domain_weights and (accepts_var_kw or "domain_weights" in sig_params):
+                rerank_kwargs["domain_weights"] = domain_weights
+            if len(target_queries) > 1 and (accepts_var_kw or "sub_queries" in sig_params):
+                rerank_kwargs["sub_queries"] = target_queries
+        except (TypeError, ValueError):
+            pass
+
+        final_results = reranker.rerank(**rerank_kwargs)
 
         return final_results
 
@@ -329,10 +527,14 @@ _global_hybrid_retriever: Optional[HybridRetriever] = None
 
 def get_hybrid_retriever(
     sample_kb_dir: Optional[Path] = None,
+    uploaded_data_dir: Optional[Path] = None,
     force_refresh: bool = False,
 ) -> HybridRetriever:
     """Returns singleton HybridRetriever to prevent redundant disk I/O, BM25 indexing, and embedding computation."""
     global _global_hybrid_retriever
     if _global_hybrid_retriever is None or force_refresh:
-        _global_hybrid_retriever = HybridRetriever(sample_kb_dir=sample_kb_dir)
+        _global_hybrid_retriever = HybridRetriever(
+            sample_kb_dir=sample_kb_dir,
+            uploaded_data_dir=uploaded_data_dir,
+        )
     return _global_hybrid_retriever

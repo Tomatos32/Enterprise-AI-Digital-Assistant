@@ -349,10 +349,19 @@ def _execute_full_sync(recreate: bool, uploader: str, task_id: str) -> Dict[str,
             except Exception as exc:
                 logger.warning("Skipped re-indexing uploaded file %s during sync: %s", p.name, exc)
 
-    retriever = get_hybrid_retriever(force_refresh=True)
+    retriever = get_hybrid_retriever(uploaded_data_dir=DATA_DIR, force_refresh=True)
     if uploaded_chunks:
-        retriever.sample_docs.extend(uploaded_chunks)
-        retriever.bm25_retriever.build_index(retriever.sample_docs)
+        existing_filenames = {
+            str(d.metadata.get("filename", ""))
+            for d in retriever.sample_docs
+            if d.metadata.get("source_type") == "uploaded"
+        }
+        missing_chunks = [
+            c for c in uploaded_chunks if str(c.metadata.get("filename", "")) not in existing_filenames
+        ]
+        if missing_chunks:
+            retriever.sample_docs.extend(missing_chunks)
+            retriever.bm25_retriever.build_index(retriever.sample_docs)
 
     q_info = get_qdrant_info()
     report["qdrant_info"] = q_info

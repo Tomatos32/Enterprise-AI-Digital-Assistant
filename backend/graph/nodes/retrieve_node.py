@@ -1,8 +1,9 @@
 """Knowledge Retrieval Node Implementation for LangGraph State Machine.
 
-Integrates dual-path retrieval with dynamic RBAC & Multi-tenancy isolation:
-1. Vector / Hybrid document chunk retrieval (Qdrant & BM25 via HybridRetriever with RBAC security filter).
-2. Enterprise Knowledge Graph (Graph RAG) topological multi-hop reasoning.
+Integrates dual-path retrieval with hybrid multi-turn query rewriting and dynamic RBAC isolation:
+1. Context-Aware Hybrid Query Rewriting (pronoun + implicit ellipsis + multi-domain soft weights).
+2. Vector / Hybrid document chunk retrieval (Qdrant & BM25 via HybridRetriever with RBAC security filter).
+3. Enterprise Knowledge Graph (Graph RAG) topological multi-hop reasoning consuming standalone rewritten query.
 """
 
 import logging
@@ -20,11 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 async def retrieve_node(state: AgentState) -> Dict[str, Any]:
-    """Retrieval Node that performs dual-path retrieval (Vector + Graph RAG)
-
-    enforcing dynamic RBAC and multi-tenancy security from state metadata,
-    and writes the fused results into state['context'].
-    """
+    """Retrieval Node executing hybrid multi-turn query rewriting and dual-path retrieval (Vector + Graph RAG)."""
     messages: List[BaseMessage] = list(state.get("messages", []))
     raw_query = messages[-1].content if messages else ""
     query = raw_query if isinstance(raw_query, str) else str(raw_query)
@@ -39,11 +36,16 @@ async def retrieve_node(state: AgentState) -> Dict[str, Any]:
     tenant_id = user_info.get("tenant_id") or metadata.get("tenant_id") or "default"
     user_department = user_info.get("department") or metadata.get("department")
     clearance_level = user_info.get("clearance_level") or metadata.get("clearance_level", 1)
+    data_source = metadata.get("data_source_id") or metadata.get("data_source")
 
-    # 0. Query Rewriting & Sub-Query Decomposition
+    # 0. Multi-Turn Contextual Query Rewriting & Multi-Domain Decomposition
     history_messages = messages[:-1] if len(messages) > 1 else []
     rewriter = get_query_rewriter()
-    rewritten = rewriter.rewrite(query=query, history=history_messages)
+    rewritten = await rewriter.arewrite(
+        query=query,
+        history=history_messages,
+        data_source=str(data_source) if data_source else None,
+    )
 
     # 1. Path to sample_kb for Vector / Hybrid Retriever
     product_root = Path(__file__).resolve().parent.parent.parent.parent
@@ -62,6 +64,8 @@ async def retrieve_node(state: AgentState) -> Dict[str, Any]:
         clearance_level=clearance_level,
         sub_queries=rewritten.sub_queries,
         primary_domain=rewritten.primary_domain,
+        domains=rewritten.domains,
+        domain_weights=rewritten.domain_weights,
     )
 
     formatted_context: List[Dict[str, Any]] = [
@@ -72,9 +76,12 @@ async def retrieve_node(state: AgentState) -> Dict[str, Any]:
         for doc in docs
     ]
 
-    # 2. Graph RAG Topological Knowledge Graph Multi-hop Reasoning
+    # 2. Graph RAG Topological Knowledge Graph Multi-hop Reasoning using rewritten standalone_query
     try:
-        graph_result = default_enterprise_kg.query_graph_rag(query=query, max_hops=2)
+        graph_query = rewritten.standalone_query or query
+        graph_result = default_enterprise_kg.query_graph_rag(query=graph_query, max_hops=2)
+        if graph_result.get("triples_count", 0) == 0 and graph_query != query:
+            graph_result = default_enterprise_kg.query_graph_rag(query=query, max_hops=2)
         if graph_result.get("triples_count", 0) > 0:
             graph_doc = {
                 "content": graph_result.get("formatted_graph_context", ""),
@@ -84,19 +91,38 @@ async def retrieve_node(state: AgentState) -> Dict[str, Any]:
                     "detected_entities": graph_result.get("detected_entities", []),
                     "triples_count": graph_result.get("triples_count", 0),
                     "multi_hop_chains": graph_result.get("multi_hop_chains", []),
+                    "graph_query": graph_result.get("query", graph_query),
                 },
             }
             # Prepend graph topological context as high-priority structural knowledge
             formatted_context.insert(0, graph_doc)
             logger.info(
-                f"[RetrieveNode] Injected Graph RAG context with "
-                f"{graph_result['triples_count']} triples and "
-                f"{len(graph_result['multi_hop_chains'])} multi-hop paths (Tenant={tenant_id}, Dept={user_department}, Clearance={clearance_level})."
+                "[RetrieveNode] Injected Graph RAG context with %d triples and %d multi-hop paths "
+                "(Query='%s', Tenant=%s, Dept=%s, Clearance=%s).",
+                graph_result["triples_count"],
+                len(graph_result["multi_hop_chains"]),
+                graph_result.get("query", graph_query),
+                tenant_id,
+                user_department,
+                clearance_level,
             )
     except Exception as e:
-        logger.warning(f"[RetrieveNode] Graph RAG reasoning query failed: {e}")
+        logger.warning("[RetrieveNode] Graph RAG reasoning query failed: %s", e)
+
+    # Record server-side rewrite diagnostics without clobbering existing metadata keys
+    updated_metadata = {
+        **metadata,
+        "rewritten_query": rewritten.standalone_query,
+        "sub_queries": list(rewritten.sub_queries),
+        "detected_domains": list(rewritten.domains),
+        "domain_weights": dict(rewritten.domain_weights),
+        "rewrite_method": rewritten.rewrite_method,
+        "coreference_resolved": rewritten.coreference_resolved,
+        "anchor_topic": rewritten.anchor_topic,
+    }
 
     return {
         "context": formatted_context,
         "current_step": "retrieved",
+        "metadata": updated_metadata,
     }

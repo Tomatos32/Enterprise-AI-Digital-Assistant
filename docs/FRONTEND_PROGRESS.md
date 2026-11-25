@@ -1,10 +1,10 @@
 # Enterprise AI Digital Assistant - 前端现代化与 ChatGPT/Gemini 范式重构全景背书白皮书
 
 > **项目名称**：企业级 AI 数字员工平台 - 现代化终端体验重塑与 Copilot 架构升级  
-> **当前运行模式**：**PRAGMATIC REALIZATION & ADMIN CONTROL PLANE MODE (Sprint F-01~F-09 与 R-01~R-04 已闭环 · 进入 Sprint R-05 身份基座与管理员控制面演进)**  
+> **当前运行模式**：**PRAGMATIC REALIZATION & COGNITIVE ROUTING MODE (Sprint F-01~F-09 与 R-01~R-05 已全量闭环 · 进入 Sprint R-06 认知意图路由、多轮语境改写与语义槽位提取专项演进)**  
 > **设计范式标准**：**ChatGPT / Gemini 极简沉浸式 Web 范式 + UI/UX Pro Max 企业级生产力标准**  
-> **基准规范**：[docs/PROJECT_PROGRESS.md](file:///g:/LLM_Learning/product/docs/PROJECT_PROGRESS.md) · [docs/SPEC.MD](file:///g:/LLM_Learning/product/docs/SPEC.MD) · [AGENTS.md](file:///g:/LLM_Learning/product/AGENTS.md) · `ui-ux-pro-max`  
-> **系统最后更新**：2026-11-17  
+> **基准规范**：[Summary.md](file:///g:/LLM_Learning/product/Summary.md) · [docs/PROJECT_PROGRESS.md](file:///g:/LLM_Learning/product/docs/PROJECT_PROGRESS.md) · [docs/SPEC.MD](file:///g:/LLM_Learning/product/docs/SPEC.MD) · [AGENTS.md](file:///g:/LLM_Learning/product/AGENTS.md) · `ui-ux-pro-max`  
+> **系统最后更新**：2026-11-24  
 
 ---
 
@@ -17,6 +17,8 @@
 [PHASE 3: 业务协同与待办中心]   ████████████████████████████████ 100% (Sprint F-05 & F-06 全部闭环)
 [PHASE 4: 多端响应与硬化验收]   ████████████████████████████████ 100% (Sprint F-07 & F-08 全部闭环)
 [PHASE 5: 原生体验与组件升维]   ████████████████████████████████ 100% (Sprint F-09: Vuebits 旗舰集成全量闭环)
+[PHASE 6: RBAC与管理员控制面]   ████████████████████████████████ 100% (Sprint R-05: Issue-0056~0059 全部闭环)
+[PHASE 7: 认知路由与语境改写]   ████████████████░░░░░░░░░░░░░░░░  50% (Sprint R-06: Issue-0060~0061 闭环 · Issue-0062~0063 待推)
 ====================================================================================================
 ```
 
@@ -635,56 +637,63 @@ npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallCh
 ================================================
 请先读取并确认仓库以下核心规范与资产审计文档：
 1. AGENTS.md （全局路由导航与 DoD 交付契约）
-2. docs/PROJECT_PROGRESS.md （项目全量进展、RBAC 与管理员控制台规划及标准提示词库）
-3. docs/FRONTEND_PROGRESS.md （前端现代化与 ChatGPT/Gemini/Claude 范式重构白皮书）
-4. docs/PRODUCTION_SIGNOFF.md （终极投产验收签发白皮书与四方联签）
-5. docs/MOCK_INVENTORY.md （真实化边界、本地模拟桩与配置规范）
-6. docs/harness/Runtime.md （唯一 Runtime 运行 Kernel 规范）
-7. docs/harness/Lifecycle.md （生命周期 10 阶段流转规范）
-8. docs/harness/Communication.md （Agent 间消息规范与 Interceptor Hook）
+2. Summary.md （全局进程交接摘要、现存路由/改写诊断与 Sprint R-06 演进蓝图）
+3. docs/PROJECT_PROGRESS.md （项目全量进展、RBAC 与管理员控制台规划及标准提示词库）
+4. docs/FRONTEND_PROGRESS.md （前端现代化与 ChatGPT/Gemini/Claude 范式重构白皮书）
+5. docs/PRODUCTION_SIGNOFF.md （终极投产验收签发白皮书与四方联签）
+6. docs/MOCK_INVENTORY.md （真实化边界、本地模拟桩与配置规范 V2.4）
+7. docs/harness/Runtime.md （唯一 Runtime 运行 Kernel 规范）
+8. docs/harness/Lifecycle.md （生命周期 10 阶段流转规范）
+9. docs/harness/Communication.md （Agent 间消息规范与 Interceptor Hook）
 
-当前 Repository 物理状态（对接至 2026-11-16 最新实测基线）：
-- 当前运行模式：PRAGMATIC REALIZATION & ADMIN CONTROL PLANE MODE (务实真实化收官与 RBAC 管理员控制面演进模式)
+当前 Repository 物理状态（对接至 2026-11-24 最新实测基线）：
+- 当前运行模式：PRAGMATIC REALIZATION & COGNITIVE ROUTING MODE (Sprint R-05 管理员控制面已全量闭环，当前聚焦 Sprint R-06 认知意图路由、多轮语境改写与语义槽位提取专项精进)
 - 历史模式与迭代达成状态：
   - BOOTSTRAP MODE：100% 验收达标已闭环 (Sprint 1~12 / Issue-0001~0019)
   - DEVELOPMENT MODE：100% 验收达标已闭环 (Sprint 13~25 / Issue-0020~0032)
   - STAGING & HARDENING MODE：100% 验收达标已闭环 (Sprint 26~30 / Issue-0033~0037)
   - FRONTEND MODERNIZATION MODE：Sprint F-01~F-09 全部闭环 (100% COMPLETED)
   - PRAGMATIC REALIZATION (Sprint R-01 ~ R-04)：Issue-0038~0055 全部闭环 (100% COMPLETED，含会话数据库持久化、FastEmbed/Qdrant 真实向量库、NativeOllama 极速推理与 `LLM_THINKING` 切换、Vue Bits `<ThoughtLine />` 官方规范集成与 CoT 持久化、Query 改写拆分子查询与 Rerank 强阈值过滤、WebSocket 防重入隔离与 Abort 解闭锁、边栏会话展示对称修复)
+  - RBAC & ADMIN CONTROL PLANE (Sprint R-05)：Issue-0056~0059 全部闭环 (100% COMPLETED，已交付 JWT 三角色隔离 `employee`/`manager`/`admin`、`/admin/settings` 模型与 RAG 热调配台、`/admin/tasks` 知识文档上传与异步解析任务中心、`/admin/monitoring` 系统遥测/工具审计/SLA 监控大屏，原 `AdminSlotPlaceholderView.vue` 已从路由彻底卸除)
   - DAY-2 SRE OPERATIONS：Ops-0001、Ops-0002 已落盘归档
 - Python 专属虚拟环境：`backend/.venv/Scripts/python.exe`
-- 自动化测试基线：全仓共收集 258 项测试（最近基线实测 `256 passed, 2 failed`，待对齐 2 项历史测试用例：`test_graph_unittest.py` 旧版 Mock 文案断言及 `test_thought_persistence.py` 独立建表前置）
-- 静态代码分析：`backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/` ➔ 0 Errors / 0 Warnings (All checks passed!)
-- 前端生产构建：`frontend/` `npm run build` (`vite build`) ➔ 7,906 modules transformed, built in 8.27s (0 Errors)
+- 自动化测试基线：全仓 `pytest backend/tests/ -q --tb=short` 最近基线实测 `279 passed, 2 failed`（`test_admin_monitoring_api.py` 4/4 全通，11 套件核心联测 `64 passed`；遗留 2 项待在 `Issue-0063` 清零的历史用例：`test_graph_unittest.py` 旧版 Mock 文案断言及 `test_thought_persistence.py` 受前置 `test_mock_systems.py` 未清 `dependency_overrides` 影响，单独复跑 `1 passed`）
+- 静态代码分析：`backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/` -> 0 Errors / 0 Warnings (All checks passed!)；`backend/core/metrics.py` 既有语法冲突已清零，`Issue-0059` 9 个改动文件 `mypy` (`--follow-imports=skip`) 0 Errors
+- 前端生产构建：`frontend/` `npm run build` (`vite build`) -> 7,920 modules transformed (0 Errors)
+- 契约与向量状态：`docs/generated/openapi-spec.json` 已同步 38 条 API 路径 (`IN_SYNC=True`)；Qdrant `local_storage` 集合 `enterprise_knowledge` 已就绪 7,375 个向量点位 (dim=1024)
 - 已交付核心全栈资产：
-  - 会话持久化与 CoT 追溯：`ChatSession` / `ChatMessage`（含 `thought`、`duration_seconds`、`thought_steps`）、REST CRUD + WebSocket 双工流式写库
-  - 真实 RAG 与大模型驱动：`NativeOllamaChatModel` + `EnterpriseChatOpenAI` + `ResilientChatModel`、`HybridRetriever` (BM25 + Qdrant UUID5 幂等 + RRF + Reranker) + `QueryRewriter` + 6 个 `ToolRegistry` 函数工具
-  - 生产基础与韧性设施：12 项企业系统适配器与 Mock 桩 (`backend/adapters/`)、CNCF Helm 3 编排 (`deployments/helm/enterprise-ai/`)、双向安全护栏与流式 PII 脱敏 (`backend/core/guardrails/`)、三态熔断器 (`backend/core/circuit_breaker.py`)、Prometheus `/metrics` Collector (`backend/core/metrics.py`)、RBAC 核心后端 (`backend/core/rbac.py`, `backend/api/v1/auth.py`)
-  - 前端现代化旗舰底座：Vue 3 + Vite + Tailwind CSS + Pinia + Lucide Icons + Vuebits (`@vue-bits/*` 12 大组件，含 `PromptBar`, `ThoughtLine`, `CallChip`, `FolderFloat`, `LineSidebar`, `StatusMark`, `FuseButton`) + Hugeicons 矢量图标 + 日间温润白/夜间曜石黑双主题系统，已上线 `/`、`/approvals`、`/knowledge` 三大核心视图
+  - 会话持久化与 CoT 追溯：`ChatSession` / `ChatMessage`（含 `thought`、`duration_seconds`、`thought_steps`）、REST CRUD + WebSocket 双工流式写库与按认证用户归属隔离
+  - 真实 RAG 与大模型驱动：`NativeOllamaChatModel` + `EnterpriseChatOpenAI` + `ResilientChatModel`、`HybridRetriever` (BM25 + Qdrant UUID5 幂等 + RRF + Reranker) + `QueryRewriter` + 6 个 `ToolRegistry` 函数工具 + 管理员上传台账 (`knowledge_ledger.py`)
+  - 生产基础、RBAC 与管理面：12 项企业系统适配器与 Mock 桩 (`backend/adapters/`)、CNCF Helm 3 编排、双向安全护栏与流式 PII 脱敏 (`backend/core/guardrails/`)、三态熔断器、Prometheus `/metrics` 与监控聚合路由 (`backend/core/metrics.py`, `backend/api/v1/monitoring.py`)、RBAC 核心后端与 `/admin/settings` 热配置 (`backend/core/rbac.py`, `backend/core/runtime_config.py`)
+  - 前端现代化旗舰底座与三角色控制面：Vue 3 + Vite + Tailwind CSS + Pinia (`authStore`, `chatStore`, `approvalStore`, `preferencesStore`) + Lucide/Hugeicons 双核矢量图标 + Vuebits 12 大组件 + 日间温润白/夜间曜石灰双主题系统，已全量上线 `/login`、`/`、`/approvals`、`/knowledge`、`/admin/settings`、`/admin/tasks`、`/admin/monitoring`
 
 ================================================
 第二阶段：Issue / Ops 任务强制物理履约 SOP (Execution Contract)
 ================================================
-接收到任何新 Issue 或 Ops 运维任务时，必须严格按顺序扮演以下 Agent/角色，并向 `.harness/runs/Issue-XXXX/`（或 `.harness/runs/Ops-XXXX/`）刷盘物理隔离的 8 大只读证据包，严禁跳过任何步骤或自写自审：
+接收到任何新 Issue 或 Ops 运维任务时，必须严格按顺序扮演以下 Agent/角色，并向 `.harness/runs/Issue-XXXX/`（或 `.harness/runs/Ops-XXXX/`）刷盘物理隔离的完整证据包（共 9 份核心文件：`issue.md`, `plan.md`, `developer.md`, `review.md`, `documentation.md`, `verification.md`, `summary.json`, `timeline.md`, `runtime.log`），严禁跳过任何步骤或自写自审：
 
-1. [Orchestrator]: 在 `.harness/runs/Issue-XXXX/`（或 `Ops-XXXX/`）下创建 `issue.md` 锁存原始需求与验收目标。
+1. [Orchestrator]: 在 `.harness/runs/Issue-XXXX/`（或 `Ops-XXXX/`）下创建 `issue.md` 锁存原始需求与验收目标（动工前先执行 `git status -s` 核对工作区稳态）。
 2. [PlannerAgent]: 制定 Checkpoints 变动表，生成 `plan.md`，并同步更新 `docs/plans/sprint-active.md`。
-3. [DeveloperAgent]: 使用 `backend/.venv/Scripts/python.exe` 执行代码编写与自动化测试（前端执行 `npm run build`），将真实控制台测试日志刷入 `developer.md`。
-4. [ReviewerAgent]: 从架构、安全、性能、回滚机制与 RBAC 隔离等 11 个维度审计代码，计算 ReviewScore（需 ≥ 90），刷入 `review.md`。
-5. [DocumentationAgent]: 导出 API/配置变更，更新 API.md/Database.md/PROJECT_PROGRESS.md，生成 `documentation.md`。
-6. [VerifierAgent]: 进行物理文件存在性与锁定状态静态审计，生成 `verification.md`。
+3. [DeveloperAgent]: 使用 `backend/.venv/Scripts/python.exe` 执行代码编写与自动化测试（前端执行 `npm run build`），将真实控制台测试日志与产物 SHA-256 刷入 `developer.md`。
+4. [ReviewerAgent]: 从架构、安全、性能、回滚机制、多轮上下文鲁棒性与 RBAC 隔离等 11 个维度审计代码，计算 ReviewScore（需 >= 90），刷入 `review.md`。
+5. [DocumentationAgent]: 导出 OpenAPI/配置变更，更新 `docs/API.md` / `docs/MOCK_INVENTORY.md` / `docs/PROJECT_PROGRESS.md` / `docs/FRONTEND_PROGRESS.md`，核对 Qdrant 状态，生成 `documentation.md`。
+6. [VerifierAgent]: 进行物理文件存在性、零 Emoji/硬编码与静态审计校验，生成 `verification.md`。
 7. [HarnessRecorder]: 刷盘元数据文件 `summary.json`、`timeline.md` 与 `runtime.log`，闭环关单并更新进度大盘。
 
 ================================================
-第三阶段：现阶段待指派任务索引与范围边界 (对接 Sprint R-05)
+第三阶段：现阶段待指派任务索引与范围边界 (对接 Sprint R-06)
 ================================================
-当前处于【Sprint R-05：身份基座优先与管理员控制面闭环阶段】，待指派任务必须严格遵守如下依赖顺序与范围裁剪（标准执行提示词见 `docs/PROJECT_PROGRESS.md` 第 5 节）：
+当前处于【Sprint R-06：认知意图路由、多轮语境改写与语义槽位提取专项升级阶段】（目标：消除当前单轮关键词路由误判、指代/省略改写脆弱与前端硬编码业务参数短板），待指派任务必须严格遵守如下依赖顺序与范围边界：
 
-1. 核心排期任务索引（Issue-0056 ~ Issue-0059，全部依赖 P0 身份基座）：
-- [P0 前置基座] Issue-0056：用户身份认证、角色上下文切换与 RBAC 视图隔离（`employee` / `manager` / `admin`，**明确去除 4 级安全密级开发**，替换硬编码“张经理”）
-- [P1 置于 P0 之后] Issue-0057：管理员专属·大模型参数与 LangGraph 节点配置中心 (`/admin/settings`，仅限 `admin` 调配，盘活 `<Settings />` 按钮，普通用户仅见外观偏好)
-- [P2 管理员范围] Issue-0058：管理员专属·知识文档上传与异步解析任务中心 (`/admin/tasks`，限 `admin` 操作，打通拖拽上传、Celery 进度与 Qdrant 状态同步)
-- [P3 管理员范围] Issue-0059：管理员专属·系统遥测、工具审计与 SLA 监控看板 (`/admin/monitoring`，限 `admin` 操作，对接 `/metrics` 指标与 SLA 履约统计)
+1. 核心排期任务索引（Issue-0060 ~ Issue-0063，按 P0 -> P3 依次推进）：
+- [P0 路由重构] Issue-0060：多轮上下文感知的混合认知意图识别引擎（`backend/graph/nodes/router_node.py` + `workflow.py` + `PromptBar` `@数据源`/`/` 指令对齐）
+  - 痛点治理：改变单轮 `messages[-1]` 静态关键词匹配与 `len(query) >= 4` 强制落入 `retrieve` 的缺陷；升级为「确定性护栏 + 轻量非思考 LLM 语境分类器（消费最近 6 轮对话历史，带超时与离线规则兜底）」双阶段路由，精准区分 `retrieve` / `tool` / `approval` / `chat` 及复合意图，对齐 `@MySQL 业务台账`、`@ERP 采购与供应链`、`/audit`、`/kb`、`/help`。
+- [P1 改写与召回] Issue-0061：多轮指代消解、领域感知 Query 改写与跨领域检索引擎升级（`backend/rag/query_rewriter.py` + `retrieve_node.py` + `retriever.py`）
+  - 痛点治理：改变 10 代词 + 4 实体模板硬编码与单域硬锁截断问题；引入「规则预处理 + 轻量 LLM 上下文独立改写与语义切面拆解（带本地确定性回退）」，支持无代词省略补全与管理员自定义入库文档通用改写；将单域硬过滤改为多领域软加权避免跨领域丢召回；将 `standalone_query` 传入 Graph RAG，并支持启动时加载 `backend/data/` 已上传文档至 BM25。
+- [P2 语义抽槽] Issue-0062：工具与审批语义槽位提取器重构及前端硬编码剥离（`backend/graph/nodes/tool_node.py` + `approval_node.py` + `frontend/src/components/ChatContainer.vue`）
+  - 痛点治理：彻底剥离 `ChatContainer.vue` 中检测到 `MacBook`/`采购` 即硬编码注入 `MacBook Pro 16 / 22999.0` 的 `purchase_args`；在后端实现人名、物品、数量、单价/总价、邮箱、部门、工单优先级 (P0~P4) 的结构化语义槽位提取与金额正则兜底，缺参时主动发起自然语言澄清追问，不再静默填入写死默认业务参数。
+- [P3 评测与基线] Issue-0063：意图与改写黄金评测集、对抗回归测试与历史遗留基线清零（`test_intent_routing_matrix.py` + `test_contextual_query_rewriter.py` + `/admin/settings` & `/admin/monitoring` 路由/改写可观测联动）
+  - 痛点治理：沉淀覆盖关键词碰撞、多轮省略追问、跨领域检索、真实金额审批与槽位抽取的黄金评测套件；支持在管理员配置与监控中观测路由策略与改写耗时（普通用户视图保持零黑话）；同步修复 `test_graph_unittest.py` 旧断言与 `test_thought_persistence.py` 测试隔离问题，达成全仓 `pytest` 100% 全绿。
 
 2. 运维保留任务索引（Day-2 Operations Remaining）：
 - Ops-0003：生产级监控指标大盘巡检与告警阈值动态调优
@@ -699,28 +708,30 @@ npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallCh
 ================================================
 红线禁令 (Strict Invariants)
 ================================================
-❌ 严禁直接修改业务代码而不建立 `.harness/runs/Issue-XXXX/`（或 `Ops-XXXX/`）沙盒证据包。
-❌ 严禁使用系统全局 Python，必须统一使用 `backend/.venv/Scripts/python.exe`。
-❌ 严禁未运行实际 pytest/ruff/vite build 命令即宣称“测试或构建通过”。
-❌ 严禁破坏现有 256+ 项通过的自动化测试与 0 Ruff 告警稳态（新开发与重构需保障全量测试全通）。
-❌ 严禁将证据文件写入仓库外的缓存区，必须落盘至项目根目录下的 `.harness/runs/` 路径。
-❌ 严禁在普通员工视图中暴露任何管理员级大模型参数、节点配置、文档上传入库或系统遥测监控入口；严禁向前端接口明文回传 API Key / Secret Key。
-❌ 严禁在界面使用任何系统 Emoji (⚡/📋/💬/🤖/💡/⚠️/⚙️/✅/❌) 或暴露任何代码注释/技术调试占位符，必须统一使用 `lucide-vue-next` 与 `@hugeicons/vue` 矢量图标。
-❌ 严禁破坏日间白色主基调与夜间 Dark style 的背景拟合体系（暗色正文对比度 ≥ 4.5:1，日间正文对比度 ≥ 7:1，均须符合 WCAG AA/AAA）。
+[FORBIDDEN] 严禁直接修改业务代码而不建立 `.harness/runs/Issue-XXXX/`（或 `Ops-XXXX/`）沙盒证据包。
+[FORBIDDEN] 严禁使用系统全局 Python，必须统一使用 `backend/.venv/Scripts/python.exe`。
+[FORBIDDEN] 严禁未运行实际 pytest/ruff/vite build 命令即宣称“测试或构建通过”。
+[FORBIDDEN] 严禁破坏现有 279+ 项通过的自动化测试与 0 Ruff 告警稳态（新开发与重构需保障全量测试持续收敛至 100% 全通）。
+[FORBIDDEN] 严禁将证据文件写入仓库外的缓存区，必须落盘至项目根目录下的 `.harness/runs/` 路径；严禁修改 `AGENTS.md`、`BOOTSTRAP.md`、`docs/harness/Runtime.md` 与 `docs/guidelines/*` 等人类受保护文件。
+[FORBIDDEN] 严禁在前端组件中硬编码伪造业务参数（如固定采购商品名、数量或金额），所有工具与审批槽位必须由后端基于真实输入与多轮上下文提取；关键参数缺失时应发起自然语言澄清。
+[FORBIDDEN] 意图路由与 Query 改写引入大模型语义调用时，必须使用低延迟非思考路径并具备严格超时控制及离线规则兜底（保障 `local_fallback` 与无外网单测零中断），严禁向普通员工前端泄露路由标签、子查询或调试代号。
+[FORBIDDEN] 严禁在普通员工视图中暴露任何管理员级大模型参数、节点配置、文档上传入库或系统遥测监控入口；严禁向前端接口明文回传 API Key / Secret Key。
+[FORBIDDEN] 严禁在界面使用任何系统 Emoji（闪电/剪贴板/气泡/机器人/灯泡/警告/齿轮/勾选/叉号等）或暴露任何代码注释/技术调试占位符，必须统一使用 `lucide-vue-next` 与 `@hugeicons/vue` 矢量图标。
+[FORBIDDEN] 严禁破坏日间白色主基调与夜间 Dark style 的背景拟合体系（暗色正文对比度 >= 4.5:1，日间正文对比度 >= 7:1，均须符合 WCAG AA/AAA）。
 
 确认理解上述 Harness 规范后，请输出你的 Onboarding 诊断结果，并等待我的下一个任务指派。
 ```
 
 ---
 
-### 三、当前运行验证与健康度状态 (2026-11-17 实测基线 · Issue-0056~0057 闭环)
+### 三、当前运行验证与健康度状态 (2026-11-24 实测基线 · Sprint R-06 P1 Issue-0061 闭环)
 
-- 单元测试套件：`backend/.venv/Scripts/python.exe -m pytest backend/tests/ -q` ➔ 实测 `269 passed, 2 failed`（Issue-0056/0057 专项 10 个核心单测套件 48/48 全通，含 `test_auth_role_isolation.py` 6/6 与 `test_admin_config_rbac.py` 7/7；存留 2 项既有历史用例：`test_graph_unittest.py` 旧 Mock 文案断言及 `test_thought_persistence.py` 受前置 `test_mock_systems.py` 未清 `dependency_overrides` 影响，单独复跑 `1 passed`）
-- 代码静态质量：`backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/` ➔ 0 errors, 0 warnings (`All checks passed!`)；Issue-0057 改动/新增 8 个后端文件 `mypy` 检查 0 errors
-- 前端生产构建：`frontend/` `npm run build` (`vite build`) ➔ `7,916 modules transformed`，0 errors（已交付 `/login`、`authStore`、`preferencesStore`、`UserPreferencesModal.vue`、`/admin/settings` `AdminSettingsView.vue` 与分层 `<Settings />` 入口）
-- 当前工程态：`PRAGMATIC REALIZATION & ADMIN CONTROL PLANE MODE`（Sprint R-05 已闭环 **Issue-0056** 与 **Issue-0057**），下一任务可按序启动 **Issue-0058 (`/admin/tasks` 管理员文档上传与异步解析任务中心)**！
+- 单元测试套件：`backend/.venv/Scripts/python.exe -m pytest backend/tests/ -q --tb=short` -> 实测 `301 passed, 2 failed`（`test_contextual_query_rewriter.py` 10/10 全通、`test_cognitive_router.py` 12/12 全通，15 套件核心联测 `87 passed`；存留 2 项既有历史用例：`test_graph_unittest.py` 旧 Mock 文案断言及 `test_thought_persistence.py` 受前置 `test_mock_systems.py` 未清 `dependency_overrides` 影响，单独复跑 `1 passed`，排期 `Issue-0063` 统一清零）
+- 代码静态质量：`backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/` -> 0 errors, 0 warnings (`All checks passed!`)；`Issue-0061` 改动/新增 9 个后端与单测文件 `mypy` (`--follow-imports=skip`) 检查 0 errors
+- 前端生产构建：`frontend/` `npm run build` (`vite build`) -> `7,920 modules transformed`，0 errors（`PromptBar.vue` 与 `ChatContainer.vue` 已完成 `@数据源` `sourceId` 与 `/` 快捷指令元数据透传对齐，全站 0 系统 Emoji）
+- 当前工程态：`PRAGMATIC REALIZATION & COGNITIVE ROUTING MODE`（Sprint R-06 已闭环 P0 **Issue-0060** 混合认知意图路由与复合状态机、P1 **Issue-0061** 多轮指代消解/上下文补全与跨领域软加权检索引擎；下一步依次推进 **Issue-0062** 语义抽槽与硬编码剥离、**Issue-0063** 黄金评测与全绿清零）
 
 ---
-*全景背书白皮书已于 2026-11-17 升级对齐，全面完成现有进度同步、Harness SOP 契约更新与 Sprint R-05 (Issue-0056~0057) 控制面进度对接。*
+*全景背书白皮书已于 2026-11-24 升级对齐，全面完成现有进度同步、Sprint R-06 演进推理与 Harness Onboarding SOP 契约更新。*
 
 

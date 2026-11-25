@@ -48,9 +48,11 @@ class Settings(BaseSettings):
     LLM_STREAM: bool = True
     LLM_THINKING: bool = False  # Set True to enable Deep Reasoning (CoT) mode on thinking models (e.g. Qwen3.5/R1)
 
-    # Cognitive Intent Router Config
+    # Cognitive Intent Router & Contextual Query Rewriter Config
     ROUTER_LLM_ENABLED: bool = True
     ROUTER_LLM_TIMEOUT: float = 2.5
+    QUERY_REWRITER_LLM_ENABLED: bool = True
+    QUERY_REWRITER_LLM_TIMEOUT: float = 2.5
 
     # JWT Security Config
     SECRET_KEY: str = "super_secret_jwt_key_enterprise_ai_2026_harness"

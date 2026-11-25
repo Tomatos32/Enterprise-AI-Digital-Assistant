@@ -643,6 +643,15 @@ def get_router_llm(timeout_sec: float = 2.5) -> Optional[BaseChatModel]:
     )
 
 
+def get_rewriter_llm(timeout_sec: float = 2.5, max_tokens: int = 320) -> Optional[BaseChatModel]:
+    """Returns a fast, non-thinking, non-streaming LLM client for contextual query rewriting."""
+    return _build_lightweight_non_thinking_llm(
+        timeout_sec=timeout_sec,
+        max_tokens=max_tokens,
+        purpose="query_rewriter",
+    )
+
+
 def get_llm_info() -> Dict[str, Any]:
     """Returns diagnostics and configuration telemetry for the LLM subsystem."""
     from backend.core.runtime_config import get_runtime_config, resolve_active_engine_name

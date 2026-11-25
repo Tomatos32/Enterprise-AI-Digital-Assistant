@@ -1,10 +1,15 @@
 """RAG Document Loader & Parser Utilities for Enterprise AI Digital Assistant."""
 
+import logging
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import openpyxl
 from pypdf import PdfReader
 from langchain_core.documents import Document
+
+logger = logging.getLogger(__name__)
+
+SUPPORTED_KB_SUFFIXES = (".md", ".pdf", ".xlsx", ".xls", ".txt")
 
 
 def extract_metadata_from_filename(file_path: Path) -> Dict[str, Any]:
@@ -93,22 +98,65 @@ def load_excel_document(file_path: Path) -> List[Document]:
     return documents
 
 
+def _load_single_kb_file(path: Path) -> List[Document]:
+    """Dispatches a single supported knowledge document to its format-specific parser."""
+    suffix = path.suffix.lower()
+    if suffix == ".md":
+        return load_markdown_document(path)
+    if suffix == ".pdf":
+        return load_pdf_document(path)
+    if suffix in (".xlsx", ".xls"):
+        return load_excel_document(path)
+    if suffix == ".txt":
+        return load_text_document(path)
+    return []
+
+
 def load_sample_kb_documents(kb_dir: Path) -> List[Document]:
     """Recursively loads all sample_kb files (Markdown, PDF, Excel, Text)."""
     docs: List[Document] = []
     if not kb_dir.exists():
         return docs
 
-    for path in kb_dir.rglob("*"):
-        if path.is_file():
-            suffix = path.suffix.lower()
-            if suffix == ".md":
-                docs.extend(load_markdown_document(path))
-            elif suffix == ".pdf":
-                docs.extend(load_pdf_document(path))
-            elif suffix in [".xlsx", ".xls"]:
-                docs.extend(load_excel_document(path))
-            elif suffix == ".txt":
-                docs.extend(load_text_document(path))
+    for path in sorted(kb_dir.rglob("*")):
+        if path.is_file() and path.suffix.lower() in SUPPORTED_KB_SUFFIXES:
+            try:
+                loaded = _load_single_kb_file(path)
+                for doc in loaded:
+                    doc.metadata.setdefault("source_type", "builtin")
+                docs.extend(loaded)
+            except Exception as exc:
+                logger.warning("Failed to load sample KB document %s: %s", path, exc)
+
+    return docs
+
+
+def load_uploaded_data_documents(
+    data_dir: Path,
+    category_overrides: Optional[Dict[str, str]] = None,
+) -> List[Document]:
+    """Loads top-level admin-uploaded documents from data_dir without traversing subdirs (e.g. qdrant_storage)."""
+    docs: List[Document] = []
+    if not data_dir.exists() or not data_dir.is_dir():
+        return docs
+
+    overrides = category_overrides or {}
+    for path in sorted(data_dir.iterdir()):
+        if not path.is_file():
+            continue
+        if path.name.startswith(".") or path.suffix.lower() not in SUPPORTED_KB_SUFFIXES:
+            continue
+        try:
+            loaded = _load_single_kb_file(path)
+            override_cat = overrides.get(path.name)
+            for doc in loaded:
+                doc.metadata["filename"] = path.name
+                doc.metadata["source"] = str(path)
+                doc.metadata["source_type"] = "uploaded"
+                if override_cat and str(override_cat).strip():
+                    doc.metadata["category"] = str(override_cat).strip().upper()
+            docs.extend(loaded)
+        except Exception as exc:
+            logger.warning("Skipped unreadable uploaded knowledge document %s: %s", path.name, exc)
 
     return docs

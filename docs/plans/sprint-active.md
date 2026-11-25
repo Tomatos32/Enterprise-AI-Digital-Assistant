@@ -171,6 +171,13 @@
   - [x] Checkpoint 4: 对齐 `PromptBar.vue` 与 `ChatContainer.vue` 的 `@数据源` (`kb_all`/`db_mysql`/`erp_sap`) 与 `/` 指令 (`/audit`/`/kb`/`/help`) 元数据透传契约
   - [x] Checkpoint 5: 编写 `test_cognitive_router.py` (12/12 PASS)，通过 `ruff` (0 errors)、10 文件 `mypy` (0 errors)、12 套件联测 (68/68 PASS)、全仓 `pytest` (291 passed, 2 pre-existing failed)、`vite build` (7,920 modules) 与 Reviewer 11 维审查 (Score: 95, `APPROVED`)，更新文档并归档 `.harness/runs/Issue-0060/` 9 份完整证据包
 
+- [x] **Sprint R-06 / Issue-0061: 多轮指代消解、上下文补全与跨领域 Query 改写引擎升级 - [100% COMPLETED]**
+  - [x] Checkpoint 1: 在 `.harness/runs/Issue-0061/` 初始化 `issue.md` 与 `plan.md`，同步登记至 `docs/plans/sprint-active.md`
+  - [x] Checkpoint 2: 升级 `config.py`、`llm.py` 与 `loader.py`（新增 `QUERY_REWRITER_LLM_*` 配置、共享轻量非思考模型工厂 `get_rewriter_llm` 与 `load_uploaded_data_documents` 顶层容错加载器）
+  - [x] Checkpoint 3: 升级 `backend/rag/query_rewriter.py`（规则预处理 + 轻量非思考 LLM 上下文改写 + 增强确定性回退，解决无代词隐式省略补全、3 轮链式平行追问、自定义文档主题承接、多领域权重打分、全 6 域自适应子查询拆解、未消解代词/单轮伪指代护栏）
+  - [x] Checkpoint 4: 升级 `retriever.py`、`retrieve_node.py`、`chat_ws.py` 与 `knowledge.py`（取消推断单域硬锁改为跨领域软加权与多样性保底并兼容旧版 `Reranker` 签名、将 `standalone_query` 传入 Graph RAG、启动自动同步 `backend/data/` 上传文档到 BM25 并阻断改写 LLM 流式外泄）
+  - [x] Checkpoint 5: 编写 `test_contextual_query_rewriter.py` (10/10 PASS)，通过 `ruff` (0 errors)、9 文件 `mypy` (0 errors)、15 套件核心联测 (87/87 PASS)、全仓 `pytest` (301 passed, 2 pre-existing failed)、Live Ollama 实测 (5/5 PASS)、`vite build` 与 Reviewer 11 维审查 (Score: 95, `APPROVED`)，同步仓库文档并归档 `.harness/runs/Issue-0061/` 9 份只读证据包
+
 ---
 
 ## Historical Achievements (已交付稳态资产):
