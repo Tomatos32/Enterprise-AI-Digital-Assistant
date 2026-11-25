@@ -188,6 +188,7 @@ WECOM_WEBHOOK_URL=
 | **`FALLBACK_DEMO_IDENTITIES`** | `frontend/src/stores/authStore.js` | 前端首屏在后端 `/auth/identities` 未响应时的兜底展示名单（3 个角色姓名、部门与角色标签，**无密码、无 Token**）。 | 真实 JWT Token 与认证状态完全以服务端 `/auth/login` 或 `/auth/switch-role` 签发结果为准，兜底数组不可绕过鉴权。 |
 | **`AdminSlotPlaceholderView`** | `frontend/src/views/AdminSlotPlaceholderView.vue` | 面向 `/admin/tasks`、`/admin/monitoring` 的 `admin` 专属路由插槽占位视图，仅展示静态域元数据，不含虚假运维指标或模拟开关（原 `/admin/settings` 已在 `Issue-0057` 升级为接通真实 `/api/v1/admin/config` 的 `AdminSettingsView.vue`）。 | 受 `router.beforeEach` (`meta.roles: ['admin']`) 拦截保护；剩余实体功能留待 Issue-0058~0059 接管真实后端 API。 |
 | **`get_available_providers()` & `FALLBACK_READY` 探针** | `backend/core/runtime_config.py`, `backend/api/v1/admin_config.py` | 为管理员配置台提供 6 大引擎推荐模型与默认端口预设，并在本地 Ollama / 远程网关未启动时于 `/admin/config/probe` 返回诚实的 `FALLBACK_READY` 状态（不伪造在线连通）。 | 强制 `Depends(require_role([RoleEnum.ADMIN]))` 拦截；`runtime_config.json` 仅持久化非密钥白名单参数，严禁落盘或回传 `LLM_API_KEY` / `SECRET_KEY`。 |
+| **`knowledge_tasks_ledger` & `async_fallback`** | `backend/core/knowledge_ledger.py`, `backend/api/v1/knowledge.py`, `backend/api/v1/tasks.py` | 持久化真实文档上传与入库任务台账至 `logs/knowledge_tasks_ledger.json`；当 Redis/Celery Worker 未在线时，异步上传自动降级至 FastAPI `BackgroundTasks` 真实执行解析切片与向量入库并如实标注 `execution_mode="async_fallback"`（绝不伪造虚构进度）。 | 所有上传、同步、文档台账与任务接口强制 `Depends(require_role([RoleEnum.ADMIN]))` 鉴权；单文件严格限制白名单后缀与 ≤ 20 MB。 |
 
 ### 6.2 业务系统模拟桩、种子数据与工作流/工具 Stub
 

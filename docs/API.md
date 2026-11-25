@@ -289,87 +289,105 @@
 
 ### 2.4 知识库管理 (RAG Management)
 
-#### 2.4.1 上传知识库文档
+> **RBAC 权限边界**：`GET /knowledge/status` 与 `GET/POST /knowledge/search` 对已登录全部角色（`employee`、`manager`、`admin`）开放；文档上传（`POST /knowledge/upload`）、文档台账查询（`GET /knowledge/documents`）与全库重建/增量同步（`POST /knowledge/sync`）强制要求 `Depends(require_role([RoleEnum.ADMIN]))`（未认证返回 `401`，非管理员返回 `403`）。
+
+#### 2.4.1 查询知识库向量底座状态
+- **接口路径**：`GET /knowledge/status`
+- **鉴权要求**：`employee` / `manager` / `admin`（未认证返回 `401`）
+- **功能描述**：返回 Qdrant 运行模式、集合名称、点位总数、向量维度、Embedding 引擎与内置/上传文档统计。
+
+#### 2.4.2 获取已索引知识文档清单（管理员专属）
+- **接口路径**：`GET /knowledge/documents`
+- **鉴权要求**：仅限 `admin`（非管理员返回 `403`）
+- **功能描述**：返回 `docs/sample_kb/` 内置标准制度库与 `backend/data/` 管理员上传文档台账（含分类、格式、体积、切片数、执行模式与最近更新时间）。
+
+#### 2.4.3 上传知识库文档（管理员专属）
 - **接口路径**：`POST /knowledge/upload`
-- **功能描述**：上传本地 PDF、Word、Excel 等文件，系统自动存入 S3 并发起 Celery 异步解析任务。
+- **鉴权要求**：仅限 `admin`（非管理员返回 `403`）
+- **功能描述**：接收单文件（白名单 `.md`、`.pdf`、`.xlsx`、`.xls`、`.txt`，防路径穿越、非空且 ≤ 20 MB），支持同步快速入库（`is_async=false`）与异步入库（`is_async=true`：优先 Celery 队列，Redis/Worker 未启动时自动平滑降级至 FastAPI 后台异步任务队列 `async_fallback`）。
 - **Content-Type**: `multipart/form-data`
 - **请求参数**:
   - `file`: 二进制文件数据
-  - `category`: 字符串，如 `IT_Policy`
-  - `security_level`: 字符串，如 `CONFIDENTIAL`
-- **响应 Data**:
+  - `category`: 可选业务分类（如 `HR`、`PROCUREMENT`、`FINANCE`、`IT`、`SECURITY`、`CS`、`GENERAL`）
+  - `is_async`: 布尔值（默认 `false`）
+- **响应 Data（同步模式示例）**:
   ```json
   {
     "code": 200,
-    "message": "文件上传成功，异步解析任务已提交",
+    "message": "Knowledge document uploaded and indexed successfully",
     "data": {
-      "doc_id": 105,
-      "title": "IT采购管理条例.pdf",
-      "file_type": "pdf",
-      "status": "PARSING",
-      "task_id": "celery-task-uuid-889100287"
+      "filename": "gpu_quota_policy.md",
+      "filepath": "backend/data/gpu_quota_policy.md",
+      "size_bytes": 124,
+      "category": "IT",
+      "chunks_indexed": 1,
+      "chunks_count": 1,
+      "task_id": "sync-a1b2c3d4e5f6",
+      "status": "COMPLETED",
+      "execution_mode": "sync",
+      "is_async": false,
+      "uploader": "admin"
+    }
+  }
+  ```
+- **响应 Data（异步/降级模式示例）**:
+  ```json
+  {
+    "code": 200,
+    "message": "Async document ingestion task submitted via local fallback queue",
+    "data": {
+      "filename": "async_policy.pdf",
+      "filepath": "backend/data/async_policy.pdf",
+      "size_bytes": 48120,
+      "category": "PROCUREMENT",
+      "task_id": "fb-9f8e7d6c5b4a",
+      "status": "SUBMITTED",
+      "is_async": true,
+      "execution_mode": "async_fallback",
+      "fallback_reason": "Redis Broker (localhost:6379) 未在线 (ConnectionRefusedError)，已平滑降级为后台异步队列",
+      "uploader": "admin"
     }
   }
   ```
 
-#### 2.4.2 获取已上传文件列表
-- **接口路径**：`GET /knowledge/documents`
-- **功能描述**：获取当前企业上传的文档清单及其解析状态。
-- **响应 Data**:
-  ```json
-  {
-    "code": 200,
-    "message": "success",
-    "data": [
-      {
-        "doc_id": 105,
-        "title": "IT采购管理条例.pdf",
-        "file_type": "pdf",
-        "file_size": 2049182,
-        "status": "PARSED",
-        "created_at": "2026-07-21T15:00:00Z"
-      }
-    ]
-  }
-  ```
+#### 2.4.4 全库索引同步与重建（管理员专属）
+- **接口路径**：`POST /knowledge/sync`
+- **鉴权要求**：仅限 `admin`（非管理员返回 `403`）
+- **请求 Query 参数**:
+  - `recreate`: 布尔值（默认 `false`；`true` 时清空重建 Qdrant 集合并重新全量向量化内置库与上传库）
+- **功能描述**：重索引 `docs/sample_kb/` 与 `backend/data/` 有效文档，刷新 `HybridRetriever` BM25 索引并返回同步自检报告与任务 ID。
 
-#### 2.4.3 删除文档
-- **接口路径**：`DELETE /knowledge/documents/{doc_id}`
-- **功能描述**：删除文档的主表数据，并物理清理 Qdrant 中对应的向量 Point 集合。
-- **响应 Data**:
-  ```json
-  {
-    "code": 200,
-    "message": "文档及相关向量索引已彻底删除",
-    "data": null
-  }
-  ```
-
-#### 2.4.4 测试混合检索
-- **接口路径**：`POST /knowledge/search`
-- **功能描述**：直接调用混合检索（Dense + Sparse）与重排引擎，供开发与评估测试。
-- **请求 Body (JSON)**:
+#### 2.4.5 混合检索知识库
+- **接口路径**：`POST /knowledge/search`、`GET /knowledge/search`
+- **鉴权要求**：`employee` / `manager` / `admin`（未认证返回 `401`）
+- **功能描述**：执行 Qdrant 稠密检索 + BM25 稀疏检索 + RRF 融合 + Reranker 重排。
+- **POST 请求 Body (JSON)**:
   ```json
   {
     "query": "笔记本采购金额上限是多少",
-    "department": "R&D",
-    "top_k": 3
+    "top_k": 5,
+    "category_filter": "PROCUREMENT"
   }
   ```
 - **响应 Data**:
   ```json
   {
     "code": 200,
-    "message": "success",
-    "data": [
-      {
-        "chunk_id": 1821,
-        "doc_id": 105,
-        "document_title": "IT采购管理条例.pdf",
-        "text": "第二条：研发部门员工组装测试用机，单台预算上限为人民币 10,000 元...",
-        "rerank_score": 0.9412
-      }
-    ]
+    "message": "Hybrid retrieval completed",
+    "data": {
+      "query": "笔记本采购金额上限是多少",
+      "count": 1,
+      "results": [
+        {
+          "content": "采购超过 5,000 元需提交主管审批...",
+          "metadata": {
+            "filename": "02_PROCUREMENT_采购与供应链合规SOP.md",
+            "category": "PROCUREMENT",
+            "rerank_score": 0.9412
+          }
+        }
+      ]
+    }
   }
   ```
 
@@ -522,4 +540,59 @@
 #### 2.7.4 非破坏性连通性探活测试
 - **接口路径**：`POST /admin/config/probe`
 - **功能描述**：针对当前或表单预览的 `llm_provider`、`llm_model`、`llm_api_base`、`llm_thinking` 执行非破坏性连通性探活（Ollama `/api/tags`、OpenAI 兼容 `/models` 或离线 `local_fallback`），并返回本地 Qdrant 向量集合健康点数与延迟毫秒数。
+
+---
+
+### 2.8 管理员知识入库与异步任务中心 (Admin Tasks Center)
+
+> **严格鉴权规范**：本分组全部接口强制要求 `Depends(require_role([RoleEnum.ADMIN]))`；未认证返回 HTTP `401`，`employee` / `manager` 越权返回 HTTP `403`。状态查询自动兼容 Celery `AsyncResult` 与本地线程安全台账 `logs/knowledge_tasks_ledger.json`，Redis 离线时不报错崩溃。
+
+#### 2.8.1 获取近期文档入库与同步任务台账
+- **接口路径**：`GET /tasks`
+- **请求 Query 参数**:
+  - `limit`: 整数（1~100，默认 `30`）
+- **响应 Data**:
+  ```json
+  {
+    "code": 200,
+    "message": "Tasks ledger retrieved successfully",
+    "data": {
+      "tasks": [],
+      "summary": {
+        "total": 2,
+        "running": 0,
+        "completed": 2,
+        "failed": 0
+      },
+      "celery_eager_mode": false
+    }
+  }
+  ```
+
+#### 2.8.2 查询单个异步/同步任务进度与 5 阶段明细
+- **接口路径**：`GET /tasks/{task_id}/status`
+- **功能描述**：返回单条任务状态（`PENDING` / `PROGRESS` / `SUCCESS` / `FAILURE`）、当前阶段（`QUEUED` / `PARSING` / `CHUNKING` / `INDEXING` / `COMPLETED` / `FAILED`）、百分比进度与 5 阶段 `steps` 数组（供前端 `@vue-bits/StatusMark` 渲染）。
+- **响应 Data**:
+  ```json
+  {
+    "code": 200,
+    "message": "Task 'sync-a1b2c3d4e5f6' status retrieved",
+    "data": {
+      "task_id": "sync-a1b2c3d4e5f6",
+      "status": "SUCCESS",
+      "stage": "COMPLETED",
+      "stage_label": "向量入库与索引刷新完成",
+      "ready": true,
+      "successful": true,
+      "progress": { "current": 100, "total": 100 },
+      "steps": [
+        { "key": "QUEUED", "label": "任务排队", "status": "success" },
+        { "key": "PARSING", "label": "文档解析", "status": "success" },
+        { "key": "CHUNKING", "label": "语义切片", "status": "success" },
+        { "key": "INDEXING", "label": "向量入库", "status": "success" },
+        { "key": "COMPLETED", "label": "完成入库", "status": "success" }
+      ]
+    }
+  }
+  ```
 

@@ -287,7 +287,7 @@
                 >
                   <div class="flex items-center space-x-2.5 truncate">
                     <ListTodo class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span class="text-text-secondary hover:text-text-main truncate">异步任务中心</span>
+                    <span class="text-text-secondary hover:text-text-main truncate">知识库运维与任务中心</span>
                   </div>
                   <ChevronRight class="w-3.5 h-3.5 text-text-muted" />
                 </router-link>

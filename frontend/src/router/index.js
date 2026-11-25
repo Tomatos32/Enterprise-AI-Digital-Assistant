@@ -61,10 +61,10 @@ const routes = [
   {
     path: '/admin/tasks',
     name: 'AdminTasks',
-    component: () => import('../views/AdminSlotPlaceholderView.vue'),
+    component: () => import('../views/AdminTasksView.vue'),
     meta: {
-      title: '异步任务中心 - 系统管理控制台',
-      navLabel: '异步任务中心',
+      title: '知识库运维与任务中心 - 系统管理控制台',
+      navLabel: '知识库运维与任务中心',
       requiresAuth: true,
       roles: ['admin'],
       adminSlot: 'tasks',

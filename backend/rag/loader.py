@@ -34,9 +34,17 @@ def extract_metadata_from_filename(file_path: Path) -> Dict[str, Any]:
 
 def load_markdown_document(file_path: Path) -> List[Document]:
     """Loads a Markdown file into Document objects."""
-    text = file_path.read_text(encoding="utf-8")
+    text = file_path.read_text(encoding="utf-8", errors="ignore")
     meta = extract_metadata_from_filename(file_path)
     meta["title"] = text.splitlines()[0].lstrip("#").strip() if text else file_path.stem
+    return [Document(page_content=text, metadata=meta)]
+
+
+def load_text_document(file_path: Path) -> List[Document]:
+    """Loads a plain text (.txt) file into Document objects."""
+    text = file_path.read_text(encoding="utf-8", errors="ignore")
+    meta = extract_metadata_from_filename(file_path)
+    meta["title"] = file_path.stem
     return [Document(page_content=text, metadata=meta)]
 
 
@@ -86,7 +94,7 @@ def load_excel_document(file_path: Path) -> List[Document]:
 
 
 def load_sample_kb_documents(kb_dir: Path) -> List[Document]:
-    """Recursively loads all sample_kb files (Markdown, PDF, Excel)."""
+    """Recursively loads all sample_kb files (Markdown, PDF, Excel, Text)."""
     docs: List[Document] = []
     if not kb_dir.exists():
         return docs
@@ -100,5 +108,7 @@ def load_sample_kb_documents(kb_dir: Path) -> List[Document]:
                 docs.extend(load_pdf_document(path))
             elif suffix in [".xlsx", ".xls"]:
                 docs.extend(load_excel_document(path))
+            elif suffix == ".txt":
+                docs.extend(load_text_document(path))
 
     return docs

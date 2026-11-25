@@ -151,6 +151,13 @@
   - [x] Checkpoint 4: 新建 `frontend/src/views/AdminSettingsView.vue`、`UserPreferencesModal.vue`、`preferencesStore.js` 并修改 `router/index.js`、`Sidebar.vue`、`MobileDrawer.vue`、`Header.vue`、`App.vue` 盘活分层 `<Settings />` 入口
   - [x] Checkpoint 5: 编写 `test_admin_config_rbac.py` (7/7 PASS)，通过 `ruff` (0 errors)、`mypy` (改动文件 0 errors)、专项 `pytest` (48/48 PASS)、`vite build` (7,916 modules / 7.46s) 与 Reviewer 11 维审查并归档 `.harness/runs/Issue-0057/` 证据包
 
+- [x] **Sprint R-05 / Issue-0058: 管理员专属·知识文档上传与异步解析任务中心 (`/admin/tasks`) - [100% COMPLETED]**
+  - [x] Checkpoint 1: 在 `.harness/runs/Issue-0058/` 初始化 `issue.md` 与 `plan.md` 并同步登记至 `docs/plans/sprint-active.md`
+  - [x] Checkpoint 2: 新建 `backend/core/knowledge_ledger.py` 并改造 `backend/api/v1/knowledge.py`、`backend/api/v1/tasks.py`、`backend/tasks/ingestion_tasks.py`、`backend/rag/loader.py`（收紧管理员 RBAC、单文件校验、上传历史台账与 Celery 离线异步降级兜底）
+  - [x] Checkpoint 3: 新建 `frontend/src/views/AdminTasksView.vue`（向量底座概览与已索引文档清单、多格式拖拽上传与分类/模式切换、StatusMark 5 阶段任务进度轮询追踪、FuseButton 一键同步二次确认保护）
+  - [x] Checkpoint 4: 更新 `frontend/src/router/index.js`、挂载 `Sidebar.vue` 与 `MobileDrawer.vue` 管理员「知识库运维与任务中心」入口
+  - [x] Checkpoint 5: 编写 `backend/tests/unit/test_admin_knowledge_tasks.py` (6/6 PASS)，同步文档与 OpenAPI Schema，通过 `ruff` (0 errors)、`mypy` (改动文件 0 errors)、`pytest`、`vite build` 与 Reviewer 11 维审查并归档 `.harness/runs/Issue-0058/` 证据包
+
 ---
 
 ## Historical Achievements (已交付稳态资产):
