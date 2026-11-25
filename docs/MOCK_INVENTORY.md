@@ -2,8 +2,8 @@
 # Global Asset Inventory & Feasible Realization Specification
 
 > **文档性质**：面向用户视角的真实化落地、可及性边界与 Mock 割接规范  
-> **版本定义**：V2.2 (V2.0 真实化割接规范 + Sprint R-05 / Issue-0056~0057 全仓 Mock 与演示数据登记台账)  
-> **最后维护**：2026-11-17  
+> **版本定义**：V2.4 (V2.0 真实化割接规范 + Sprint R-05 / Issue-0056~0059 全仓 Mock 与演示数据登记台账)  
+> **最后维护**：2026-11-19  
 
 ---
 
@@ -177,18 +177,19 @@ WECOM_WEBHOOK_URL=
 
 ## 6. Sprint R-05 / Issue-0056 全仓 Mock 与演示数据登记台账 (Complete Mock & Demo Registry)
 
-为确保项目内所有内存模拟数据、演示身份、离线降级桩及静态展示数据集**100% 登记在案、可审计、可按环境开关隔离**，特建立本全仓台账（最后审计基线：`2026-11-17` / `Issue-0057`）。
+为确保项目内所有内存模拟数据、演示身份、离线降级桩及静态展示数据集**100% 登记在案、可审计、可按环境开关隔离**，特建立本全仓台账（最后审计基线：`2026-11-19` / `Issue-0059`）。
 
-### 6.1 认证与角色切换演示资产（Issue-0056 ~ Issue-0057）
+### 6.1 认证与角色切换演示资产（Issue-0056 ~ Issue-0059）
 
 | 资产名称 / 标识符 | 代码物理位置 | 数据内容与用途说明 | 生产隔离开关与安全约束 |
 | :--- | :--- | :--- | :--- |
 | **`MOCK_USERS_DB`** | `backend/core/rbac.py` | 内存三角色演示用户目录：`employee`（林小晴 · 人力资源部）、`manager`（陈志远 · 采购管理部）、`admin`（周明辉 · IT 系统管理部），后端仅存 `get_password_hash()` 哈希值。 | `get_demo_identities()` 与 `/api/v1/auth/identities` 严格剔除 `hashed_password` / 明文密码，仅返回非敏感展示属性；后续接入数据库用户表时可直接替换。 |
 | **`/identities` & `/switch-role`** | `backend/api/v1/auth.py` | 开发/演示态免密快捷角色上下文切换接口（`GET /api/v1/auth/identities`、`POST /api/v1/auth/switch-role`）。 | 由 `_ensure_demo_switching_enabled()` 强门禁守卫：当 `ENVIRONMENT not in ("development", "test")` 且 `USE_MOCK_SYSTEMS=False` 时强制返回 HTTP `403`。 |
 | **`FALLBACK_DEMO_IDENTITIES`** | `frontend/src/stores/authStore.js` | 前端首屏在后端 `/auth/identities` 未响应时的兜底展示名单（3 个角色姓名、部门与角色标签，**无密码、无 Token**）。 | 真实 JWT Token 与认证状态完全以服务端 `/auth/login` 或 `/auth/switch-role` 签发结果为准，兜底数组不可绕过鉴权。 |
-| **`AdminSlotPlaceholderView`** | `frontend/src/views/AdminSlotPlaceholderView.vue` | 面向 `/admin/tasks`、`/admin/monitoring` 的 `admin` 专属路由插槽占位视图，仅展示静态域元数据，不含虚假运维指标或模拟开关（原 `/admin/settings` 已在 `Issue-0057` 升级为接通真实 `/api/v1/admin/config` 的 `AdminSettingsView.vue`）。 | 受 `router.beforeEach` (`meta.roles: ['admin']`) 拦截保护；剩余实体功能留待 Issue-0058~0059 接管真实后端 API。 |
+| **`AdminSlotPlaceholderView` (已退役卸除)** | `frontend/src/views/AdminSlotPlaceholderView.vue` | 原 `Issue-0056` 预留的管理员静态插槽占位组件；`/admin/settings`（`Issue-0057` `AdminSettingsView.vue`）、`/admin/tasks`（`Issue-0058` `AdminTasksView.vue`）与 `/admin/monitoring`（`Issue-0059` `AdminMonitoringView.vue`）三大管理路由现已全部接通真实后端控制面，`router/index.js` 中不再挂载该占位视图。 | 全部 `/admin/*` 路由受 `router.beforeEach` (`meta.roles: ['admin']`) 拦截保护。 |
 | **`get_available_providers()` & `FALLBACK_READY` 探针** | `backend/core/runtime_config.py`, `backend/api/v1/admin_config.py` | 为管理员配置台提供 6 大引擎推荐模型与默认端口预设，并在本地 Ollama / 远程网关未启动时于 `/admin/config/probe` 返回诚实的 `FALLBACK_READY` 状态（不伪造在线连通）。 | 强制 `Depends(require_role([RoleEnum.ADMIN]))` 拦截；`runtime_config.json` 仅持久化非密钥白名单参数，严禁落盘或回传 `LLM_API_KEY` / `SECRET_KEY`。 |
 | **`knowledge_tasks_ledger` & `async_fallback`** | `backend/core/knowledge_ledger.py`, `backend/api/v1/knowledge.py`, `backend/api/v1/tasks.py` | 持久化真实文档上传与入库任务台账至 `logs/knowledge_tasks_ledger.json`；当 Redis/Celery Worker 未在线时，异步上传自动降级至 FastAPI `BackgroundTasks` 真实执行解析切片与向量入库并如实标注 `execution_mode="async_fallback"`（绝不伪造虚构进度）。 | 所有上传、同步、文档台账与任务接口强制 `Depends(require_role([RoleEnum.ADMIN]))` 鉴权；单文件严格限制白名单后缀与 ≤ 20 MB。 |
+| **`GET /admin/monitoring/overview` 实时遥测与 SLA 聚合** | `backend/api/v1/monitoring.py`, `backend/core/metrics.py` | 从 `prometheus_client.REGISTRY`（非累积 TTFT 分桶、Token、Prompt Cache、WS、Celery 队列、Tool 计数）、线程安全工具审计环形缓冲、SQLAlchemy ORM（`ChatSession`、`ChatMessage`、`Approval`、`Ticket`）及 `knowledge_tasks_ledger` 实时聚合；不捏造虚假监控曲线（无调用时如实返回 `0`），P0~P4 基准响应/解决时效沿用 `SLA_METRICS` 协议定义，Redis 离线时如实标记 `redis: DOWN` 与 `overall_status: DEGRADED`。 | 强制 `Depends(require_role([RoleEnum.ADMIN]))` 拦截（401/403）；严禁回传明文 `LLM_API_KEY` / `SECRET_KEY`，并自动将工具审计摘要中的 `sk-*` / `Bearer *` 凭据脱敏为 `[REDACTED]`。 |
 
 ### 6.2 业务系统模拟桩、种子数据与工作流/工具 Stub
 

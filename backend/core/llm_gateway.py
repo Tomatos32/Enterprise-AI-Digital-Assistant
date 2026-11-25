@@ -7,6 +7,13 @@ import time
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from pydantic import BaseModel, Field
 
+from backend.core.metrics import (
+    estimate_token_count,
+    record_cache_hit,
+    record_cache_miss,
+    record_llm_tokens,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -54,16 +61,19 @@ class LLMGateway:
         cache_key = self.compute_prompt_hash(prompt, system_prompt)
 
         # 1. Check Cache
-        if self.enable_cache and cache_key in self._memory_cache:
-            content, ts = self._memory_cache[cache_key]
-            if time.time() - ts <= self.cache_ttl_seconds:
-                return LLMResponse(
-                    content=content,
-                    model_used=self.primary_model,
-                    tokens_used=0,
-                    latency=0.001,
-                    cached=True,
-                )
+        if self.enable_cache:
+            if cache_key in self._memory_cache:
+                content, ts = self._memory_cache[cache_key]
+                if time.time() - ts <= self.cache_ttl_seconds:
+                    record_cache_hit()
+                    return LLMResponse(
+                        content=content,
+                        model_used=self.primary_model,
+                        tokens_used=0,
+                        latency=0.001,
+                        cached=True,
+                    )
+            record_cache_miss()
 
         # 2. Try Primary Model then Fallbacks
         candidate_models = [self.primary_model] + self.fallback_models
@@ -80,8 +90,12 @@ class LLMGateway:
                     content = f"Response from {model} for: {prompt[:30]}"
 
                 latency = round(time.time() - start_time, 4)
-                tokens = len(prompt.split()) + len(content.split())
+                prompt_tokens = estimate_token_count(f"{system_prompt or ''}\n{prompt}")
+                output_tokens = estimate_token_count(str(content))
+                tokens = prompt_tokens + output_tokens
                 self.total_tokens_consumed += tokens
+                record_llm_tokens(model, "input", prompt_tokens)
+                record_llm_tokens(model, "output", output_tokens)
 
                 # Save cache
                 if self.enable_cache:

@@ -7,6 +7,12 @@ import asyncio
 from typing import Dict, Any, Callable, Awaitable, Optional
 
 import redis.asyncio as aioredis
+from backend.core.metrics import (
+    estimate_token_count,
+    record_cache_hit,
+    record_cache_miss,
+    record_llm_tokens,
+)
 from backend.core.redis import get_redis_client
 
 logger = logging.getLogger(__name__)
@@ -56,14 +62,7 @@ class LLMGateway:
 
     def estimate_tokens(self, text: str) -> int:
         """Estimates token count for given text."""
-        if not text:
-            return 0
-        clean_text = text.strip()
-        # Basic heuristic: ~3.5 chars per token for English/mix, 1 token per CJK char
-        cjk_chars = sum(1 for c in clean_text if '\u4e00' <= c <= '\u9fff')
-        non_cjk_len = len(clean_text) - cjk_chars
-        tokens = cjk_chars + max(1, non_cjk_len // 4)
-        return max(1, tokens)
+        return estimate_token_count(text)
 
     def calculate_cost(self, prompt_tokens: int, completion_tokens: int, model_name: str) -> float:
         """Calculates estimated USD cost for model request."""
@@ -189,6 +188,7 @@ class LLMGateway:
         if use_cache:
             cached = await self.get_cached_response(prompt, self.primary_model_name)
             if cached:
+                record_cache_hit()
                 logger.info("Prompt Hash Cache hit!")
                 return {
                     "content": cached.get("content", ""),
@@ -199,6 +199,7 @@ class LLMGateway:
                     "completion_tokens": cached.get("completion_tokens", 0),
                     "cost": 0.0,
                 }
+            record_cache_miss()
 
         # Default dummy callables for testing/fallback if none supplied
         async def _default_primary(p: str) -> str:
@@ -217,6 +218,8 @@ class LLMGateway:
             completion_tokens = self.estimate_tokens(response_text)
             cost = self.calculate_cost(prompt_tokens, completion_tokens, self.primary_model_name)
 
+            record_llm_tokens(self.primary_model_name, "input", prompt_tokens)
+            record_llm_tokens(self.primary_model_name, "output", completion_tokens)
             await self.record_token_stats(prompt_tokens, completion_tokens, cost, self.primary_model_name)
 
             result = {
@@ -238,7 +241,7 @@ class LLMGateway:
             logger.warning(
                 f"Primary model ({self.primary_model_name}) failed or timed out: {err}. Triggering Fallback strategy."
             )
-            
+
             # 3. Fallback Model Execution
             try:
                 response_text = await actual_fallback(prompt)
@@ -250,6 +253,8 @@ class LLMGateway:
             completion_tokens = self.estimate_tokens(response_text)
             cost = self.calculate_cost(prompt_tokens, completion_tokens, self.fallback_model_name)
 
+            record_llm_tokens(self.fallback_model_name, "input", prompt_tokens)
+            record_llm_tokens(self.fallback_model_name, "output", completion_tokens)
             await self.record_token_stats(prompt_tokens, completion_tokens, cost, self.fallback_model_name)
 
             fallback_result = {

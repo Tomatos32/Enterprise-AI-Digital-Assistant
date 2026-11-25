@@ -596,3 +596,68 @@
   }
   ```
 
+---
+
+### 2.9 管理员系统遥测、工具审计与 SLA 监控看板 (Admin Monitoring & SLA)
+
+> **严格鉴权与零密钥外泄规范**：本分组接口强制要求 `Depends(require_role([RoleEnum.ADMIN]))`；未认证返回 HTTP `401`，普通员工（`employee`）与部门主管（`manager`）越权访问返回 HTTP `403`。所有响应均只返回脱敏后的密钥掩码（`api_key_masked`）与脱敏工具审计摘要（自动抹除 `sk-*` / `Bearer *` 凭据片段），**严禁回传明文 `LLM_API_KEY` 或 `SECRET_KEY`**。
+
+#### 2.9.1 获取系统遥测、工具审计与 P0~P4 SLA 监控全景
+- **接口路径**：`GET /admin/monitoring/overview`
+- **功能描述**：聚合实时组件健康探针（关系型数据库、Redis、Qdrant 向量库、当前活跃大模型引擎）、Prometheus 运行态指标（活跃 WebSocket 连接、Celery 队列深度、按模型拆分的输入/输出 Token、Prompt Cache 命中率、非累积 5 档 TTFT 首字延迟分桶）、`ToolRegistry` 工具调用统计与近期脱敏审计流水，以及数据库会话/消息、审批闭环率与 P0~P4 企业服务工单 SLA 履约全景。
+- **请求 Query 参数**:
+  - `audit_limit`: 整数（1~100，默认 `20`），控制返回的近期工具调用安全审计流水条数
+  - `ticket_limit`: 整数（1~100，默认 `20`），控制返回的近期企业服务工单台账条数
+- **响应 Data**:
+  ```json
+  {
+    "code": 200,
+    "message": "系统遥测、工具审计与 SLA 监控全景已加载",
+    "data": {
+      "generated_at": "2026-11-19T09:34:30.165344+00:00",
+      "operator": {
+        "username": "admin",
+        "display_name": "周明辉",
+        "role": "admin",
+        "department": "IT 系统管理部"
+      },
+      "system_health": {
+        "overall_status": "DEGRADED",
+        "components": [],
+        "llm_engine": {
+          "provider": "ollama",
+          "model": "qwen3.5:2b",
+          "active_engine": "NativeOllamaChatModel",
+          "thinking": false,
+          "has_api_key": true,
+          "api_key_masked": "**** (已配置)",
+          "endpoint": "http://127.0.0.1:11434"
+        },
+        "qdrant": {
+          "status": "healthy",
+          "client_mode": "local_storage",
+          "collection_name": "enterprise_knowledge",
+          "points_count": 7365,
+          "vector_size": 1024
+        },
+        "active_ingestion_tasks": 0
+      },
+      "telemetry": {
+        "active_websocket_connections": 0,
+        "celery_queue_depth": 0,
+        "tokens": { "input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "by_model": [] },
+        "prompt_cache": { "hits": 0, "misses": 0, "total_lookups": 0, "hit_rate_percent": 0.0 },
+        "ttft": { "total_observations": 0, "avg_ms": 0.0, "buckets": [] },
+        "tools": { "registered_count": 6, "total_calls": 0, "success_calls": 0, "error_calls": 0, "success_rate_percent": 0.0, "by_tool": [], "recent_audits": [] }
+      },
+      "business": {
+        "chat": { "active_sessions": 0, "total_sessions": 0, "total_messages": 0, "user_messages": 0, "assistant_messages": 0, "avg_thinking_seconds": 0.0 },
+        "approvals": { "pending_count": 0, "approved_count": 0, "rejected_count": 0, "closed_count": 0, "total_count": 0, "closure_rate_percent": 0.0 },
+        "sla": { "total_tickets": 0, "open_tickets": 0, "closed_tickets": 0, "breached_tickets": 0, "overall_compliance_percent": 100.0, "tiers": [], "recent_tickets": [] }
+      }
+    }
+  }
+  ```
+
+
+

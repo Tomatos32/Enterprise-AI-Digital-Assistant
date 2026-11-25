@@ -158,6 +158,12 @@
   - [x] Checkpoint 4: 更新 `frontend/src/router/index.js`、挂载 `Sidebar.vue` 与 `MobileDrawer.vue` 管理员「知识库运维与任务中心」入口
   - [x] Checkpoint 5: 编写 `backend/tests/unit/test_admin_knowledge_tasks.py` (6/6 PASS)，同步文档与 OpenAPI Schema，通过 `ruff` (0 errors)、`mypy` (改动文件 0 errors)、`pytest`、`vite build` 与 Reviewer 11 维审查并归档 `.harness/runs/Issue-0058/` 证据包
 
+- [x] **Sprint R-05 / Issue-0059: 管理员专属·系统遥测、工具审计与 SLA 监控看板 (`/admin/monitoring`) - [100% COMPLETED]**
+  - [x] Checkpoint 1 (Step 1): 在 `.harness/runs/Issue-0059/` 创建 `issue.md` 与 `plan.md`，同步更新 `docs/plans/sprint-active.md`
+  - [x] Checkpoint 2 (Step 2): 完善 `backend/core/metrics.py`（修复 mypy 语法冲突并新增 Tool 审计与统计指标）、打通核心运行链路指标上报、新建 `backend/api/v1/monitoring.py` 并挂载 `/api/v1/admin/monitoring/overview`（严格 `RoleEnum.ADMIN` RBAC）
+  - [x] Checkpoint 3 (Step 3): 新建 `frontend/src/views/AdminMonitoringView.vue` 并替换 `/admin/monitoring` 路由占位组件（KPI 卡片、TTFT/Tool 双主题响应式 SVG 图表、P0~P4 SLA 履约表、手动刷新与 15s/30s 静默轮询）
+  - [x] Checkpoint 4 (Step 4): 更新 `Sidebar.vue` 与 `MobileDrawer.vue` 管理员「系统监控与 SLA 看板」入口，编写 `test_admin_monitoring_api.py` (4/4 PASS)，执行 `ruff`/`mypy`/`pytest`/`npm run build`，同步文档/Schema 并归档 `.harness/runs/Issue-0059/` 证据包
+
 ---
 
 ## Historical Achievements (已交付稳态资产):

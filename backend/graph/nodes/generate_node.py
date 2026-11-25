@@ -6,7 +6,8 @@ from typing import Any, Dict, List
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from backend.core.llm import get_chat_llm
-from backend.core.runtime_config import get_runtime_config
+from backend.core.metrics import estimate_token_count, record_llm_tokens
+from backend.core.runtime_config import get_runtime_config, resolve_active_engine_name
 from backend.graph.state import AgentState
 
 logger = logging.getLogger(__name__)
@@ -144,24 +145,46 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
         prompt_messages.append(HumanMessage(content=str(last_query)))
 
     # Invoke LLM (under LangGraph astream_events, this triggers on_chat_model_stream)
+    response_obj: Any = None
+    used_fallback = False
     try:
-        response = await llm.ainvoke(prompt_messages)
-        raw_content = response.content if hasattr(response, "content") else response
+        response_obj = await llm.ainvoke(prompt_messages)
+        raw_content = response_obj.content if hasattr(response_obj, "content") else response_obj
         answer_text = raw_content if isinstance(raw_content, str) else str(raw_content)
         if not answer_text or not answer_text.strip():
             logger.warning("[GenerateNode] LLM returned empty content. Using domain fallback synthesis.")
             from backend.core.llm import LocalEnterpriseChatModel
             answer_text = LocalEnterpriseChatModel()._synthesize_response(prompt_messages)
+            used_fallback = True
     except Exception as exc:
         logger.warning(f"[GenerateNode] LLM invocation failed ({exc}). Using direct fallback.")
         from backend.core.llm import LocalEnterpriseChatModel
         answer_text = LocalEnterpriseChatModel()._synthesize_response(prompt_messages)
+        used_fallback = True
 
     # Enforce standard answer tag for test compatibility & UI formatting
     if intent == "retrieve" and "[RAG Answer]" not in answer_text:
         answer_text = f"[RAG Answer]: {answer_text}"
     elif intent == "tool" and "[Tool Answer]" not in answer_text:
         answer_text = f"[Tool Answer]: {answer_text}"
+
+    # Emit LLM token consumption telemetry (prefer real provider usage_metadata when available)
+    usage = getattr(response_obj, "usage_metadata", None) if (response_obj is not None and not used_fallback) else None
+    input_tokens = int(usage.get("input_tokens") or 0) if isinstance(usage, dict) else 0
+    output_tokens = int(usage.get("output_tokens") or 0) if isinstance(usage, dict) else 0
+    if input_tokens <= 0:
+        prompt_text = "\n".join(str(getattr(m, "content", "")) for m in prompt_messages)
+        input_tokens = estimate_token_count(prompt_text)
+    if output_tokens <= 0:
+        output_tokens = estimate_token_count(answer_text)
+
+    metric_model = (
+        "local-enterprise-agent-v1"
+        if (used_fallback or runtime_cfg.llm_provider == "local_fallback")
+        else (runtime_cfg.llm_model or resolve_active_engine_name(runtime_cfg))
+    )
+    record_llm_tokens(metric_model, "input", input_tokens)
+    record_llm_tokens(metric_model, "output", output_tokens)
 
     return {
         "messages": [AIMessage(content=answer_text)],

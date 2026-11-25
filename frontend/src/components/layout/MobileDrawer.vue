@@ -300,7 +300,7 @@
                 >
                   <div class="flex items-center space-x-2.5 truncate">
                     <Activity class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span class="text-text-secondary hover:text-text-main truncate">运行遥测监控</span>
+                    <span class="text-text-secondary hover:text-text-main truncate">系统监控与 SLA 看板</span>
                   </div>
                   <ChevronRight class="w-3.5 h-3.5 text-text-muted" />
                 </router-link>

@@ -13,6 +13,7 @@ from langgraph.errors import GraphInterrupt
 
 from backend.core.exceptions import AuthenticationError
 from backend.core.guardrails import StreamingSanitizer, sanitize_text, validate_input
+from backend.core.metrics import record_ttft, set_active_ws_connections
 from backend.core.rbac import UserPayload, resolve_user_from_token
 from backend.core.task_manager import task_manager
 from backend.db.session import SessionLocal
@@ -34,11 +35,13 @@ class ConnectionManager:
     async def connect(self, client_id: str, websocket: WebSocket):
         await websocket.accept()
         self.active_connections[client_id] = websocket
+        set_active_ws_connections(len(self.active_connections))
 
     def disconnect(self, client_id: str, websocket: Optional[WebSocket] = None):
         if client_id in self.active_connections:
             if websocket is None or self.active_connections.get(client_id) is websocket:
                 del self.active_connections[client_id]
+                set_active_ws_connections(len(self.active_connections))
 
     async def send_json(self, client_id: str, message: dict):
         if client_id in self.active_connections:
@@ -240,6 +243,7 @@ async def process_ws_chat_stream(
     import time
     stream_start_time = time.time()
     first_token_time: Optional[float] = None
+    ttft_recorded = False
     streamed_thought_chunks: List[str] = []
     thought_steps_history: List[str] = []
 
@@ -355,6 +359,9 @@ async def process_ws_chat_stream(
                 if chunk and hasattr(chunk, "content") and chunk.content:
                     if first_token_time is None:
                         first_token_time = time.time()
+                    if not ttft_recorded:
+                        record_ttft(max(0.0, first_token_time - stream_start_time))
+                        ttft_recorded = True
                     safe_token = sanitizer.process_chunk(chunk.content)
                     if safe_token:
                         if not await safe_send_json(
@@ -476,6 +483,9 @@ async def process_ws_chat_stream(
 
         # Calculate actual thinking duration & assemble thought trace for persistence
         elapsed_sec = round(first_token_time - stream_start_time, 1) if first_token_time else round(time.time() - stream_start_time, 1)
+        if not ttft_recorded:
+            record_ttft(max(0.0, (first_token_time or time.time()) - stream_start_time))
+            ttft_recorded = True
         persisted_thought = "".join(streamed_thought_chunks).strip() if streamed_thought_chunks else None
         persisted_steps = json.dumps(thought_steps_history, ensure_ascii=False) if thought_steps_history else None
 
@@ -589,9 +599,9 @@ async def websocket_chat_endpoint(
     except WebSocketDisconnect:
         if active_stream_task and not active_stream_task.done():
             active_stream_task.cancel()
-        manager.disconnect(client_id, websocket)
     except Exception as exc:
         logger.error(f"[ChatWS] Unexpected WebSocket error for client '{client_id}': {exc}", exc_info=True)
         if active_stream_task and not active_stream_task.done():
             active_stream_task.cancel()
+    finally:
         manager.disconnect(client_id, websocket)

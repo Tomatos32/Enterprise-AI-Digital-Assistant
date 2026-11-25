@@ -252,10 +252,10 @@
             class="flex items-center rounded-xl p-2 text-xs transition-colors duration-150 cursor-pointer"
             :class="isCollapsed ? 'w-10 h-10 mx-auto justify-center' : 'space-x-2.5 px-2.5'"
             active-class="bg-slate-200/70 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 font-semibold"
-            :title="isCollapsed ? '运行遥测监控' : ''"
+            :title="isCollapsed ? '系统监控与 SLA 看板' : ''"
           >
             <Activity class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span v-if="!isCollapsed" class="text-text-secondary hover:text-text-main truncate">运行遥测监控</span>
+            <span v-if="!isCollapsed" class="text-text-secondary hover:text-text-main truncate">系统监控与 SLA 看板</span>
           </router-link>
         </nav>
       </div>

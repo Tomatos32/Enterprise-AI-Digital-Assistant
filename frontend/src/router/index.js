@@ -73,10 +73,10 @@ const routes = [
   {
     path: '/admin/monitoring',
     name: 'AdminMonitoring',
-    component: () => import('../views/AdminSlotPlaceholderView.vue'),
+    component: () => import('../views/AdminMonitoringView.vue'),
     meta: {
-      title: '运行遥测监控 - 系统管理控制台',
-      navLabel: '运行遥测监控',
+      title: '系统监控与 SLA 看板 - 系统管理控制台',
+      navLabel: '系统监控与 SLA 看板',
       requiresAuth: true,
       roles: ['admin'],
       adminSlot: 'monitoring',

@@ -476,6 +476,84 @@
         }
       }
     },
+    "/api/v1/admin/monitoring/overview": {
+      "get": {
+        "tags": [
+          "Admin Control Plane"
+        ],
+        "summary": "Get Monitoring Overview",
+        "description": "Returns structured real-time system health, Prometheus telemetry, tool audits, and P0-P4 SLA stats.",
+        "operationId": "get_monitoring_overview_api_v1_admin_monitoring_overview_get",
+        "parameters": [
+          {
+            "name": "audit_limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "近期工具调用审计返回条数",
+              "default": 20,
+              "title": "Audit Limit"
+            },
+            "description": "近期工具调用审计返回条数"
+          },
+          {
+            "name": "ticket_limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "近期企业工单台账返回条数",
+              "default": 20,
+              "title": "Ticket Limit"
+            },
+            "description": "近期企业工单台账返回条数"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/knowledge/status": {
       "get": {
         "tags": [
