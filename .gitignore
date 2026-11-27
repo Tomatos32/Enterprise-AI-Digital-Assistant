@@ -34,6 +34,7 @@ backend/data/
 node_modules/
 dist/
 logs/
+.harness/logs/
 .coverage
 .pytest_cache/
 *.db
@@ -45,4 +46,3 @@ logs/
 .env.*
 *.env
 *.env.*
-
