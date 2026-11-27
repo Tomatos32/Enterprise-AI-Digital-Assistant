@@ -76,6 +76,13 @@ class LocalEnterpriseChatModel(BaseChatModel):
             audit_summary = match.group(1).strip() if match else "当前暂无待处理审批单据。"
             return f"{audit_summary}"
 
+        # 0.4. Check for semantic slot clarification prompt (zero-hallucination deterministic pass-through)
+        if "[Slot Clarification Needed]" in clean_system_text:
+            match = re.search(r"\[Clarification Question\]:\s*(.*)", clean_system_text, re.DOTALL)
+            if match and match.group(1).strip():
+                return match.group(1).strip()
+            return "您好，为确保业务准确办理，请补充必要的业务参数信息。"
+
         # 0.5. Check for approval execution outcome (including compound retrieve -> approval)
         if "[Approval Execution Result]" in clean_system_text:
             match = re.search(r"\[Approval Execution Result\]:\s*(.*)", clean_system_text, re.DOTALL)
@@ -649,6 +656,15 @@ def get_rewriter_llm(timeout_sec: float = 2.5, max_tokens: int = 320) -> Optiona
         timeout_sec=timeout_sec,
         max_tokens=max_tokens,
         purpose="query_rewriter",
+    )
+
+
+def get_slot_extractor_llm(timeout_sec: float = 2.5, max_tokens: int = 360) -> Optional[BaseChatModel]:
+    """Returns a fast, non-thinking, non-streaming LLM client for semantic slot extraction."""
+    return _build_lightweight_non_thinking_llm(
+        timeout_sec=timeout_sec,
+        max_tokens=max_tokens,
+        purpose="slot_extractor",
     )
 
 

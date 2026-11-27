@@ -1,14 +1,7 @@
 <template>
-  <div class="inline-flex items-center space-x-1.5" :title="label">
-    <span class="relative flex" :class="sizeClass">
-      <span
-        v-if="status === 'running' || status === 'warning'"
-        class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-        :class="pingColorClass"
-      ></span>
-      <span class="relative inline-flex rounded-full h-full w-full" :class="dotColorClass"></span>
-    </span>
-    <span v-if="label" class="text-xs font-medium" :class="textColorClass">
+  <div class="inline-flex items-center gap-1.5" :title="label">
+    <span class="inline-flex rounded-full shrink-0" :class="[sizeClass, dotColorClass]"></span>
+    <span v-if="label" class="text-xs font-medium text-text-secondary">
       {{ label }}
     </span>
   </div>
@@ -33,50 +26,21 @@ const props = defineProps({
   },
 });
 
-const sizeClass = computed(() => {
-  return props.size === 'sm' ? 'h-2 w-2' : 'h-2.5 w-2.5';
-});
+const sizeClass = computed(() => (props.size === 'sm' ? 'h-2 w-2' : 'h-2.5 w-2.5'));
 
 const dotColorClass = computed(() => {
   switch (props.status) {
     case 'running':
-      return 'bg-blue-500';
+      return 'bg-text-main';
     case 'success':
-      return 'bg-emerald-500';
+      return 'bg-status-success';
     case 'warning':
-      return 'bg-amber-500';
+      return 'bg-status-approval';
     case 'danger':
-      return 'bg-rose-500';
+      return 'bg-status-danger';
     case 'idle':
     default:
-      return 'bg-slate-400 dark:bg-slate-600';
-  }
-});
-
-const pingColorClass = computed(() => {
-  switch (props.status) {
-    case 'running':
-      return 'bg-blue-400';
-    case 'warning':
-      return 'bg-amber-400';
-    default:
-      return 'bg-slate-400';
-  }
-});
-
-const textColorClass = computed(() => {
-  switch (props.status) {
-    case 'running':
-      return 'text-blue-600 dark:text-blue-400';
-    case 'success':
-      return 'text-emerald-600 dark:text-emerald-400';
-    case 'warning':
-      return 'text-amber-600 dark:text-amber-400';
-    case 'danger':
-      return 'text-rose-600 dark:text-rose-400';
-    case 'idle':
-    default:
-      return 'text-text-muted';
+      return 'bg-text-muted';
   }
 });
 </script>

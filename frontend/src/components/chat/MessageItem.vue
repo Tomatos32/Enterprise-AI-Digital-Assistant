@@ -1,43 +1,40 @@
 <template>
   <div
-    class="flex w-full space-x-2 sm:space-x-3 group transition-all duration-150"
-    :class="isUser ? 'flex-row-reverse space-x-reverse justify-start' : 'justify-start'"
+    class="flex w-full gap-2.5 sm:gap-3 group"
+    :class="isUser ? 'flex-row-reverse justify-start' : 'justify-start'"
   >
     <!-- Avatar -->
     <div class="shrink-0 mt-0.5 select-none">
-      <!-- User Avatar -->
       <div
         v-if="isUser"
-        class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 border border-blue-400/40 flex items-center justify-center text-white shadow-sm"
+        class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-action-primary text-action-primary-fg flex items-center justify-center"
         title="当前用户"
       >
         <User class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </div>
 
-      <!-- AI Copilot Avatar -->
       <div
         v-else
-        class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-200 dark:bg-slate-800 border border-brand-primary/40 flex items-center justify-center text-brand-primary shadow-sm"
-        title="企业 AI 数字员工"
+        class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-bg-surface border border-border-card flex items-center justify-center text-text-main"
+        title="企业数字员工"
       >
-        <Bot class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-primary" />
+        <Bot class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </div>
     </div>
 
-    <!-- Message Bubble Body Container (Adaptive 92% on mobile, max-w-2xl on desktop) -->
+    <!-- Message Body -->
     <div
-      class="flex flex-col space-y-1.5 max-w-[88%] xs:max-w-[92%] sm:max-w-2xl"
+      class="flex flex-col gap-1.5 max-w-[88%] sm:max-w-2xl min-w-0"
       :class="isUser ? 'items-end' : 'items-start'"
     >
-      <!-- Meta Information (Sender Name & Timestamp) -->
-      <div class="flex items-center space-x-2 text-[11px] text-text-muted px-1 select-none">
-        <span class="font-medium" :class="isUser ? 'text-text-secondary' : 'text-brand-primary'">
+      <div class="flex items-center gap-2 text-[11px] text-text-muted px-0.5 select-none">
+        <span class="font-medium text-text-secondary">
           {{ isUser ? '我' : '企业数字员工' }}
         </span>
-        <span v-if="message.timestamp">{{ message.timestamp }}</span>
+        <span v-if="message.timestamp" class="tabular-nums">{{ message.timestamp }}</span>
       </div>
 
-      <!-- Thought Capsule (AI Thought & Regulatory Sources) -->
+      <!-- Thought & Sources Accordion -->
       <div v-if="!isUser && showThoughtBadge" class="w-full">
         <ThoughtBadge
           :status="thoughtStatus"
@@ -50,27 +47,24 @@
         />
       </div>
 
-      <!-- Main Message Bubble Card -->
+      <!-- Bubble Card -->
       <div
-        class="rounded-2xl text-xs sm:text-sm leading-relaxed shadow-md transition-all duration-150 break-words"
+        class="rounded-xl text-xs sm:text-sm leading-relaxed break-words"
         :class="[
           isUser
             ? (preferencesStore.chatDensity === 'compact'
-                ? 'bg-brand-primary text-white rounded-tr-none px-3 py-2 selection:bg-white/30'
-                : 'bg-brand-primary text-white rounded-tr-none px-4 py-3 selection:bg-white/30')
+                ? 'bg-action-primary text-action-primary-fg rounded-tr-sm px-3 py-2'
+                : 'bg-action-primary text-action-primary-fg rounded-tr-sm px-4 py-2.5')
             : (preferencesStore.chatDensity === 'compact'
-                ? 'bg-bg-card border border-border-card text-text-main rounded-tl-none p-3 shadow-md'
-                : 'bg-bg-card border border-border-card text-text-main rounded-tl-none p-4 shadow-lg')
+                ? 'bg-bg-surface border border-border-subtle text-text-main rounded-tl-sm p-3'
+                : 'bg-bg-surface border border-border-subtle text-text-main rounded-tl-sm p-4')
         ]"
       >
-        <!-- User Plain Text -->
-        <div v-if="isUser" class="whitespace-pre-wrap font-sans text-white">
+        <div v-if="isUser" class="whitespace-pre-wrap font-sans">
           {{ message.content }}
         </div>
 
-        <!-- AI Assistant Markdown & Dynamic Streaming -->
         <div v-else class="space-y-3 font-sans">
-          <!-- Markdown Content Body -->
           <div
             v-if="renderedHtml"
             v-html="renderedHtml"
@@ -78,15 +72,13 @@
             :class="{ 'typing-cursor': isActivelyTyping }"
           ></div>
 
-          <!-- Thinking Placeholder before first token arrives -->
           <div
             v-else-if="isActivelyTyping"
-            class="typing-cursor text-xs text-text-secondary italic flex items-center space-x-1.5 py-1"
+            class="typing-cursor text-xs text-text-secondary py-0.5"
           >
-            <span>正在分析规章制度并生成建议...</span>
+            <span>正在生成回复...</span>
           </div>
 
-          <!-- Interactive Enterprise Approval Card if interrupt triggered -->
           <div v-if="message.interruptData" class="mt-3">
             <ApprovalCard
               :approvalData="message.interruptData"
@@ -96,33 +88,34 @@
         </div>
       </div>
 
-      <!-- AI Message Micro Action Bar (Copy / Feedback) -->
+      <!-- Micro Action Bar -->
       <div
         v-if="!isUser && message.content && (message.completed || !message.isStreaming)"
-        class="opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-150 flex items-center space-x-1.5 px-1 py-0.5 text-[11px] text-text-muted select-none"
+        class="opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-1 px-0.5 text-[11px] text-text-muted select-none"
       >
         <button
+          type="button"
           @click="copyContent"
-          class="interactive-action px-2 py-1 min-h-[32px] rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 hover:text-text-main flex items-center space-x-1 transition-colors duration-150 active:bg-slate-200 dark:active:bg-slate-700 cursor-pointer"
+          class="btn-pressable px-2 py-1 min-h-[28px] rounded-md hover:bg-bg-hover hover:text-text-main inline-flex items-center gap-1 cursor-pointer"
           :title="copied ? '已复制' : '复制回答'"
         >
-          <component :is="copied ? Check : Copy" class="w-3.5 h-3.5 text-text-secondary" />
-          <span class="text-[10px]">{{ copied ? '已复制' : '复制' }}</span>
+          <component :is="copied ? Check : Copy" class="w-3.5 h-3.5" />
+          <span class="text-[11px]">{{ copied ? '已复制' : '复制' }}</span>
         </button>
 
-        <span class="text-text-muted">·</span>
-
         <button
-          class="interactive-action p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 hover:text-text-main transition-colors duration-150 active:bg-slate-200 dark:active:bg-slate-700 cursor-pointer"
+          type="button"
+          class="btn-pressable p-1.5 min-w-[28px] min-h-[28px] flex items-center justify-center rounded-md hover:bg-bg-hover hover:text-text-main cursor-pointer"
           title="有帮助"
         >
-          <ThumbsUp class="w-3.5 h-3.5 text-text-secondary" />
+          <ThumbsUp class="w-3.5 h-3.5" />
         </button>
         <button
-          class="interactive-action p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 hover:text-text-main transition-colors duration-150 active:bg-slate-200 dark:active:bg-slate-700 cursor-pointer"
+          type="button"
+          class="btn-pressable p-1.5 min-w-[28px] min-h-[28px] flex items-center justify-center rounded-md hover:bg-bg-hover hover:text-text-main cursor-pointer"
           title="不准确"
         >
-          <ThumbsDown class="w-3.5 h-3.5 text-text-secondary" />
+          <ThumbsDown class="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
@@ -137,7 +130,7 @@ import {
   Copy,
   Check,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
 } from 'lucide-vue-next';
 import ThoughtBadge from './ThoughtBadge.vue';
 import ApprovalCard from '../ApprovalCard.vue';
@@ -158,9 +151,9 @@ const copied = ref(false);
 
 const isUser = computed(() => props.message.role === 'user');
 
-const isActivelyTyping = computed(() => {
-  return !isUser.value && props.message.isStreaming && !props.message.completed;
-});
+const isActivelyTyping = computed(
+  () => !isUser.value && props.message.isStreaming && !props.message.completed
+);
 
 const showThoughtBadge = computed(() => {
   if (isUser.value) return false;
@@ -185,7 +178,7 @@ const thoughtTitle = computed(() => {
     return '正在分析与检索...';
   }
   const count = (props.message.sources || []).length;
-  return count > 0 ? `已参考 ${count} 篇企业规章制度` : '';
+  return count > 0 ? `参考了 ${count} 篇制度` : '';
 });
 
 const renderedHtml = computed(() => {
@@ -201,8 +194,8 @@ const copyContent = async () => {
     setTimeout(() => {
       copied.value = false;
     }, 2000);
-  } catch (err) {
-    // 忽略剪贴板访问异常
+  } catch {
+    // ignore clipboard error
   }
 };
 </script>

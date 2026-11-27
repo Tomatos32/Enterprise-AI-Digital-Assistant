@@ -7,7 +7,7 @@
   <!-- Standard Enterprise Copilot Studio Workspace Layout -->
   <div
     v-else
-    class="h-screen w-screen overflow-hidden flex bg-bg-main text-text-main font-sans antialiased selection:bg-brand-primary/30 selection:text-white"
+    class="h-screen w-screen overflow-hidden flex bg-bg-main text-text-main font-sans antialiased selection:bg-action-primary selection:text-action-primary-fg"
   >
     <!-- Desktop Collapsible Sidebar (Hidden on mobile < md) -->
     <Sidebar
@@ -29,33 +29,26 @@
     <div class="flex-1 flex flex-col h-full overflow-hidden min-w-0">
       <!-- Lightweight Header -->
       <Header
-        :active-session-title="chatStore.activeSession?.title || '企业通用数字员工'"
+        :active-session-title="chatStore.activeSession?.title || '企业数字员工'"
         :sidebar-collapsed="isSidebarCollapsed"
         @toggle-sidebar="handleToggleSidebar"
       />
 
       <!-- Global RBAC Permission Notice Banner -->
-      <transition
-        enter-active-class="transition ease-out duration-200"
-        enter-from-class="opacity-0 -translate-y-2"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition ease-in duration-150"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 -translate-y-2"
-      >
+      <transition name="banner-slide">
         <div
           v-if="authStore.permissionNotice"
-          class="mx-3 sm:mx-6 mt-2.5 px-3.5 py-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/35 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between gap-3 shadow-sm shrink-0"
+          class="mx-4 sm:mx-6 mt-3 px-3.5 py-2.5 rounded-lg bg-bg-card border border-border-card text-text-main text-xs flex items-center justify-between gap-3 shrink-0"
         >
-          <div class="flex items-center space-x-2 min-w-0">
-            <ShieldAlert class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <div class="flex items-center gap-2 min-w-0">
+            <Lock class="w-3.5 h-3.5 text-text-secondary shrink-0" />
             <span class="leading-relaxed">{{ authStore.permissionNotice }}</span>
           </div>
           <button
             type="button"
             @click="authStore.clearPermissionNotice()"
             title="关闭提示"
-            class="p-1 rounded-lg hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 transition-colors cursor-pointer shrink-0"
+            class="btn-pressable p-1 rounded-md hover:bg-bg-hover text-text-muted hover:text-text-main cursor-pointer shrink-0"
           >
             <X class="w-3.5 h-3.5" />
           </button>
@@ -65,15 +58,7 @@
       <!-- Content Router View -->
       <main class="flex-1 overflow-hidden relative flex flex-col">
         <router-view v-slot="{ Component }">
-          <transition
-            enter-active-class="transition-opacity duration-150 ease-out"
-            enter-from-class="opacity-0"
-            enter-to-class="opacity-100"
-            leave-active-class="transition-opacity duration-100 ease-in"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
-            mode="out-in"
-          >
+          <transition name="fade-fast" mode="out-in">
             <component :is="Component" />
           </transition>
         </router-view>
@@ -88,7 +73,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ShieldAlert, X } from 'lucide-vue-next';
+import { Lock, X } from 'lucide-vue-next';
 import Sidebar from './components/layout/Sidebar.vue';
 import MobileDrawer from './components/layout/MobileDrawer.vue';
 import Header from './components/layout/Header.vue';
@@ -139,11 +124,6 @@ const handleToggleSidebar = () => {
   }
 };
 
-const handleNewSession = () => {
-  // 新会话已在 chatStore 中创建并切换为活跃
-};
-
-const handleSelectSession = () => {
-  // 活跃会话已切换
-};
+const handleNewSession = () => {};
+const handleSelectSession = () => {};
 </script>

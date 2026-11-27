@@ -202,7 +202,7 @@
 > **数据源与快捷指令元数据契约 (`Issue-0060`)**：
 > - `metadata.data_source_id`：支持 `kb_all`（全量企业规章制度库 -> `retrieve`）、`db_mysql`（MySQL 业务台账 -> `tool`）、`erp_sap`（ERP 采购与供应链 -> 按制度咨询/审批/库存动态分流），向后兼容仅传 `metadata.data_source` 名称。
 > - `metadata.slash_command`：支持 `/kb`（制度检索）、`/audit`（无提交意图时为角色感知只读待审查询，仅 `manager`/`admin` 可阅全局队列，普通员工与未认证调用严格 fail-closed 拦截；含采购提交意图时路由至 `approval`）、`/help`（功能与快捷指令指引）、`/ticket`（快速建单）。
-> - **内部路由与改写事件隔离 (`Issue-0060` & `Issue-0061`)**：LangGraph 混合认知路由器 (`router` 节点) 与多轮上下文 Query 改写器 (`retrieve` 节点) 的轻量非思考 LLM 调用均已与客户端事件流完全隔离（`callbacks=[]` + `langgraph_node in ("router", "retrieve")` / `internal_router` / `internal_rewriter` 过滤），绝不向用户流推送内部 JSON，亦不污染 TTFT 首字延迟指标。服务端 `state["metadata"]` 内部留存改写诊断字段（`rewritten_query`、`sub_queries`、`detected_domains`、`domain_weights`、`rewrite_method`、`coreference_resolved`、`anchor_topic`），不暴露给普通员工前端视图。
+> - **内部路由、改写与语义抽槽事件隔离 (`Issue-0060` ~ `Issue-0062`)**：LangGraph 混合认知路由器 (`router`)、多轮上下文 Query 改写器 (`retrieve`) 与双层语义槽位提取器 (`tool` / `approval`) 的轻量非思考 LLM 调用均已与客户端事件流完全隔离（`callbacks=[]` + `langgraph_node in ("router", "retrieve", "tool", "approval")` / `internal_router` / `internal_rewriter` / `internal_slot_extractor` 过滤），绝不向用户流推送内部 JSON，亦不污染 TTFT 首字延迟指标。前端不再注入演示用硬编码 `purchase_args`；缺失必填业务参数时后端执行零落库、零 `interrupt()` 自然语言澄清追问，并在下一轮消息中跨轮合并补齐槽位及动态重判 5,000 元审批门槛。
 
 ##### 2. 服务端实时推送事件序列 (Server Message Payloads)
 

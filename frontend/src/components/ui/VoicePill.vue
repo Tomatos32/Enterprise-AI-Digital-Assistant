@@ -1,39 +1,36 @@
 <template>
   <div
     v-if="active"
-    class="flex items-center space-x-3 px-3 py-1.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 backdrop-blur-md shadow-sm animate-pulse-glow"
+    class="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-bg-surface border border-border-card text-text-main"
   >
-    <!-- Live Recording Beacon -->
-    <div class="flex items-center space-x-1.5">
-      <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
-      <span class="text-xs font-semibold tabular-nums">{{ formattedTime }}</span>
+    <div class="flex items-center gap-1.5">
+      <span class="w-2 h-2 rounded-full bg-status-danger"></span>
+      <span class="text-xs font-medium tabular-nums font-mono">{{ formattedTime }}</span>
     </div>
 
-    <!-- Dynamic Audio Waveform Simulation -->
-    <div class="flex items-center space-x-0.5 h-4 px-1">
+    <div class="flex items-center gap-0.5 h-4 px-1">
       <span
         v-for="(bar, i) in waveBars"
         :key="i"
-        class="w-1 bg-rose-500 rounded-full transition-all duration-150"
+        class="w-0.5 bg-text-secondary rounded-full transition-[height] duration-150"
         :style="{ height: `${bar}px` }"
       ></span>
     </div>
 
-    <!-- Action Buttons: Cancel & Done -->
-    <div class="flex items-center space-x-1">
+    <div class="flex items-center gap-1">
       <button
         type="button"
         @click="$emit('cancel')"
         title="取消录音"
-        class="p-1 rounded-lg hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-colors"
+        class="btn-pressable p-1 rounded-md text-text-secondary hover:text-text-main hover:bg-bg-hover cursor-pointer"
       >
         <Trash2 class="w-3.5 h-3.5" />
       </button>
       <button
         type="button"
         @click="$emit('finish')"
-        title="发送语音转文字"
-        class="p-1 rounded-lg bg-rose-500 text-white hover:bg-rose-600 transition-colors shadow-sm"
+        title="完成语音输入"
+        class="btn-primary p-1 rounded-md cursor-pointer"
       >
         <Square class="w-3 h-3 fill-current" />
       </button>
@@ -57,7 +54,7 @@ defineEmits(['finish', 'cancel']);
 const seconds = ref(0);
 let timer = null;
 let waveTimer = null;
-const waveBars = ref([4, 10, 16, 8, 14, 12, 6]);
+const waveBars = ref([4, 10, 14, 8, 12, 10, 6]);
 
 const formattedTime = computed(() => {
   const m = Math.floor(seconds.value / 60).toString().padStart(2, '0');
@@ -72,8 +69,8 @@ const startTimers = () => {
   }, 1000);
 
   waveTimer = setInterval(() => {
-    waveBars.value = waveBars.value.map(() => Math.floor(Math.random() * 14) + 4);
-  }, 150);
+    waveBars.value = waveBars.value.map(() => Math.floor(Math.random() * 12) + 4);
+  }, 160);
 };
 
 const stopTimers = () => {
@@ -83,10 +80,13 @@ const stopTimers = () => {
   waveTimer = null;
 };
 
-watch(() => props.active, (val) => {
-  if (val) startTimers();
-  else stopTimers();
-});
+watch(
+  () => props.active,
+  (val) => {
+    if (val) startTimers();
+    else stopTimers();
+  }
+);
 
 onMounted(() => {
   if (props.active) startTimers();

@@ -6,31 +6,31 @@
     <div class="max-w-7xl w-full mx-auto space-y-6 pb-12">
       <!-- Top Header & Unified Control Bar -->
       <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-border-subtle">
-        <div class="flex items-start sm:items-center space-x-3">
-          <div class="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-sm">
+        <div class="flex items-start sm:items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-bg-surface border border-border-card flex items-center justify-center text-text-main shrink-0">
             <Activity class="w-5 h-5" />
           </div>
           <div>
             <div class="flex flex-wrap items-center gap-2">
-              <h1 class="text-base sm:text-lg font-bold text-text-main">系统监控与 SLA 看板</h1>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 inline-flex items-center space-x-1">
+              <h1 class="text-base sm:text-lg font-semibold text-text-main tracking-tight">系统监控与 SLA 看板</h1>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-bg-surface text-text-secondary border border-border-subtle inline-flex items-center gap-1">
                 <ShieldCheck class="w-3 h-3" />
-                <span>管理员专属域</span>
+                <span>管理员专属</span>
               </span>
               <StatusMark
                 :status="overallHealthMarkStatus"
                 :label="overallHealthLabel"
               />
             </div>
-            <p class="text-xs text-text-secondary mt-1">
-              实时洞察核心服务健康度、首字响应延迟分布、业务工具调用审计与 P0~P4 企业工单 SLA 履约状况
+            <p class="text-xs text-text-muted mt-0.5">
+              服务健康度、首字延迟分布、工具调用审计与工单 SLA 履约追踪
             </p>
           </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2.5">
-          <div class="flex items-center space-x-2">
-            <span class="text-[11px] font-medium text-text-muted">静默轮询</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] font-medium text-text-muted">自动轮询</span>
             <RubberSegment
               v-model="pollingIntervalMs"
               :options="pollingOptions"
@@ -43,10 +43,10 @@
             :loading="isManualRefreshing"
             @click="loadOverview(false)"
           >
-            <span class="inline-flex items-center space-x-1.5">
+            <span class="inline-flex items-center gap-1.5">
               <RefreshCw
                 v-if="!isManualRefreshing"
-                class="w-3.5 h-3.5 text-brand-primary"
+                class="w-3.5 h-3.5 text-text-secondary"
                 :class="{ 'animate-spin': isSilentRefreshing }"
               />
               <span>{{ isManualRefreshing ? '刷新中...' : '手动刷新' }}</span>
@@ -55,46 +55,49 @@
 
           <router-link
             to="/"
-            class="px-3 py-1.5 rounded-xl glass-panel hover:bg-slate-200/60 dark:hover:bg-slate-800 text-xs text-text-secondary hover:text-text-main border border-border-subtle inline-flex items-center space-x-1.5 transition-colors duration-150"
+            class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer"
           >
-            <MessageSquare class="w-3.5 h-3.5 text-brand-primary" />
-            <span>返回工作台</span>
+            <MessageSquare class="w-3.5 h-3.5 text-text-secondary" />
+            <span>返回对话</span>
           </router-link>
         </div>
       </header>
 
       <!-- Sync Status & Error Banner -->
       <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-text-muted">
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center gap-2">
           <Clock class="w-3.5 h-3.5" />
-          <span>最近采样时间:</span>
+          <span>最近采样:</span>
           <span class="tabular-nums font-medium text-text-secondary">{{ formattedGeneratedAt }}</span>
-          <span v-if="isSilentRefreshing" class="text-brand-primary font-medium">正在静默同步最新快照...</span>
+          <span v-if="isSilentRefreshing" class="text-text-main font-medium">正在同步...</span>
         </div>
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span>活跃推理引擎: <strong class="text-text-secondary">{{ llmEngineMeta.model || '-' }}</strong></span>
-          <span>向量集合点位: <strong class="tabular-nums text-text-secondary">{{ formatInteger(qdrantMeta.points_count) }}</strong></span>
-          <span>活跃入库任务: <strong class="tabular-nums text-text-secondary">{{ formatInteger(systemHealth.active_ingestion_tasks) }}</strong></span>
+          <span>推理引擎: <strong class="text-text-secondary">{{ llmEngineMeta.model || '-' }}</strong></span>
+          <span>向量点位: <strong class="tabular-nums text-text-secondary">{{ formatInteger(qdrantMeta.points_count) }}</strong></span>
+          <span>入库任务: <strong class="tabular-nums text-text-secondary">{{ formatInteger(systemHealth.active_ingestion_tasks) }}</strong></span>
         </div>
       </div>
 
-      <div
-        v-if="errorMessage"
-        class="p-3.5 rounded-2xl border bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300 flex items-center justify-between gap-3 text-xs"
-      >
-        <div class="flex items-center space-x-2">
-          <AlertCircle class="w-4 h-4 shrink-0" />
-          <span>{{ errorMessage }}</span>
-        </div>
-        <button
-          type="button"
-          @click="errorMessage = ''"
-          class="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer"
-          aria-label="关闭提示"
+      <transition name="banner-slide">
+        <div
+          v-if="errorMessage"
+          role="alert"
+          class="px-4 py-3 rounded-xl border bg-bg-surface border-status-danger/40 text-status-danger flex items-center justify-between gap-3 text-xs"
         >
-          <X class="w-3.5 h-3.5" />
-        </button>
-      </div>
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-status-danger shrink-0"></span>
+            <span>{{ errorMessage }}</span>
+          </div>
+          <button
+            type="button"
+            @click="errorMessage = ''"
+            class="p-1 rounded-md text-text-secondary hover:text-text-main hover:bg-bg-hover cursor-pointer transition-colors duration-150"
+            aria-label="关闭提示"
+          >
+            <X class="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </transition>
 
       <!-- Main Content Container (retains previous render at reduced opacity during silent refresh) -->
       <div
@@ -106,10 +109,10 @@
           <div
             v-for="comp in componentHealthList"
             :key="comp.key"
-            class="rounded-2xl glass-card border border-border-card p-4 flex items-start justify-between gap-3 shadow-sm"
+            class="rounded-xl bg-bg-card border border-border-card p-4 flex items-start justify-between gap-3"
           >
             <div class="min-w-0 space-y-1">
-              <div class="flex items-center space-x-2">
+              <div class="flex items-center gap-2">
                 <component :is="resolveComponentIcon(comp.key)" class="w-4 h-4 text-text-secondary shrink-0" />
                 <span class="text-xs font-semibold text-text-main truncate">{{ comp.name }}</span>
               </div>
@@ -117,11 +120,13 @@
               <div class="text-[10px] text-text-muted">模式: {{ comp.mode }}</div>
             </div>
             <span
-              class="px-2 py-0.5 rounded-lg text-[10px] font-semibold border inline-flex items-center space-x-1 shrink-0"
+              class="px-2 py-0.5 rounded-md text-[10px] font-medium border inline-flex items-center gap-1 shrink-0"
               :class="healthBadgeClass(comp.status)"
             >
-              <CheckCircle2 v-if="comp.status === 'UP' || comp.status === 'READY'" class="w-3 h-3" />
-              <AlertTriangle v-else class="w-3 h-3" />
+              <span
+                class="w-1.5 h-1.5 rounded-full shrink-0"
+                :class="comp.status === 'UP' || comp.status === 'READY' ? 'bg-status-success' : 'bg-status-approval'"
+              ></span>
               <span>{{ healthText(comp.status) }}</span>
             </span>
           </div>
@@ -130,50 +135,46 @@
         <!-- Section 2: Core KPI Stat Tiles (Proportional display numbers) -->
         <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <!-- KPI 1: WebSocket & Chat Throughput -->
-          <div class="rounded-3xl glass-card border border-border-card p-5 space-y-2.5 shadow-sm">
+          <div class="rounded-xl bg-bg-card border border-border-card p-5 space-y-2.5">
             <div class="flex items-center justify-between">
               <span class="text-xs font-medium text-text-secondary">实时 WebSocket 连接</span>
-              <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <Radio class="w-4 h-4" />
-              </div>
+              <Radio class="w-4 h-4 text-text-muted" />
             </div>
-            <div class="flex items-baseline space-x-2">
-              <span class="kpi-value text-3xl font-bold text-text-main tracking-tight">
+            <div class="flex items-baseline gap-2">
+              <span class="kpi-value text-3xl font-semibold text-text-main tracking-tight">
                 {{ formatInteger(telemetry.active_websocket_connections) }}
               </span>
               <span class="text-xs text-text-muted">在线通道</span>
             </div>
-            <div class="text-[11px] text-text-secondary flex flex-wrap gap-x-3 gap-y-0.5">
-              <span>有效会话 {{ formatInteger(business.chat.active_sessions) }}</span>
-              <span>累计消息 {{ formatInteger(business.chat.total_messages) }}</span>
-              <span>均值思考 {{ business.chat.avg_thinking_seconds }}s</span>
+            <div class="text-[11px] text-text-muted flex flex-wrap gap-x-3 gap-y-0.5 tabular-nums">
+              <span>会话 {{ formatInteger(business.chat.active_sessions) }}</span>
+              <span>消息 {{ formatInteger(business.chat.total_messages) }}</span>
+              <span>思考 {{ business.chat.avg_thinking_seconds }}s</span>
             </div>
           </div>
 
           <!-- KPI 2: Cumulative Token Consumption (Input vs Output) -->
-          <div class="rounded-3xl glass-card border border-border-card p-5 space-y-2.5 shadow-sm">
+          <div class="rounded-xl bg-bg-card border border-border-card p-5 space-y-2.5">
             <div class="flex items-center justify-between">
               <span class="text-xs font-medium text-text-secondary">累计 Token 消耗</span>
-              <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                <Coins class="w-4 h-4" />
-              </div>
+              <Coins class="w-4 h-4 text-text-muted" />
             </div>
-            <div class="flex items-baseline space-x-2" :title="`总计 ${formatInteger(telemetry.tokens.total_tokens)} tokens`">
-              <span class="kpi-value text-3xl font-bold text-text-main tracking-tight">
+            <div class="flex items-baseline gap-2" :title="`总计 ${formatInteger(telemetry.tokens.total_tokens)} tokens`">
+              <span class="kpi-value text-3xl font-semibold text-text-main tracking-tight">
                 {{ formatCompactNumber(telemetry.tokens.total_tokens) }}
               </span>
               <span class="text-xs text-text-muted">Tokens</span>
             </div>
             <div class="space-y-1.5">
-              <div class="flex items-center justify-between text-[11px] text-text-secondary">
+              <div class="flex items-center justify-between text-[11px] text-text-muted tabular-nums">
                 <span>输入 {{ formatCompactNumber(telemetry.tokens.input_tokens) }}</span>
                 <span>输出 {{ formatCompactNumber(telemetry.tokens.output_tokens) }}</span>
               </div>
               <!-- Thin proportional segmented bar with 2px surface gap -->
-              <div class="h-2 w-full rounded-full overflow-hidden flex bg-slate-200/70 dark:bg-slate-800/80">
+              <div class="h-2 w-full rounded-full overflow-hidden flex bg-bg-surface">
                 <div
                   v-if="tokenSplit.inputPct > 0"
-                  class="h-full transition-all duration-300"
+                  class="h-full transition-[width] duration-300"
                   :class="tokenSplit.outputPct > 0 ? 'rounded-l-full' : 'rounded-full'"
                   :style="{ width: `${tokenSplit.inputPct}%`, backgroundColor: 'var(--viz-series-1)' }"
                 ></div>
@@ -184,7 +185,7 @@
                 ></div>
                 <div
                   v-if="tokenSplit.outputPct > 0"
-                  class="h-full transition-all duration-300"
+                  class="h-full transition-[width] duration-300"
                   :class="tokenSplit.inputPct > 0 ? 'rounded-r-full' : 'rounded-full'"
                   :style="{ width: `${tokenSplit.outputPct}%`, backgroundColor: 'var(--viz-series-2)' }"
                 ></div>
@@ -193,44 +194,40 @@
           </div>
 
           <!-- KPI 3: Prompt Cache Hit Rate -->
-          <div class="rounded-3xl glass-card border border-border-card p-5 space-y-2.5 shadow-sm">
+          <div class="rounded-xl bg-bg-card border border-border-card p-5 space-y-2.5">
             <div class="flex items-center justify-between">
               <span class="text-xs font-medium text-text-secondary">提示词缓存命中率</span>
-              <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Zap class="w-4 h-4" />
-              </div>
+              <Zap class="w-4 h-4 text-text-muted" />
             </div>
-            <div class="flex items-baseline space-x-2">
-              <span class="kpi-value text-3xl font-bold text-text-main tracking-tight">
+            <div class="flex items-baseline gap-2">
+              <span class="kpi-value text-3xl font-semibold text-text-main tracking-tight">
                 {{ telemetry.prompt_cache.total_lookups > 0 ? `${telemetry.prompt_cache.hit_rate_percent}%` : '0%' }}
               </span>
               <span class="text-xs text-text-muted">
-                {{ telemetry.prompt_cache.total_lookups > 0 ? '命中效率' : '待触发查询' }}
+                {{ telemetry.prompt_cache.total_lookups > 0 ? '命中效率' : '待查询' }}
               </span>
             </div>
-            <div class="text-[11px] text-text-secondary">
-              命中 {{ formatInteger(telemetry.prompt_cache.hits) }} 次 · 未命中 {{ formatInteger(telemetry.prompt_cache.misses) }} 次
+            <div class="text-[11px] text-text-muted tabular-nums">
+              命中 {{ formatInteger(telemetry.prompt_cache.hits) }} · 未命中 {{ formatInteger(telemetry.prompt_cache.misses) }}
             </div>
           </div>
 
           <!-- KPI 4: Approval Closure -->
-          <div class="rounded-3xl glass-card border border-border-card p-5 space-y-2.5 shadow-sm">
+          <div class="rounded-xl bg-bg-card border border-border-card p-5 space-y-2.5">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-text-secondary">人机审批闭环率</span>
-              <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                <ClipboardCheck class="w-4 h-4" />
-              </div>
+              <span class="text-xs font-medium text-text-secondary">审批闭环率</span>
+              <ClipboardCheck class="w-4 h-4 text-text-muted" />
             </div>
-            <div class="flex items-baseline space-x-2">
-              <span class="kpi-value text-3xl font-bold text-text-main tracking-tight">
+            <div class="flex items-baseline gap-2">
+              <span class="kpi-value text-3xl font-semibold text-text-main tracking-tight">
                 {{ business.approvals.total_count > 0 ? `${business.approvals.closure_rate_percent}%` : '0%' }}
               </span>
-              <span class="text-xs text-text-muted">
+              <span class="text-xs text-text-muted tabular-nums">
                 待办 {{ formatInteger(business.approvals.pending_count) }} 项
               </span>
             </div>
-            <div class="text-[11px] text-text-secondary">
-              已批准 {{ formatInteger(business.approvals.approved_count) }} · 已驳回 {{ formatInteger(business.approvals.rejected_count) }}
+            <div class="text-[11px] text-text-muted tabular-nums">
+              批准 {{ formatInteger(business.approvals.approved_count) }} · 驳回 {{ formatInteger(business.approvals.rejected_count) }}
             </div>
           </div>
         </section>
@@ -238,20 +235,20 @@
         <!-- Section 3: Interactive Charts Row (TTFT Distribution & Tool Invocations) -->
         <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <!-- Chart A: TTFT Ordinal 5-Bucket Distribution (6 cols) -->
-          <div class="lg:col-span-6 rounded-3xl glass-card border border-border-card p-5 sm:p-6 space-y-4 shadow-md flex flex-col">
+          <div class="lg:col-span-6 rounded-xl bg-bg-card border border-border-card p-5 sm:p-6 space-y-4 flex flex-col">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 class="text-sm font-bold text-text-main">首字响应延迟分布</h2>
-                <p class="text-[11px] text-text-secondary mt-0.5">
+                <h2 class="text-sm font-semibold text-text-main">首字响应延迟分布</h2>
+                <p class="text-[11px] text-text-muted mt-0.5 tabular-nums">
                   非累积五档分桶样本 {{ formatInteger(telemetry.ttft.total_observations) }} 次 · 均值 {{ telemetry.ttft.avg_ms }} ms
                 </p>
               </div>
-              <div class="inline-flex p-0.5 rounded-xl bg-slate-200/70 dark:bg-slate-900/80 border border-border-subtle">
+              <div class="inline-flex p-0.5 rounded-lg bg-bg-surface border border-border-subtle">
                 <button
                   type="button"
                   @click="ttftViewMode = 'chart'"
-                  class="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer inline-flex items-center space-x-1"
-                  :class="ttftViewMode === 'chart' ? 'bg-white dark:bg-slate-800 text-text-main shadow-sm' : 'text-text-secondary hover:text-text-main'"
+                  class="btn-pressable px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer inline-flex items-center gap-1 border"
+                  :class="ttftViewMode === 'chart' ? 'bg-bg-card text-text-main border-border-card font-semibold' : 'border-transparent text-text-secondary hover:text-text-main'"
                 >
                   <BarChart3 class="w-3 h-3" />
                   <span>图表</span>
@@ -259,8 +256,8 @@
                 <button
                   type="button"
                   @click="ttftViewMode = 'table'"
-                  class="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer inline-flex items-center space-x-1"
-                  :class="ttftViewMode === 'table' ? 'bg-white dark:bg-slate-800 text-text-main shadow-sm' : 'text-text-secondary hover:text-text-main'"
+                  class="btn-pressable px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer inline-flex items-center gap-1 border"
+                  :class="ttftViewMode === 'table' ? 'bg-bg-card text-text-main border-border-card font-semibold' : 'border-transparent text-text-secondary hover:text-text-main'"
                 >
                   <Table2 class="w-3 h-3" />
                   <span>数据表</span>
@@ -429,21 +426,21 @@
           </div>
 
           <!-- Chart B: Tool Execution Statistics (6 cols) -->
-          <div class="lg:col-span-6 rounded-3xl glass-card border border-border-card p-5 sm:p-6 space-y-4 shadow-md flex flex-col">
+          <div class="lg:col-span-6 rounded-xl bg-bg-card border border-border-card p-5 sm:p-6 space-y-4 flex flex-col">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 class="text-sm font-bold text-text-main">业务与检索工具调用分布</h2>
-                <p class="text-[11px] text-text-secondary mt-0.5">
+                <h2 class="text-sm font-semibold text-text-main">业务与检索工具调用分布</h2>
+                <p class="text-[11px] text-text-muted mt-0.5 tabular-nums">
                   已注册工具 {{ telemetry.tools.registered_count }} 个 · 累计调用 {{ formatInteger(telemetry.tools.total_calls) }} 次 · 成功率
                   {{ telemetry.tools.total_calls > 0 ? `${telemetry.tools.success_rate_percent}%` : '暂无调用' }}
                 </p>
               </div>
-              <div class="inline-flex p-0.5 rounded-xl bg-slate-200/70 dark:bg-slate-900/80 border border-border-subtle">
+              <div class="inline-flex p-0.5 rounded-lg bg-bg-surface border border-border-subtle">
                 <button
                   type="button"
                   @click="toolsViewMode = 'chart'"
-                  class="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer inline-flex items-center space-x-1"
-                  :class="toolsViewMode === 'chart' ? 'bg-white dark:bg-slate-800 text-text-main shadow-sm' : 'text-text-secondary hover:text-text-main'"
+                  class="btn-pressable px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer inline-flex items-center gap-1 border"
+                  :class="toolsViewMode === 'chart' ? 'bg-bg-card text-text-main border-border-card font-semibold' : 'border-transparent text-text-secondary hover:text-text-main'"
                 >
                   <BarChart3 class="w-3 h-3" />
                   <span>图表</span>
@@ -451,8 +448,8 @@
                 <button
                   type="button"
                   @click="toolsViewMode = 'table'"
-                  class="px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer inline-flex items-center space-x-1"
-                  :class="toolsViewMode === 'table' ? 'bg-white dark:bg-slate-800 text-text-main shadow-sm' : 'text-text-secondary hover:text-text-main'"
+                  class="btn-pressable px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer inline-flex items-center gap-1 border"
+                  :class="toolsViewMode === 'table' ? 'bg-bg-card text-text-main border-border-card font-semibold' : 'border-transparent text-text-secondary hover:text-text-main'"
                 >
                   <Table2 class="w-3 h-3" />
                   <span>数据表</span>
@@ -666,29 +663,29 @@
         </section>
 
         <!-- Section 4: Recent Tool Execution Audit Stream -->
-        <section class="rounded-3xl glass-card border border-border-card p-5 sm:p-6 space-y-4 shadow-md">
+        <section class="rounded-xl bg-bg-card border border-border-card p-5 sm:p-6 space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex items-center space-x-2.5">
-              <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-bg-surface border border-border-subtle text-text-main flex items-center justify-center shrink-0">
                 <Wrench class="w-4 h-4" />
               </div>
               <div>
-                <h2 class="text-sm font-bold text-text-main">近期工具调用安全审计流水</h2>
-                <p class="text-[11px] text-text-muted">全链路参数脱敏记录，实时追踪工具响应延迟与异常诊断摘要</p>
+                <h2 class="text-sm font-semibold text-text-main">工具调用安全审计流水</h2>
+                <p class="text-[11px] text-text-muted">全链路参数脱敏记录与耗时追踪</p>
               </div>
             </div>
 
-            <div class="flex items-center space-x-1.5 text-[11px]">
+            <div class="flex items-center gap-1.5 text-[11px]">
               <button
                 v-for="tab in auditStatusFilters"
                 :key="tab.value"
                 type="button"
                 @click="auditFilter = tab.value"
-                class="px-2.5 py-1 rounded-xl border font-medium transition-colors cursor-pointer"
+                class="btn-pressable px-2.5 py-1 rounded-md border font-medium cursor-pointer"
                 :class="
                   auditFilter === tab.value
-                    ? 'bg-brand-primary text-white border-brand-primary'
-                    : 'bg-slate-100/80 dark:bg-slate-900/60 text-text-secondary border-border-subtle hover:text-text-main'
+                    ? 'bg-action-primary text-action-primary-fg border-action-primary'
+                    : 'bg-bg-surface text-text-secondary border-border-subtle hover:text-text-main hover:border-border-card'
                 "
               >
                 {{ tab.label }}
@@ -696,10 +693,10 @@
             </div>
           </div>
 
-          <div class="overflow-x-auto rounded-2xl border border-border-subtle">
+          <div class="overflow-x-auto rounded-lg border border-border-subtle">
             <table class="w-full text-left border-collapse text-xs">
               <thead>
-                <tr class="bg-slate-100/90 dark:bg-slate-900/90 text-[11px] text-text-secondary border-b border-border-subtle">
+                <tr class="bg-bg-surface text-[11px] text-text-secondary border-b border-border-subtle">
                   <th class="py-2.5 px-3.5 font-semibold">审计流水号</th>
                   <th class="py-2.5 px-3 font-semibold">工具名称</th>
                   <th class="py-2.5 px-3 font-semibold">执行状态</th>
@@ -708,30 +705,32 @@
                   <th class="py-2.5 px-3 font-semibold text-right">调用时间</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-border-subtle/70">
+              <tbody class="divide-y divide-border-subtle">
                 <tr v-if="filteredToolAudits.length === 0">
                   <td colspan="6" class="py-8 text-center text-text-muted">
-                    暂无匹配的近期工具调用审计记录；智能体调度业务或检索工具后将自动记录脱敏流水。
+                    暂无匹配的近期工具调用审计记录
                   </td>
                 </tr>
                 <tr
                   v-for="audit in filteredToolAudits"
                   :key="audit.audit_id"
-                  class="hover:bg-slate-100/60 dark:hover:bg-slate-900/50 transition-colors"
+                  class="hover:bg-bg-hover/60 transition-colors duration-150"
                 >
                   <td class="py-2.5 px-3.5 font-medium text-text-secondary tabular-nums whitespace-nowrap">{{ audit.audit_id }}</td>
                   <td class="py-2.5 px-3 font-semibold text-text-main whitespace-nowrap">{{ audit.tool_name }}</td>
                   <td class="py-2.5 px-3 whitespace-nowrap">
                     <span
-                      class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold border"
+                      class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium border bg-bg-surface"
                       :class="
                         audit.status === 'success'
-                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                          : 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30'
+                          ? 'text-status-success border-border-subtle'
+                          : 'text-status-danger border-status-danger/40'
                       "
                     >
-                      <CheckCircle2 v-if="audit.status === 'success'" class="w-3 h-3" />
-                      <AlertCircle v-else class="w-3 h-3" />
+                      <span
+                        class="w-1.5 h-1.5 rounded-full shrink-0"
+                        :class="audit.status === 'success' ? 'bg-status-success' : 'bg-status-danger'"
+                      ></span>
                       <span>{{ audit.status === 'success' ? '调用成功' : '调用异常' }}</span>
                     </span>
                   </td>
@@ -749,50 +748,52 @@
         </section>
 
         <!-- Section 5: Enterprise P0-P4 SLA Compliance & Recent Tickets -->
-        <section class="rounded-3xl glass-card border border-border-card p-5 sm:p-6 space-y-5 shadow-md">
+        <section class="rounded-xl bg-bg-card border border-border-card p-5 sm:p-6 space-y-5">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div class="flex items-center space-x-2.5">
-              <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                <ShieldAlert class="w-4 h-4" />
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-bg-surface border border-border-subtle text-text-main flex items-center justify-center shrink-0">
+                <ShieldCheck class="w-4 h-4" />
               </div>
               <div>
-                <h2 class="text-sm font-bold text-text-main">企业工单与 P0~P4 SLA 履约追踪</h2>
+                <h2 class="text-sm font-semibold text-text-main">企业工单与 P0~P4 SLA 履约追踪</h2>
                 <p class="text-[11px] text-text-muted">
-                  依据企业运维服务级别协议核验响应/解决时效，实时标识履约与超期风险工单
+                  核验服务响应与解决时效，实时标识履约与超期风险
                 </p>
               </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2 text-xs">
-              <span class="px-2.5 py-1 rounded-xl bg-slate-100/80 dark:bg-slate-900/70 border border-border-subtle text-text-secondary tabular-nums">
+              <span class="px-2.5 py-1 rounded-md bg-bg-surface border border-border-subtle text-text-secondary tabular-nums">
                 总工单 <strong class="text-text-main">{{ business.sla.total_tickets }}</strong>
               </span>
-              <span class="px-2.5 py-1 rounded-xl bg-slate-100/80 dark:bg-slate-900/70 border border-border-subtle text-text-secondary tabular-nums">
+              <span class="px-2.5 py-1 rounded-md bg-bg-surface border border-border-subtle text-text-secondary tabular-nums">
                 处理中 <strong class="text-text-main">{{ business.sla.open_tickets }}</strong>
               </span>
-              <span class="px-2.5 py-1 rounded-xl bg-slate-100/80 dark:bg-slate-900/70 border border-border-subtle text-text-secondary tabular-nums">
+              <span class="px-2.5 py-1 rounded-md bg-bg-surface border border-border-subtle text-text-secondary tabular-nums">
                 已闭环 <strong class="text-text-main">{{ business.sla.closed_tickets }}</strong>
               </span>
               <span
-                class="px-2.5 py-1 rounded-xl border inline-flex items-center space-x-1 font-semibold tabular-nums"
+                class="px-2.5 py-1 rounded-md border inline-flex items-center gap-1.5 font-medium tabular-nums bg-bg-surface"
                 :class="
                   business.sla.breached_tickets > 0
-                    ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30'
-                    : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                    ? 'text-status-danger border-status-danger/40'
+                    : 'text-status-success border-border-subtle'
                 "
               >
-                <AlertTriangle v-if="business.sla.breached_tickets > 0" class="w-3.5 h-3.5" />
-                <CheckCircle2 v-else class="w-3.5 h-3.5" />
+                <span
+                  class="w-1.5 h-1.5 rounded-full shrink-0"
+                  :class="business.sla.breached_tickets > 0 ? 'bg-status-danger' : 'bg-status-success'"
+                ></span>
                 <span>整体 SLA 履约率 {{ business.sla.overall_compliance_percent }}%</span>
               </span>
             </div>
           </div>
 
           <!-- P0-P4 SLA Tiers Table -->
-          <div class="overflow-x-auto rounded-2xl border border-border-subtle">
+          <div class="overflow-x-auto rounded-lg border border-border-subtle">
             <table class="w-full text-left border-collapse text-xs">
               <thead>
-                <tr class="bg-slate-100/90 dark:bg-slate-900/90 text-[11px] text-text-secondary border-b border-border-subtle">
+                <tr class="bg-bg-surface text-[11px] text-text-secondary border-b border-border-subtle">
                   <th class="py-2.5 px-3.5 font-semibold">故障级别</th>
                   <th class="py-2.5 px-3 font-semibold">响应 SLA</th>
                   <th class="py-2.5 px-3 font-semibold">解决 SLA</th>
@@ -802,19 +803,18 @@
                   <th class="py-2.5 px-3 font-semibold">默认处置策略</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-border-subtle/70">
+              <tbody class="divide-y divide-border-subtle">
                 <tr
                   v-for="tier in business.sla.tiers"
                   :key="tier.priority"
-                  class="hover:bg-slate-100/60 dark:hover:bg-slate-900/50 transition-colors"
+                  class="hover:bg-bg-hover/60 transition-colors duration-150"
                 >
                   <td class="py-2.5 px-3.5 whitespace-nowrap">
                     <span
-                      class="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-lg text-[11px] font-semibold border"
+                      class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium border"
                       :class="priorityBadgeClass(tier.priority)"
                     >
                       <Flame v-if="tier.priority === 'P0'" class="w-3 h-3" />
-                      <AlertTriangle v-else-if="tier.priority === 'P1'" class="w-3 h-3" />
                       <ShieldCheck v-else class="w-3 h-3" />
                       <span>{{ tier.priority }} · {{ tier.level_label }}</span>
                     </span>
@@ -824,18 +824,18 @@
                   <td class="py-2.5 px-3 text-right font-semibold tabular-nums text-text-main">{{ tier.total_count }}</td>
                   <td class="py-2.5 px-3 text-right tabular-nums text-text-secondary whitespace-nowrap">
                     {{ tier.open_count }} / {{ tier.closed_count }} /
-                    <span :class="tier.breached_count > 0 ? 'text-rose-600 dark:text-rose-400 font-semibold' : ''">
+                    <span :class="tier.breached_count > 0 ? 'text-status-danger font-semibold' : ''">
                       {{ tier.breached_count }}
                     </span>
                   </td>
                   <td class="py-2.5 px-3 min-w-[150px]">
-                    <div v-if="tier.has_tickets" class="flex items-center space-x-2">
+                    <div v-if="tier.has_tickets" class="flex items-center gap-2">
                       <div
                         class="flex-1 h-2 rounded-full overflow-hidden"
                         :style="{ backgroundColor: slaMeterTrackColor(tier.compliance_rate_percent) }"
                       >
                         <div
-                          class="h-full rounded-full transition-all duration-300"
+                          class="h-full rounded-full transition-[width] duration-300"
                           :style="{
                             width: `${tier.compliance_rate_percent}%`,
                             backgroundColor: slaMeterFillColor(tier.compliance_rate_percent),
@@ -857,14 +857,14 @@
           <!-- Recent Tickets Ledger -->
           <div class="space-y-2.5">
             <div class="flex items-center justify-between">
-              <h3 class="text-xs font-bold text-text-main">近期企业服务工单台账</h3>
-              <span class="text-[11px] text-text-muted tabular-nums">展示最近 {{ business.sla.recent_tickets.length }} 条</span>
+              <h3 class="text-xs font-semibold text-text-main">近期企业服务工单台账</h3>
+              <span class="text-[11px] text-text-muted tabular-nums">最近 {{ business.sla.recent_tickets.length }} 条</span>
             </div>
 
-            <div class="overflow-x-auto rounded-2xl border border-border-subtle">
+            <div class="overflow-x-auto rounded-lg border border-border-subtle">
               <table class="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr class="bg-slate-100/90 dark:bg-slate-900/90 text-[11px] text-text-secondary border-b border-border-subtle">
+                  <tr class="bg-bg-surface text-[11px] text-text-secondary border-b border-border-subtle">
                     <th class="py-2.5 px-3.5 font-semibold">工单编号</th>
                     <th class="py-2.5 px-3 font-semibold">级别</th>
                     <th class="py-2.5 px-3 font-semibold">工单标题</th>
@@ -874,21 +874,21 @@
                     <th class="py-2.5 px-3 font-semibold text-right">创建时间</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-border-subtle/70">
+                <tbody class="divide-y divide-border-subtle">
                   <tr v-if="business.sla.recent_tickets.length === 0">
                     <td colspan="7" class="py-8 text-center text-text-muted">
-                      当前数据库暂无服务工单记录；通过对话发起工单申报后将在此实时跟踪 SLA 时效。
+                      暂无服务工单记录
                     </td>
                   </tr>
                   <tr
                     v-for="ticket in business.sla.recent_tickets"
                     :key="ticket.ticket_id"
-                    class="hover:bg-slate-100/60 dark:hover:bg-slate-900/50 transition-colors"
+                    class="hover:bg-bg-hover/60 transition-colors duration-150"
                   >
                     <td class="py-2.5 px-3.5 font-medium text-text-secondary tabular-nums whitespace-nowrap">{{ ticket.ticket_id }}</td>
                     <td class="py-2.5 px-3 whitespace-nowrap">
                       <span
-                        class="px-2 py-0.5 rounded-lg text-[10px] font-semibold border"
+                        class="px-2 py-0.5 rounded-md text-[10px] font-semibold border"
                         :class="priorityBadgeClass(ticket.priority)"
                       >
                         {{ ticket.priority }}
@@ -900,12 +900,12 @@
                     <td class="py-2.5 px-3 text-text-secondary whitespace-nowrap">{{ ticket.department }}</td>
                     <td class="py-2.5 px-3 whitespace-nowrap">
                       <span
-                        class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold border"
+                        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium border"
                         :class="ticketSlaBadgeClass(ticket.sla_state)"
                       >
                         <CheckCircle2 v-if="ticket.sla_state === '已闭环'" class="w-3 h-3" />
                         <Clock v-else-if="ticket.sla_state === '履约中'" class="w-3 h-3" />
-                        <AlertCircle v-else class="w-3 h-3" />
+                        <span v-else class="w-1.5 h-1.5 rounded-full bg-status-danger shrink-0"></span>
                         <span>{{ ticket.sla_state }}</span>
                       </span>
                     </td>
@@ -935,14 +935,12 @@ import {
   RefreshCw,
   MessageSquare,
   Clock,
-  AlertCircle,
   X,
   Database,
   Server,
   Layers,
   Cpu,
   CheckCircle2,
-  AlertTriangle,
   Radio,
   Coins,
   Zap,
@@ -950,7 +948,6 @@ import {
   BarChart3,
   Table2,
   Wrench,
-  ShieldAlert,
   Flame,
 } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/authStore';
@@ -1477,22 +1474,22 @@ onBeforeUnmount(() => {
 <style scoped>
 .viz-root {
   --viz-surface: #ffffff;
-  --viz-ink-primary: #111827;
-  --viz-ink-secondary: #4b5563;
-  --viz-ink-muted: #6b7280;
-  --viz-gridline: #e5e7eb;
-  --viz-axis: #c3c2b7;
+  --viz-ink-primary: #09090b;
+  --viz-ink-secondary: #52525b;
+  --viz-ink-muted: #71717a;
+  --viz-gridline: #e4e4e7;
+  --viz-axis: #a1a1aa;
   --viz-series-1: #2a78d6;
   --viz-series-2: #eb6834;
 }
 
 .viz-root.viz-dark {
-  --viz-surface: #0f172a;
-  --viz-ink-primary: #f8fafc;
-  --viz-ink-secondary: #94a3b8;
-  --viz-ink-muted: #94a3b8;
-  --viz-gridline: #2c2c2a;
-  --viz-axis: #475569;
+  --viz-surface: #141416;
+  --viz-ink-primary: #fafafa;
+  --viz-ink-secondary: #a1a1aa;
+  --viz-ink-muted: #8a8a93;
+  --viz-gridline: #27272a;
+  --viz-axis: #52525b;
   --viz-series-1: #3987e5;
   --viz-series-2: #d95926;
 }

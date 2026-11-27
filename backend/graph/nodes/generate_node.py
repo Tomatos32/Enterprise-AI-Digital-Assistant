@@ -128,6 +128,7 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
     slash_command = str(metadata.get("slash_command") or "").strip().lower()
     has_tool_executed = bool(metadata.get("tool_executed"))
     has_approval_executed = bool(metadata.get("approval_executed"))
+    needs_slot_clarification = bool(metadata.get("slot_clarification_needed"))
 
     # 0. Explicit Deterministic System Slash Commands (/help, /audit read-only status)
     # Synthesize via deterministic local streaming model so real DB approval rows & exact
@@ -152,6 +153,22 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
             "[Slash Command: /audit_status]\n"
             "原样汇报真实数据库待审批核验结果：\n\n"
             f"[Audit Summary]:\n{audit_summary}"
+        )
+
+    # 0.5. Semantic Slot Clarification Branch (deterministic zero-hallucination pass-through)
+    elif needs_slot_clarification:
+        from backend.core.llm import LocalEnterpriseChatModel
+
+        llm = LocalEnterpriseChatModel(streaming=True)
+        clarification_text = str(
+            metadata.get("slot_clarification_question")
+            or "您好，为确保业务准确办理，请补充必要的业务参数信息。"
+        ).strip()
+        system_prompt = (
+            "你是一位专业严谨的企业 AI 智能助手。\n"
+            "[Slot Clarification Needed]\n"
+            "请原样清晰地向用户追问缺失的业务参数，严禁编造数据或使用表情符号：\n\n"
+            f"[Clarification Question]:\n{clarification_text}"
         )
 
     # 1. Approval Execution Branch (standalone or compound retrieve -> approval)
@@ -270,7 +287,9 @@ async def generate_node(state: AgentState) -> Dict[str, Any]:
         used_fallback = True
 
     # Enforce standard answer tag for test compatibility & UI formatting (stripped in chat_ws before delivery)
-    if has_tool_executed and "[Tool Answer]" not in answer_text:
+    if needs_slot_clarification:
+        pass
+    elif has_tool_executed and "[Tool Answer]" not in answer_text:
         answer_text = f"[Tool Answer]: {answer_text}"
     elif intent == "retrieve" and not has_approval_executed and "[RAG Answer]" not in answer_text:
         answer_text = f"[RAG Answer]: {answer_text}"

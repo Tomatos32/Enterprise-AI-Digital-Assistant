@@ -20,6 +20,12 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from backend.core.config import settings
 from backend.core.llm import get_router_llm
 from backend.graph.state import AgentState
+from backend.tools.slot_extractor import (
+    APPROVAL_THRESHOLD_RMB,
+    detect_pending_clarification_context,
+    merge_purchase_amounts_across_turns,
+    parse_purchase_amount,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +40,6 @@ VALID_TOOL_HINTS = (
     "search_knowledge_base",
 )
 
-APPROVAL_THRESHOLD_RMB = 5000.0
 MAX_CONTEXT_TURNS = 6
 MAX_CONTEXT_MESSAGES = MAX_CONTEXT_TURNS * 2
 
@@ -206,165 +211,8 @@ FOLLOW_UP_MARKERS = (
 )
 
 # ---------------------------------------------------------------------------
-# Chinese & Arabic Numeral / Dynamic Purchase Amount Parser
-# ---------------------------------------------------------------------------
-
-_CN_DIGIT_MAP: Dict[str, int] = {
-    "零": 0, "〇": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4,
-    "五": 5, "六": 6, "七": 7, "八": 8, "九": 9,
-}
-_CN_SMALL_UNIT_MAP: Dict[str, int] = {"十": 10, "百": 100, "千": 1000}
-
-
-def _cn_to_float(token: str) -> Optional[float]:
-    """Converts a Chinese or Arabic numeric string (with optional 万/千/k/w) into a float."""
-    cleaned = token.replace(",", "").replace("，", "").strip().lower()
-    if not cleaned:
-        return None
-
-    # Direct Arabic number with optional multiplier suffix (e.g. 1.2万, 6k, 2.5w, 22999)
-    arabic_match = re.fullmatch(r"(\d+(?:\.\d+)?)\s*(万|w|千|k)?", cleaned)
-    if arabic_match:
-        val = float(arabic_match.group(1))
-        unit = arabic_match.group(2)
-        if unit in ("万", "w"):
-            val *= 10000.0
-        elif unit in ("千", "k"):
-            val *= 1000.0
-        return val
-
-    # Handle Chinese numerals including "一万二", "两万五千", "三千五", "五千", "两"
-    if not re.fullmatch(r"[零〇一二两三四五六七八九十百千万]+", cleaned):
-        return None
-
-    total = 0.0
-    if "万" in cleaned:
-        left, right = cleaned.split("万", 1)
-        left_val = _cn_section_to_int(left) if left else 1
-        if left_val is None:
-            return None
-        total += left_val * 10000.0
-        if right:
-            # Handle colloquial "一万二" (= 12000) vs "一万两千" (= 12000)
-            if len(right) == 1 and right in _CN_DIGIT_MAP:
-                total += _CN_DIGIT_MAP[right] * 1000.0
-            else:
-                right_val = _cn_section_to_int(right)
-                if right_val is None:
-                    return None
-                total += right_val
-        return total
-
-    sec = _cn_section_to_int(cleaned)
-    return float(sec) if sec is not None else None
-
-
-def _cn_section_to_int(section: str) -> Optional[int]:
-    """Converts a Chinese numeral section under 10,000 (e.g. 三千五, 两千八百, 十五, 两)."""
-    if not section:
-        return 0
-    result = 0
-    current_digit = 0
-    last_unit = 10000
-    for idx, ch in enumerate(section):
-        if ch in _CN_DIGIT_MAP:
-            current_digit = _CN_DIGIT_MAP[ch]
-        elif ch in _CN_SMALL_UNIT_MAP:
-            unit = _CN_SMALL_UNIT_MAP[ch]
-            if current_digit == 0 and ch == "十" and idx == 0:
-                current_digit = 1
-            result += current_digit * unit
-            current_digit = 0
-            last_unit = unit
-        else:
-            return None
-    if current_digit > 0:
-        # Colloquial trailing digit after 千/百 (e.g. "三千五" -> 3500, "两百五" -> 250)
-        if last_unit in (1000, 100) and len(section) >= 2 and section[-2] in ("千", "百"):
-            result += current_digit * (last_unit // 10)
-        else:
-            result += current_digit
-    return result
-
-
-_NUM_TOKEN_PATTERN = r"(?:\d+(?:,\d{3})*(?:\.\d+)?(?:\s*(?:万|w|千|k))?|[零〇一二两三四五六七八九十百千万]+)"
-_UNIT_PRICE_RE = re.compile(
-    rf"(?:单价|每台|每个|每件|每套|每把|每张)\s*[￥¥]?\s*({_NUM_TOKEN_PATTERN})\s*(?:元|块|rmb|人民币)?",
-    re.IGNORECASE,
-)
-_TOTAL_PRICE_RE = re.compile(
-    rf"(?:总价|总额|总计|合计|预算)\s*[￥¥]?\s*({_NUM_TOKEN_PATTERN})\s*(?:元|块|rmb|人民币)?",
-    re.IGNORECASE,
-)
-_CURRENCY_AMOUNT_RE = re.compile(
-    rf"(?:[￥¥]\s*({_NUM_TOKEN_PATTERN})|({_NUM_TOKEN_PATTERN})\s*(?:元|块钱|块|rmb|人民币))",
-    re.IGNORECASE,
-)
-_QUANTITY_RE = re.compile(
-    r"(\d+|[一二两三四五六七八九十]+)\s*(?:台|个|件|套|把|张|部|批|只|箱)",
-)
-
-
-def parse_purchase_amount(text: str) -> Optional[float]:
-    """Dynamically extracts total purchase amount in RMB from natural Chinese/English text.
-
-    Supports:
-      - Explicit total: "总价 1.2 万元", "合计 85000 元"
-      - Quantity x Unit price: "2台 3500元", "3台，每台 2000 元", "两台三千元"
-      - Direct currency amount: "8000元", "￥22,999", "1.5万"
-    Avoids false positives on model numbers (e.g. "MacBook Pro 16", "P1", "2026").
-    """
-    if not text:
-        return None
-
-    # 1. Explicit total price always wins
-    total_match = _TOTAL_PRICE_RE.search(text)
-    if total_match:
-        val = _cn_to_float(total_match.group(1))
-        if val is not None and val > 0:
-            return round(val, 2)
-
-    # 2. Extract optional quantity (e.g. "2台", "两台", "10 个")
-    quantity = 1.0
-    qty_match = _QUANTITY_RE.search(text)
-    if qty_match:
-        parsed_qty = _cn_to_float(qty_match.group(1))
-        if parsed_qty is not None and 1.0 <= parsed_qty <= 10000.0:
-            quantity = parsed_qty
-
-    # 3. Explicit unit price ("单价 22999 元", "每台 2000 元")
-    unit_match = _UNIT_PRICE_RE.search(text)
-    if unit_match:
-        unit_val = _cn_to_float(unit_match.group(1))
-        if unit_val is not None and unit_val > 0:
-            return round(quantity * unit_val, 2)
-
-    # 4. General currency-tagged amount ("8000元", "￥6800", "3500块", "1.2万元", "三千元")
-    curr_match = _CURRENCY_AMOUNT_RE.search(text)
-    if curr_match:
-        raw_num = curr_match.group(1) or curr_match.group(2)
-        val = _cn_to_float(raw_num)
-        if val is not None and val > 0:
-            # When quantity > 1 appears right before the price (e.g. "买2台3500元的显示器"),
-            # interpret as unit price unless "共"/"总共" is right before the amount.
-            prefix_window = text[max(0, curr_match.start() - 6):curr_match.start()]
-            if quantity > 1.0 and not any(w in prefix_window for w in ("共", "总共", "合计", "总计", "总价")):
-                return round(quantity * val, 2)
-            return round(val, 2)
-
-    # 5. Standalone "万" / "千" in a purchase context (e.g. "采购2万的服务器", "审批超过5万")
-    if any(w in text for w in ("采购", "购买", "买", "审批", "报销", "预算", "单价", "价格", "报价")):
-        mag_match = re.search(r"(\d+(?:\.\d+)?|[一二两三四五六七八九十]+)\s*(万|w|千|k)", text, re.IGNORECASE)
-        if mag_match:
-            val = _cn_to_float(mag_match.group(1) + mag_match.group(2))
-            if val is not None and val > 0:
-                return round(val, 2)
-
-    return None
-
-
-# ---------------------------------------------------------------------------
 # Pure Guard & Helper Functions
+# (Chinese/Arabic numeral & purchase amount parser shared from backend.tools.slot_extractor)
 # ---------------------------------------------------------------------------
 
 
@@ -565,6 +413,34 @@ def _detect_approval_intent(q_lower: str, query: str, amount: Optional[float]) -
             return True, True
 
     return False, False
+
+
+def _detect_purchase_without_amount(q_lower: str) -> bool:
+    """Detects explicit procurement submission requests that omit price/budget."""
+    if _is_policy_inquiry(q_lower):
+        return False
+    explicit_phrases = (
+        "申请采购",
+        "帮我采购",
+        "我要采购",
+        "我想采购",
+        "需要采购",
+        "申购",
+        "下单采购",
+        "提交采购",
+        "发起采购",
+        "帮我买",
+        "我要买",
+        "我想买",
+        "申请购买",
+        "帮我购买",
+        "我要购买",
+    )
+    if any(p in q_lower for p in explicit_phrases):
+        return True
+    if re.search(r"(?:采购|购买|买)\s*(?:\d+|[一二两三四五六七八九十]+)\s*(?:台|个|件|套|把|张|部|批|只|箱)", q_lower):
+        return True
+    return False
 
 
 def _detect_compound_intent(q_lower: str, query: str, amount: Optional[float]) -> Tuple[Optional[str], Optional[str], Optional[str]]:
@@ -947,6 +823,9 @@ def _classify_deterministic_fallback(
     ):
         return "tool", "", "create_purchase", 0.84, "small_purchase_auto_tool"
 
+    if amount is None and _detect_purchase_without_amount(q_lower):
+        return "tool", "", "create_purchase", 0.84, "purchase_missing_amount_slot_clarification"
+
     # 6. Enterprise policy & knowledge retrieval
     if _is_policy_inquiry(q_lower) or any(kw in q_lower for kw in ENTERPRISE_KNOWLEDGE_KEYWORDS):
         return "retrieve", "", None, 0.82, "enterprise_domain_knowledge"
@@ -973,6 +852,7 @@ def _build_route_result(
     slash_command: Optional[str] = None,
     data_source_resolved: Optional[str] = None,
     parsed_amount: Optional[float] = None,
+    preserve_pending_slots: bool = False,
 ) -> Dict[str, Any]:
     """Constructs standardized AgentState update returned by router_node."""
     updated_meta = dict(metadata)
@@ -981,6 +861,13 @@ def _build_route_result(
     updated_meta.pop("tool_output", None)
     updated_meta.pop("approval_executed", None)
     updated_meta.pop("approval_result", None)
+    updated_meta.pop("slot_clarification_needed", None)
+    updated_meta.pop("slot_clarification_question", None)
+    updated_meta.pop("missing_slots", None)
+    updated_meta.pop("escalate_to_approval", None)
+    if not preserve_pending_slots:
+        updated_meta.pop("pending_slot_tool", None)
+        updated_meta.pop("pending_slots", None)
     updated_meta["routing_method"] = routing_method
     updated_meta["routing_confidence"] = round(confidence, 3)
     updated_meta["routing_reason"] = reason
@@ -1232,7 +1119,11 @@ async def router_node(state: AgentState) -> Dict[str, Any]:
                 data_source_resolved="erp_sap",
                 parsed_amount=amount,
             )
-        erp_tool_hint = "create_purchase" if any(w in q_lower for w in ("采购", "下单", "申购")) and amount is not None else "query_inventory"
+        erp_tool_hint = (
+            "create_purchase"
+            if (_detect_purchase_without_amount(q_lower) or (any(w in q_lower for w in ("采购", "下单", "申购")) and amount is not None))
+            else "query_inventory"
+        )
         return _build_route_result(
             "tool",
             metadata,
@@ -1258,6 +1149,50 @@ async def router_node(state: AgentState) -> Dict[str, Any]:
             normalized_query=query,
             data_source_resolved="kb_all",
             parsed_amount=amount,
+        )
+
+    # ------------------------------------------------------------------
+    # Tier 1A-bis: Active Multi-Turn Missing-Slot Clarification Continuation
+    # ------------------------------------------------------------------
+    clarification_ctx = detect_pending_clarification_context(messages, metadata, current_query=query)
+    if clarification_ctx is not None:
+        pending_tool = str(clarification_ctx["pending_tool"])
+        prior_turns = list(clarification_ctx.get("prior_user_turns") or [])
+        if pending_tool in ("create_purchase", "approval"):
+            merged_amounts = merge_purchase_amounts_across_turns(prior_turns + [query])
+            merged_total = merged_amounts.get("total_price")
+            if isinstance(merged_total, (int, float)) and merged_total > APPROVAL_THRESHOLD_RMB:
+                return _build_route_result(
+                    "approval",
+                    metadata,
+                    routing_method="slot_clarification_resume",
+                    confidence=0.97,
+                    reason="slot_clarification_purchase_over_threshold",
+                    normalized_query=query,
+                    parsed_amount=float(merged_total),
+                    preserve_pending_slots=True,
+                )
+            return _build_route_result(
+                "tool",
+                metadata,
+                routing_method="slot_clarification_resume",
+                confidence=0.97,
+                reason="slot_clarification_purchase_continue",
+                tool_hint="create_purchase",
+                normalized_query=query,
+                parsed_amount=float(merged_total) if isinstance(merged_total, (int, float)) else None,
+                preserve_pending_slots=True,
+            )
+        return _build_route_result(
+            "tool",
+            metadata,
+            routing_method="slot_clarification_resume",
+            confidence=0.97,
+            reason=f"slot_clarification_continue_{pending_tool}",
+            tool_hint=pending_tool,
+            normalized_query=query,
+            parsed_amount=amount,
+            preserve_pending_slots=True,
         )
 
     # ------------------------------------------------------------------
@@ -1323,6 +1258,18 @@ async def router_node(state: AgentState) -> Dict[str, Any]:
             reason="explicit_or_high_value_approval",
             normalized_query=query,
             parsed_amount=amount,
+        )
+
+    # Explicit purchase request without price/budget -> route to create_purchase for polite slot clarification
+    if amount is None and _detect_purchase_without_amount(q_lower):
+        return _build_route_result(
+            "tool",
+            metadata,
+            routing_method="deterministic_guard",
+            confidence=0.94,
+            reason="explicit_purchase_without_amount",
+            tool_hint="create_purchase",
+            normalized_query=query,
         )
 
     # High-confidence unambiguous SOP / enterprise policy inquiry (no action submission cue)

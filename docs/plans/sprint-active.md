@@ -178,6 +178,14 @@
   - [x] Checkpoint 4: 升级 `retriever.py`、`retrieve_node.py`、`chat_ws.py` 与 `knowledge.py`（取消推断单域硬锁改为跨领域软加权与多样性保底并兼容旧版 `Reranker` 签名、将 `standalone_query` 传入 Graph RAG、启动自动同步 `backend/data/` 上传文档到 BM25 并阻断改写 LLM 流式外泄）
   - [x] Checkpoint 5: 编写 `test_contextual_query_rewriter.py` (10/10 PASS)，通过 `ruff` (0 errors)、9 文件 `mypy` (0 errors)、15 套件核心联测 (87/87 PASS)、全仓 `pytest` (301 passed, 2 pre-existing failed)、Live Ollama 实测 (5/5 PASS)、`vite build` 与 Reviewer 11 维审查 (Score: 95, `APPROVED`)，同步仓库文档并归档 `.harness/runs/Issue-0061/` 9 份只读证据包
 
+- [x] **Sprint R-06 / Issue-0062: 工具与审批语义槽位提取引擎重构、前端硬编码剥离与全站中性极简界面重塑 - [100% COMPLETED]**
+  - [x] Checkpoint 1: 在 `.harness/runs/Issue-0062/` 初始化 `issue.md` 与 `plan.md`，完成全站 `design-review` 视觉审查并登记至 `docs/plans/sprint-active.md`
+  - [x] Checkpoint 2: 新建 `backend/tools/slot_extractor.py` 并升级 `config.py` 与 `llm.py`（共享中文/阿拉伯金额数量解析、双层混合语义槽位提取、策略 5.1A HR 邮箱反查、策略 5.2A 采购单价显式合规门禁与跨轮缺参历史承接）
+  - [x] Checkpoint 3: 升级 `router_node.py`、`tool_node.py`、`approval_node.py`、`generate_node.py`、`workflow.py` 与 `chat_ws.py`（清除全部假默认值、多轮补槽闭环与总额重判、无环 `tool -> approval` 升级、零落库缺参澄清、补全 `interrupt()` 载荷及阻断抽槽流式泄露）
+  - [x] Checkpoint 4: 剥离 `ChatContainer.vue` 硬编码并净化 `ApprovalCard.vue`，结合 `awesome-design-md-main`、`shadcn`（`DotGridBackdrop` / `HoldButton`）与 `emil-design-eng` 完成全站 36 文件中性单色重塑、禁用渐变发光、去除感叹号徽章与动效打磨
+  - [x] Checkpoint 5: 编写 `test_slot_extractor.py` (29/29 PASS)，通过 `ruff` (0 errors)、10 文件 `mypy` (0 errors)、8 套件核心联测 (73/73 PASS)、全仓 `pytest` (330 passed, 2 pre-existing failed)、Live Ollama 实测 (5/5 PASS)、`vite build` (7923 modules) 与去术语扫描 (0 violations)
+  - [x] Checkpoint 6: 同步仓库文档与 OpenAPI Schema (38 paths IN_SYNC)，完成 Reviewer 11 维审查 (Score: 100, `APPROVED`) 并归档 `.harness/runs/Issue-0062/` 9 份只读证据包
+
 ---
 
 ## Historical Achievements (已交付稳态资产):

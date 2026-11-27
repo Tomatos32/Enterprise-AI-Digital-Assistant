@@ -1,26 +1,26 @@
 <template>
-  <div class="h-full flex-1 flex flex-col bg-bg-main overflow-y-auto p-4 sm:p-6 lg:p-8 transition-colors duration-200">
+  <div class="h-full flex-1 flex flex-col bg-bg-main overflow-y-auto p-4 sm:p-6 lg:p-8 transition-colors duration-180">
     <div class="max-w-6xl w-full mx-auto space-y-6 pb-10">
       <!-- Top Header & Actions -->
       <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-border-subtle">
-        <div class="flex items-start sm:items-center space-x-3">
-          <div class="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-sm">
+        <div class="flex items-start sm:items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-bg-surface border border-border-card flex items-center justify-center text-text-main shrink-0">
             <ListTodo class="w-5 h-5" />
           </div>
           <div>
             <div class="flex flex-wrap items-center gap-2">
-              <h1 class="text-base sm:text-lg font-bold text-text-main">知识库运维与异步任务中心</h1>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 inline-flex items-center space-x-1">
+              <h1 class="text-base sm:text-lg font-semibold text-text-main tracking-tight">知识库运维与异步任务</h1>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-bg-surface text-text-secondary border border-border-subtle inline-flex items-center gap-1">
                 <ShieldCheck class="w-3 h-3" />
-                <span>管理员专属域</span>
+                <span>管理员专属</span>
               </span>
               <StatusMark
                 :status="qdrantHealthStatus"
                 :label="qdrantHealthLabel"
               />
             </div>
-            <p class="text-xs text-text-secondary mt-1">
-              统筹多格式规章文档入库解析、语义切片向量化、Celery/本地异步任务流水线追踪与全库索引同步
+            <p class="text-xs text-text-muted mt-0.5">
+              管理多格式制度入库解析、异步任务进度与全库向量索引同步
             </p>
           </div>
         </div>
@@ -33,54 +33,51 @@
             :disabled="isUploading || isSyncing"
             @click="refreshAllData"
           >
-            <span class="inline-flex items-center space-x-1.5">
-              <RefreshCw class="w-3.5 h-3.5 text-brand-primary" :class="{ 'animate-spin': isRefreshing }" />
+            <span class="inline-flex items-center gap-1.5">
+              <RefreshCw class="w-3.5 h-3.5 text-text-secondary" :class="{ 'animate-spin': isRefreshing }" />
               <span>{{ isRefreshing ? '刷新中...' : '刷新状态' }}</span>
             </span>
           </FuseButton>
 
           <router-link
             to="/knowledge"
-            class="px-3 py-1.5 rounded-xl glass-panel hover:bg-slate-200/60 dark:hover:bg-slate-800 text-xs text-text-secondary hover:text-text-main border border-border-subtle inline-flex items-center space-x-1.5 transition-colors duration-150"
+            class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer"
           >
-            <BookOpen class="w-3.5 h-3.5 text-brand-primary" />
+            <BookOpen class="w-3.5 h-3.5 text-text-secondary" />
             <span>制度阅读库</span>
           </router-link>
 
           <router-link
             to="/"
-            class="px-3 py-1.5 rounded-xl glass-panel hover:bg-slate-200/60 dark:hover:bg-slate-800 text-xs text-text-secondary hover:text-text-main border border-border-subtle inline-flex items-center space-x-1.5 transition-colors duration-150"
+            class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer"
           >
-            <MessageSquare class="w-3.5 h-3.5 text-brand-primary" />
-            <span>返回工作台</span>
+            <MessageSquare class="w-3.5 h-3.5 text-text-secondary" />
+            <span>返回对话</span>
           </router-link>
         </div>
       </header>
 
       <!-- Feedback Banner -->
-      <transition
-        enter-active-class="transition ease-out duration-200"
-        enter-from-class="opacity-0 -translate-y-1"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition ease-in duration-150"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 -translate-y-1"
-      >
+      <transition name="banner-slide">
         <div
           v-if="feedback.message"
-          class="p-3.5 rounded-2xl border flex items-start justify-between gap-3 text-xs shadow-sm"
+          role="status"
+          class="px-4 py-3 rounded-xl border flex items-start justify-between gap-3 text-xs bg-bg-surface"
           :class="feedbackBannerClass"
         >
-          <div class="flex items-start space-x-2.5">
-            <CheckCircle2 v-if="feedback.type === 'success'" class="w-4 h-4 shrink-0 mt-0.5" />
-            <AlertTriangle v-else-if="feedback.type === 'warning'" class="w-4 h-4 shrink-0 mt-0.5" />
-            <AlertCircle v-else class="w-4 h-4 shrink-0 mt-0.5" />
+          <div class="flex items-start gap-2.5">
+            <CheckCircle2 v-if="feedback.type === 'success'" class="w-4 h-4 text-status-success shrink-0 mt-0.5" />
+            <span
+              v-else
+              class="w-2 h-2 rounded-full shrink-0 mt-1.5"
+              :class="feedback.type === 'warning' ? 'bg-status-approval' : 'bg-status-danger'"
+            ></span>
             <span class="leading-relaxed font-medium">{{ feedback.message }}</span>
           </div>
           <button
             type="button"
             @click="feedback.message = ''"
-            class="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer shrink-0"
+            class="p-1 rounded-md text-text-secondary hover:text-text-main hover:bg-bg-hover cursor-pointer shrink-0 transition-colors duration-150"
             title="关闭提示"
           >
             <X class="w-3.5 h-3.5" />
@@ -91,49 +88,43 @@
       <!-- Section 1: Knowledge Base Vector Telemetry Overview -->
       <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Card A: Qdrant Mode -->
-        <div class="rounded-3xl glass-card border border-border-card p-4 sm:p-5 space-y-2 shadow-sm">
+        <div class="rounded-xl bg-bg-card border border-border-card p-4 sm:p-5 space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-semibold text-text-muted">Qdrant 运行底座</span>
-            <div class="w-7 h-7 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <Database class="w-4 h-4" />
-            </div>
+            <span class="text-[11px] font-medium text-text-muted">Qdrant 运行底座</span>
+            <Database class="w-4 h-4 text-text-muted" />
           </div>
-          <div class="text-sm font-bold text-text-main truncate">{{ qdrantModeText }}</div>
+          <div class="text-sm font-semibold text-text-main truncate">{{ qdrantModeText }}</div>
           <div class="text-[11px] text-text-secondary truncate font-mono" :title="kbStatus.storage_location">
             {{ kbStatus.collection_name || 'enterprise_knowledge' }} · {{ kbStatus.storage_location || '本地持久化' }}
           </div>
         </div>
 
         <!-- Card B: Vector Points -->
-        <div class="rounded-3xl glass-card border border-border-card p-4 sm:p-5 space-y-2 shadow-sm">
+        <div class="rounded-xl bg-bg-card border border-border-card p-4 sm:p-5 space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-semibold text-text-muted">向量切片总点位</span>
-            <div class="w-7 h-7 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Layers class="w-4 h-4" />
-            </div>
+            <span class="text-[11px] font-medium text-text-muted">向量切片点位</span>
+            <Layers class="w-4 h-4 text-text-muted" />
           </div>
-          <div class="flex items-baseline space-x-2">
-            <span class="text-xl font-bold text-text-main font-mono">
+          <div class="flex items-baseline gap-2">
+            <span class="text-xl font-semibold text-text-main font-mono tabular-nums">
               {{ Number(kbStatus.points_count || 0).toLocaleString() }}
             </span>
-            <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-              {{ kbStatus.collection_exists ? '集合已就绪' : '待首次构建' }}
+            <span class="text-[11px] text-status-success font-medium">
+              {{ kbStatus.collection_exists ? '已就绪' : '待构建' }}
             </span>
           </div>
-          <div class="text-[11px] text-text-secondary">
-            支持稠密向量 + BM25 稀疏混合检索
+          <div class="text-[11px] text-text-muted">
+            稠密向量 + BM25 混合检索
           </div>
         </div>
 
         <!-- Card C: Embedding Engine & Dimension -->
-        <div class="rounded-3xl glass-card border border-border-card p-4 sm:p-5 space-y-2 shadow-sm">
+        <div class="rounded-xl bg-bg-card border border-border-card p-4 sm:p-5 space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-semibold text-text-muted">向量维度与引擎</span>
-            <div class="w-7 h-7 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <Cpu class="w-4 h-4" />
-            </div>
+            <span class="text-[11px] font-medium text-text-muted">向量维度与引擎</span>
+            <Cpu class="w-4 h-4 text-text-muted" />
           </div>
-          <div class="text-sm font-bold text-text-main font-mono">
+          <div class="text-sm font-semibold text-text-main font-mono tabular-nums">
             {{ kbStatus.vector_size || 1024 }} 维 · {{ embeddingEngineName }}
           </div>
           <div class="text-[11px] text-text-secondary truncate" :title="embeddingModelName">
@@ -142,21 +133,19 @@
         </div>
 
         <!-- Card D: Documents Count -->
-        <div class="rounded-3xl glass-card border border-border-card p-4 sm:p-5 space-y-2 shadow-sm">
+        <div class="rounded-xl bg-bg-card border border-border-card p-4 sm:p-5 space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-semibold text-text-muted">已收录知识文档</span>
-            <div class="w-7 h-7 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <FolderOpen class="w-4 h-4" />
-            </div>
+            <span class="text-[11px] font-medium text-text-muted">已收录文档</span>
+            <FolderOpen class="w-4 h-4 text-text-muted" />
           </div>
-          <div class="flex items-baseline space-x-2">
-            <span class="text-xl font-bold text-text-main font-mono">
+          <div class="flex items-baseline gap-2">
+            <span class="text-xl font-semibold text-text-main font-mono tabular-nums">
               {{ kbStatus.total_documents_count || docsInventory.total_count || 0 }}
             </span>
-            <span class="text-[11px] text-text-secondary">篇生效制度</span>
+            <span class="text-[11px] text-text-secondary">篇制度</span>
           </div>
-          <div class="text-[11px] text-text-secondary">
-            内置标准库 {{ kbStatus.sample_kb_file_count || 0 }} 篇 · 管理员上传 {{ kbStatus.uploaded_file_count || 0 }} 篇
+          <div class="text-[11px] text-text-muted tabular-nums">
+            内置 {{ kbStatus.sample_kb_file_count || 0 }} · 上传 {{ kbStatus.uploaded_file_count || 0 }}
           </div>
         </div>
       </section>
@@ -164,28 +153,28 @@
       <!-- Section 2 & 3: Upload Zone + Sync Operations -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Left 7 Cols: Drag & Drop Multi-Format Upload & Mode Toggle -->
-        <section class="lg:col-span-7 rounded-3xl glass-card border border-border-card p-5 sm:p-6 space-y-5 shadow-md">
+        <section class="lg:col-span-7 rounded-xl bg-bg-card border border-border-card p-5 sm:p-6 space-y-5">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div class="flex items-center space-x-2.5">
-              <div class="w-8 h-8 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-bg-surface border border-border-subtle text-text-main flex items-center justify-center shrink-0">
                 <Upload class="w-4 h-4" />
               </div>
               <div>
-                <h2 class="text-sm font-bold text-text-main">多格式知识文档上传与入库调度</h2>
-                <p class="text-[11px] text-text-muted">支持 .md / .pdf / .xlsx / .xls / .txt · 单文件上限 20 MB</p>
+                <h2 class="text-sm font-semibold text-text-main">多格式知识文档上传</h2>
+                <p class="text-[11px] text-text-muted">.md / .pdf / .xlsx / .xls / .txt · 单文件上限 20 MB</p>
               </div>
             </div>
 
-            <div class="flex items-center space-x-1.5">
+            <div class="flex items-center gap-1.5">
               <RubberSegment
                 v-model="uploadMode"
                 :options="uploadModeOptions"
               />
               <WarmTooltip
-                :content="uploadMode === 'async' ? '优先投递 Celery 队列，Broker 离线时自动平滑降级后台异步执行' : '立即解析切分并同步刷新 Qdrant 与 BM25 索引'"
+                :content="uploadMode === 'async' ? '优先投递 Celery 队列，Broker 离线时自动降级后台执行' : '立即解析切分并同步刷新索引'"
                 position="top"
               >
-                <span class="w-6 h-6 rounded-lg inline-flex items-center justify-center text-text-muted hover:text-text-main cursor-help">
+                <span class="w-6 h-6 rounded-md inline-flex items-center justify-center text-text-muted hover:text-text-main cursor-help">
                   <Info class="w-3.5 h-3.5" />
                 </span>
               </WarmTooltip>
@@ -198,11 +187,11 @@
             @dragleave.prevent="isDragOver = false"
             @drop.prevent="handleFileDrop"
             @click="triggerFilePicker"
-            class="relative rounded-2xl border-2 border-dashed p-6 sm:p-7 text-center transition-all duration-150 cursor-pointer"
+            class="relative rounded-xl border border-dashed p-6 sm:p-7 text-center transition-colors duration-150 cursor-pointer"
             :class="
               isDragOver
-                ? 'border-brand-primary bg-brand-primary/10 scale-[1.01]'
-                : 'border-border-card bg-slate-100/60 dark:bg-slate-900/50 hover:border-brand-primary/60 hover:bg-slate-200/40 dark:hover:bg-slate-900/80'
+                ? 'border-border-focus bg-bg-hover'
+                : 'border-border-card bg-bg-surface hover:border-border-strong'
             "
           >
             <input
@@ -213,19 +202,23 @@
               class="hidden"
               @change="handleFileSelected"
             />
-            <div class="flex flex-col items-center space-y-2.5">
+            <div class="flex flex-col items-center gap-2.5">
               <div
-                class="w-11 h-11 rounded-2xl flex items-center justify-center transition-colors"
-                :class="isDragOver ? 'bg-brand-primary text-white' : 'bg-brand-primary/10 text-brand-primary'"
+                class="w-10 h-10 rounded-xl flex items-center justify-center border transition-colors duration-150"
+                :class="
+                  isDragOver
+                    ? 'bg-action-primary text-action-primary-fg border-action-primary'
+                    : 'bg-bg-card text-text-main border-border-card'
+                "
               >
-                <Upload class="w-5 h-5" />
+                <Upload class="w-4 h-4" />
               </div>
               <div class="space-y-1">
-                <p class="text-xs sm:text-sm font-semibold text-text-main">
-                  将制度文档拖拽到此处，或 <span class="text-brand-primary underline">点击浏览本地文件</span>
+                <p class="text-xs sm:text-sm font-medium text-text-main">
+                  拖拽制度文档到此处，或 <span class="underline underline-offset-2">点击浏览本地文件</span>
                 </p>
                 <p class="text-[11px] text-text-muted">
-                  支持 Markdown、图文 PDF、Excel 多工作表及纯文本规章；路径与后缀由后端强制安全校验
+                  支持 Markdown、PDF、Excel 及纯文本；后端强制执行路径与后缀校验
                 </p>
               </div>
             </div>
@@ -234,8 +227,8 @@
           <!-- Category Selector -->
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <label class="text-xs font-semibold text-text-main">业务领域分类归属</label>
-              <span class="text-[11px] text-text-muted">用于检索过滤与领域权限隔离</span>
+              <label class="text-xs font-semibold text-text-main">业务领域分类</label>
+              <span class="text-[11px] text-text-muted">用于领域检索过滤</span>
             </div>
             <div class="flex flex-wrap gap-1.5">
               <button
@@ -243,11 +236,11 @@
                 :key="cat.value"
                 type="button"
                 @click="selectedCategory = cat.value"
-                class="px-2.5 py-1 rounded-xl text-[11px] font-medium border transition-colors cursor-pointer"
+                class="btn-pressable px-2.5 py-1 rounded-md text-[11px] font-medium border cursor-pointer"
                 :class="
                   selectedCategory === cat.value
-                    ? 'bg-brand-primary text-white border-brand-primary shadow-sm'
-                    : 'bg-slate-100/80 dark:bg-slate-900/60 text-text-secondary border-border-subtle hover:text-text-main'
+                    ? 'bg-action-primary text-action-primary-fg border-action-primary'
+                    : 'bg-bg-surface text-text-secondary border-border-subtle hover:text-text-main hover:border-border-card'
                 "
               >
                 {{ cat.label }}
@@ -258,11 +251,11 @@
           <!-- Queued Files Preview -->
           <div v-if="queuedFiles.length > 0" class="space-y-2">
             <div class="flex items-center justify-between text-xs">
-              <span class="font-semibold text-text-main">待提交文件队列 ({{ queuedFiles.length }})</span>
+              <span class="font-semibold text-text-main">待提交队列 ({{ queuedFiles.length }})</span>
               <button
                 type="button"
                 @click="queuedFiles = []"
-                class="text-[11px] text-text-muted hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer"
+                class="text-[11px] text-text-muted hover:text-status-danger cursor-pointer transition-colors duration-150"
               >
                 清空队列
               </button>
@@ -271,17 +264,17 @@
               <div
                 v-for="(item, idx) in queuedFiles"
                 :key="item.key"
-                class="px-3 py-2 rounded-xl bg-slate-100/80 dark:bg-slate-900/70 border border-border-subtle flex items-center justify-between gap-2 text-xs"
+                class="px-3 py-2 rounded-lg bg-bg-surface border border-border-subtle flex items-center justify-between gap-2 text-xs"
               >
-                <div class="flex items-center space-x-2.5 min-w-0">
-                  <component :is="resolveFormatIcon(item.ext)" class="w-4 h-4 text-brand-primary shrink-0" />
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <component :is="resolveFormatIcon(item.ext)" class="w-4 h-4 text-text-secondary shrink-0" />
                   <span class="font-medium text-text-main truncate">{{ item.file.name }}</span>
-                  <span class="text-[10px] font-mono text-text-muted shrink-0">{{ formatBytes(item.file.size) }}</span>
+                  <span class="text-[10px] font-mono tabular-nums text-text-muted shrink-0">{{ formatBytes(item.file.size) }}</span>
                 </div>
                 <button
                   type="button"
                   @click="removeQueuedFile(idx)"
-                  class="p-1 rounded-lg text-text-muted hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer shrink-0"
+                  class="p-1 rounded-md text-text-muted hover:text-status-danger cursor-pointer shrink-0 transition-colors duration-150"
                   title="移出队列"
                 >
                   <Trash2 class="w-3.5 h-3.5" />
@@ -291,15 +284,15 @@
           </div>
 
           <!-- Submit Action Footer -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-t border-border-subtle/70">
-            <div class="text-[11px] text-text-secondary flex items-center space-x-1.5">
-              <Zap v-if="uploadMode === 'sync'" class="w-3.5 h-3.5 text-brand-primary shrink-0" />
-              <Clock v-else class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-border-subtle">
+            <div class="text-[11px] text-text-muted flex items-center gap-1.5">
+              <Zap v-if="uploadMode === 'sync'" class="w-3.5 h-3.5 text-text-secondary shrink-0" />
+              <Clock v-else class="w-3.5 h-3.5 text-text-secondary shrink-0" />
               <span>
                 {{
                   uploadMode === 'sync'
-                    ? '同步模式：即时切分向量入库并实时更新 HybridRetriever 检索'
-                    : '异步模式：支持 Celery Worker 或无 Redis 时本地后台队列无缝执行'
+                    ? '同步模式：即时切片入库并刷新混合检索'
+                    : '异步模式：Celery 或本地后台队列非阻塞执行'
                 }}
               </span>
             </div>
@@ -311,14 +304,14 @@
               :disabled="queuedFiles.length === 0 || isSyncing"
               @click="submitUploadQueue"
             >
-              <span class="inline-flex items-center space-x-1.5">
+              <span class="inline-flex items-center gap-1.5">
                 <Upload class="w-3.5 h-3.5" />
                 <span>
                   {{
                     isUploading
-                      ? '正在提交处理...'
+                      ? '正在提交...'
                       : uploadMode === 'async'
-                        ? '提交异步解析任务'
+                        ? '提交异步解析'
                         : '上传并立即入库'
                   }}
                 </span>
@@ -328,27 +321,25 @@
         </section>
 
         <!-- Right 5 Cols: Full / Incremental Sync Control Card -->
-        <section class="lg:col-span-5 rounded-3xl glass-card border border-border-card p-5 sm:p-6 flex flex-col justify-between space-y-5 shadow-md">
+        <section class="lg:col-span-5 rounded-xl bg-bg-card border border-border-card p-5 sm:p-6 flex flex-col justify-between space-y-5">
           <div class="space-y-4">
-            <div class="flex items-center space-x-2.5">
-              <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-bg-surface border border-border-subtle text-text-main flex items-center justify-center shrink-0">
                 <RefreshCw class="w-4 h-4" />
               </div>
               <div>
-                <h2 class="text-sm font-bold text-text-main">全库索引同步与重建控制台</h2>
-                <p class="text-[11px] text-text-muted">联动内置制度库与管理员上传库刷新 Qdrant 及 BM25</p>
+                <h2 class="text-sm font-semibold text-text-main">索引同步与重建</h2>
+                <p class="text-[11px] text-text-muted">联动内置与上传文档刷新 Qdrant 及 BM25</p>
               </div>
             </div>
 
             <!-- Incremental Sync Block -->
-            <div class="p-4 rounded-2xl bg-slate-100/80 dark:bg-slate-900/70 border border-border-subtle space-y-3">
-              <div class="flex items-start justify-between gap-2">
-                <div>
-                  <h3 class="text-xs font-bold text-text-main">一键增量校验同步 (Sync)</h3>
-                  <p class="text-[11px] text-text-secondary mt-0.5 leading-relaxed">
-                    基于 UUID5 内容指纹执行幂等向量写入，补齐新增切片并强制刷新混合检索引擎，不影响现有服务。
-                  </p>
-                </div>
+            <div class="p-4 rounded-lg bg-bg-surface border border-border-subtle space-y-3">
+              <div>
+                <h3 class="text-xs font-semibold text-text-main">增量校验同步 (Sync)</h3>
+                <p class="text-[11px] text-text-muted mt-0.5 leading-relaxed">
+                  基于内容指纹执行幂等向量写入，补齐新增切片并刷新检索，不影响在线服务。
+                </p>
               </div>
 
               <div v-if="confirmSyncMode !== 'incremental'">
@@ -360,33 +351,33 @@
                   customClass="w-full"
                   @click="confirmSyncMode = 'incremental'"
                 >
-                  <span class="inline-flex items-center space-x-1.5">
-                    <RefreshCw class="w-3.5 h-3.5 text-brand-primary" />
-                    <span>执行一键增量同步 (Sync)</span>
+                  <span class="inline-flex items-center gap-1.5">
+                    <RefreshCw class="w-3.5 h-3.5 text-text-secondary" />
+                    <span>执行增量同步 (Sync)</span>
                   </span>
                 </FuseButton>
               </div>
 
               <div
                 v-else
-                class="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between gap-2"
+                class="p-2.5 rounded-lg bg-bg-card border border-border-strong flex items-center justify-between gap-2"
               >
-                <span class="text-[11px] font-medium text-blue-700 dark:text-blue-300">
-                  确认扫描全部制度并同步增量索引？
+                <span class="text-[11px] font-medium text-text-main">
+                  确认扫描全部制度并同步？
                 </span>
-                <div class="flex items-center space-x-1.5 shrink-0">
+                <div class="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
                     :disabled="isSyncing"
                     @click="executeKnowledgeSync(false)"
-                    class="px-2.5 py-1 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white text-[11px] font-semibold cursor-pointer disabled:opacity-50"
+                    class="btn-primary px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer disabled:opacity-50"
                   >
-                    确认同步
+                    确认
                   </button>
                   <button
                     type="button"
                     @click="confirmSyncMode = ''"
-                    class="px-2 py-1 rounded-lg text-[11px] text-text-secondary hover:text-text-main cursor-pointer"
+                    class="px-2 py-1 rounded-md text-[11px] text-text-secondary hover:text-text-main cursor-pointer"
                   >
                     取消
                   </button>
@@ -394,74 +385,48 @@
               </div>
             </div>
 
-            <!-- Recreate Rebuild Block -->
-            <div class="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/20 space-y-3">
+            <!-- Recreate Rebuild Block (Hold-to-Confirm Protection) -->
+            <div class="p-4 rounded-lg bg-bg-surface border border-status-danger/30 space-y-3">
               <div>
-                <h3 class="text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center space-x-1.5">
+                <h3 class="text-xs font-semibold text-status-danger flex items-center gap-1.5">
                   <RotateCcw class="w-3.5 h-3.5" />
                   <span>全量清空重建索引 (Recreate)</span>
                 </h3>
-                <p class="text-[11px] text-text-secondary mt-0.5 leading-relaxed">
-                  删除并重建 Qdrant 向量集合，随后全量重新向量化内置规章库与所有管理员上传文档，清除历史过期碎片。
+                <p class="text-[11px] text-text-muted mt-0.5 leading-relaxed">
+                  删除并重建 Qdrant 向量集合，全量重新向量化全部文档，清除过期碎片。
                 </p>
               </div>
 
-              <div v-if="confirmSyncMode !== 'recreate'">
-                <FuseButton
-                  variant="danger"
-                  size="md"
-                  :loading="isSyncing && activeSyncRecreate === true"
-                  :disabled="isSyncing || isUploading"
-                  customClass="w-full"
-                  @click="confirmSyncMode = 'recreate'"
-                >
-                  <span class="inline-flex items-center space-x-1.5">
-                    <AlertTriangle class="w-3.5 h-3.5" />
-                    <span>全量重建索引 (Recreate)</span>
-                  </span>
-                </FuseButton>
-              </div>
-
-              <div
-                v-else
-                class="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/35 flex items-center justify-between gap-2"
+              <HoldButton
+                label="长按全量重建索引"
+                holding-label="继续按住以重建集合..."
+                hint="高危操作：长按 0.85 秒触发全量重建"
+                variant="danger"
+                size="md"
+                :loading="isSyncing && activeSyncRecreate === true"
+                :disabled="isSyncing || isUploading"
+                class="w-full"
+                @confirm="executeKnowledgeSync(true)"
               >
-                <span class="text-[11px] font-semibold text-rose-700 dark:text-rose-300">
-                  高危确认：将重建整个 Qdrant 集合！
-                </span>
-                <div class="flex items-center space-x-1.5 shrink-0">
-                  <button
-                    type="button"
-                    :disabled="isSyncing"
-                    @click="executeKnowledgeSync(true)"
-                    class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-semibold cursor-pointer disabled:opacity-50"
-                  >
-                    确认重建
-                  </button>
-                  <button
-                    type="button"
-                    @click="confirmSyncMode = ''"
-                    class="px-2 py-1 rounded-lg text-[11px] text-text-secondary hover:text-text-main cursor-pointer"
-                  >
-                    取消
-                  </button>
-                </div>
-              </div>
+                <template #icon>
+                  <RotateCcw class="w-3.5 h-3.5" />
+                </template>
+              </HoldButton>
             </div>
           </div>
 
           <!-- Latest Sync Summary -->
           <div
             v-if="lastSyncReport"
-            class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 space-y-1.5 text-[11px]"
+            class="p-3.5 rounded-lg bg-bg-surface border border-border-card space-y-1.5 text-[11px]"
           >
-            <div class="flex items-center justify-between font-semibold text-emerald-700 dark:text-emerald-300">
-              <span>最近一次同步自检结果</span>
-              <span class="font-mono">{{ lastSyncReport.elapsed_seconds ?? 0 }}s</span>
+            <div class="flex items-center justify-between font-semibold text-status-success">
+              <span>最近一次同步结果</span>
+              <span class="font-mono tabular-nums">{{ lastSyncReport.elapsed_seconds ?? 0 }}s</span>
             </div>
-            <div class="text-text-secondary">
+            <div class="text-text-secondary tabular-nums">
               内置切片: <span class="font-mono font-semibold text-text-main">{{ lastSyncReport.chunks_indexed ?? 0 }}</span> ·
-              上传文档重索引: <span class="font-mono font-semibold text-text-main">{{ lastSyncReport.uploaded_reindexed_files ?? 0 }} 篇</span> ·
+              上传重索引: <span class="font-mono font-semibold text-text-main">{{ lastSyncReport.uploaded_reindexed_files ?? 0 }} 篇</span> ·
               总点位: <span class="font-mono font-semibold text-text-main">{{ lastSyncReport.qdrant_info?.points_count ?? 0 }}</span>
             </div>
           </div>
@@ -469,28 +434,28 @@
       </div>
 
       <!-- Section 4: Real-Time Task Progress Tracking List -->
-      <section class="rounded-3xl glass-card border border-border-card p-5 sm:p-6 space-y-4 shadow-md">
+      <section class="rounded-xl bg-bg-card border border-border-card p-5 sm:p-6 space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div class="flex items-center space-x-2.5">
-            <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-bg-surface border border-border-subtle text-text-main flex items-center justify-center shrink-0">
               <Clock class="w-4 h-4" />
             </div>
             <div>
-              <div class="flex items-center space-x-2">
-                <h2 class="text-sm font-bold text-text-main">实时入库与异步任务进度追踪</h2>
+              <div class="flex items-center gap-2">
+                <h2 class="text-sm font-semibold text-text-main">入库与异步任务进度</h2>
                 <StatusMark
                   v-if="activeTaskCount > 0"
                   status="running"
-                  :label="`轮询追踪中 (${activeTaskCount})`"
+                  :label="`轮询中 (${activeTaskCount})`"
                 />
                 <StatusMark
                   v-else
                   status="idle"
-                  label="当前无排队任务"
+                  label="无排队任务"
                 />
               </div>
               <p class="text-[11px] text-text-muted">
-                自动轮询异步任务进度，清晰呈现 排队 -> 文档解析 -> 语义切片 -> 向量入库 -> 完成/失败 五阶段轨迹
+                实时追踪排队、解析、切片与向量入库状态
               </p>
             </div>
           </div>
@@ -501,11 +466,11 @@
               :key="tab.value"
               type="button"
               @click="taskFilter = tab.value"
-              class="px-2.5 py-1 rounded-xl border font-medium transition-colors cursor-pointer"
+              class="btn-pressable px-2.5 py-1 rounded-md border font-medium cursor-pointer tabular-nums"
               :class="
                 taskFilter === tab.value
-                  ? 'bg-brand-primary text-white border-brand-primary'
-                  : 'bg-slate-100/80 dark:bg-slate-900/60 text-text-secondary border-border-subtle hover:text-text-main'
+                  ? 'bg-action-primary text-action-primary-fg border-action-primary'
+                  : 'bg-bg-surface text-text-secondary border-border-subtle hover:text-text-main hover:border-border-card'
               "
             >
               {{ tab.label }} ({{ tab.count }})
@@ -513,40 +478,40 @@
           </div>
         </div>
 
-        <div v-if="filteredTasks.length === 0" class="py-10 text-center text-xs text-text-muted border border-dashed border-border-subtle rounded-2xl">
-          暂无匹配的入库或同步任务记录；在上方拖拽上传文档或点击同步即可实时观测解析流水线。
+        <div v-if="filteredTasks.length === 0" class="py-10 text-center text-xs text-text-muted border border-dashed border-border-subtle rounded-xl">
+          暂无匹配的任务记录
         </div>
 
         <div v-else class="space-y-3">
           <div
             v-for="task in filteredTasks"
             :key="task.task_id"
-            class="p-4 rounded-2xl bg-slate-100/80 dark:bg-slate-900/70 border border-border-subtle space-y-3"
+            class="p-4 rounded-xl bg-bg-surface border border-border-subtle space-y-3"
           >
             <!-- Task Top Row -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
               <div class="flex flex-wrap items-center gap-2 min-w-0">
                 <StatusMark :status="mapTaskStatusToMark(task.status)" />
-                <span class="text-xs sm:text-sm font-bold text-text-main truncate">
+                <span class="text-xs sm:text-sm font-semibold text-text-main truncate">
                   {{ task.filename || task.task_id }}
                 </span>
-                <span class="px-2 py-0.5 rounded-lg text-[10px] font-mono bg-bg-card border border-border-subtle text-text-secondary">
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-mono bg-bg-card border border-border-subtle text-text-secondary">
                   {{ task.task_id }}
                 </span>
                 <span
                   v-if="task.category"
-                  class="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-brand-primary/10 text-brand-primary border border-brand-primary/20"
+                  class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-bg-card text-text-main border border-border-card"
                 >
                   {{ task.category }}
                 </span>
-                <span class="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-slate-200/80 dark:bg-slate-800 text-text-secondary">
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-bg-card border border-border-subtle text-text-muted">
                   {{ formatExecutionMode(task.execution_mode) }}
                 </span>
               </div>
 
-              <div class="flex items-center space-x-3 text-[11px] text-text-muted shrink-0">
+              <div class="flex items-center gap-3 text-[11px] text-text-muted shrink-0">
                 <span>操作人: <strong class="text-text-secondary">{{ task.uploader || 'admin' }}</strong></span>
-                <span class="font-mono">{{ formatTime(task.updated_at || task.created_at) }}</span>
+                <span class="font-mono tabular-nums">{{ formatTime(task.updated_at || task.created_at) }}</span>
               </div>
             </div>
 
@@ -554,25 +519,25 @@
             <div class="space-y-1.5">
               <div class="flex items-center justify-between text-[11px]">
                 <span class="text-text-secondary font-medium">{{ task.message || task.stage_label || '处理中...' }}</span>
-                <span class="font-mono font-bold text-text-main">{{ task.progress?.current ?? 0 }}%</span>
+                <span class="font-mono tabular-nums font-semibold text-text-main">{{ task.progress?.current ?? 0 }}%</span>
               </div>
-              <div class="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+              <div class="w-full h-1.5 rounded-full bg-bg-card border border-border-subtle overflow-hidden">
                 <div
-                  class="h-full rounded-full transition-all duration-300"
+                  class="h-full rounded-full transition-[width] duration-300"
                   :class="progressBarColor(task.status)"
                   :style="{ width: `${Math.min(100, Math.max(0, task.progress?.current ?? 0))}%` }"
                 ></div>
               </div>
               <p
                 v-if="task.fallback_reason"
-                class="text-[11px] text-amber-700 dark:text-amber-300 flex items-center space-x-1"
+                class="text-[11px] text-status-approval flex items-center gap-1"
               >
                 <Info class="w-3 h-3 shrink-0" />
                 <span>{{ task.fallback_reason }}</span>
               </p>
               <p
                 v-if="task.error"
-                class="text-[11px] text-rose-600 dark:text-rose-400 font-medium"
+                class="text-[11px] text-status-danger font-medium"
               >
                 异常详情: {{ task.error }}
               </p>
@@ -583,10 +548,10 @@
               <div
                 v-for="step in resolveTaskSteps(task)"
                 :key="step.key"
-                class="px-2.5 py-1.5 rounded-xl bg-bg-card border border-border-subtle flex items-center justify-between gap-1.5"
+                class="px-2.5 py-1.5 rounded-lg bg-bg-card border border-border-subtle flex items-center justify-between gap-1.5"
               >
                 <StatusMark :status="step.status" :label="step.label" size="sm" />
-                <Check v-if="step.status === 'success'" class="w-3 h-3 text-emerald-500 shrink-0" />
+                <Check v-if="step.status === 'success'" class="w-3 h-3 text-status-success shrink-0" />
               </div>
             </div>
 
@@ -597,13 +562,13 @@
             >
               <span
                 v-if="task.result.chunks_indexed !== undefined"
-                class="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 font-mono"
+                class="px-2 py-0.5 rounded-md bg-bg-card text-status-success border border-border-subtle font-mono tabular-nums"
               >
-                已入库切片: {{ task.result.chunks_indexed }} 条
+                入库切片: {{ task.result.chunks_indexed }} 条
               </span>
               <span
                 v-if="task.size_bytes || task.result.size_bytes"
-                class="px-2 py-0.5 rounded-lg bg-bg-card border border-border-subtle font-mono"
+                class="px-2 py-0.5 rounded-md bg-bg-card border border-border-subtle font-mono tabular-nums"
               >
                 体积: {{ formatBytes(task.size_bytes || task.result.size_bytes) }}
               </span>
@@ -613,15 +578,15 @@
       </section>
 
       <!-- Section 5: Indexed Documents Inventory Table -->
-      <section class="rounded-3xl glass-card border border-border-card p-5 sm:p-6 space-y-4 shadow-md">
+      <section class="rounded-xl bg-bg-card border border-border-card p-5 sm:p-6 space-y-4">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div class="flex items-center space-x-2.5">
-            <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-bg-surface border border-border-subtle text-text-main flex items-center justify-center shrink-0">
               <FileText class="w-4 h-4" />
             </div>
             <div>
-              <h2 class="text-sm font-bold text-text-main">已索引知识文档台账清单</h2>
-              <p class="text-[11px] text-text-muted">涵盖系统内置标准制度库与管理员动态上传文档</p>
+              <h2 class="text-sm font-semibold text-text-main">已索引知识文档台账</h2>
+              <p class="text-[11px] text-text-muted">内置标准制度库与管理员上传文档</p>
             </div>
           </div>
 
@@ -632,21 +597,21 @@
                 v-model.trim="docSearchQuery"
                 type="text"
                 placeholder="筛选文件名或分类..."
-                class="pl-8 pr-3 py-1.5 rounded-xl bg-bg-input border border-border-card text-xs text-text-main placeholder:text-text-muted focus:outline-none focus:border-border-focus w-48 sm:w-56"
+                class="pl-8 pr-3 py-1.5 rounded-lg bg-bg-input border border-border-card text-xs text-text-main placeholder:text-text-muted focus:outline-none focus:border-border-focus w-48 sm:w-56 transition-colors duration-150"
               />
             </div>
 
-            <div class="flex items-center space-x-1">
+            <div class="flex items-center gap-1">
               <button
                 v-for="src in docSourceTabs"
                 :key="src.value"
                 type="button"
                 @click="docSourceFilter = src.value"
-                class="px-2.5 py-1 rounded-xl text-[11px] font-medium border transition-colors cursor-pointer"
+                class="btn-pressable px-2.5 py-1 rounded-md text-[11px] font-medium border cursor-pointer"
                 :class="
                   docSourceFilter === src.value
-                    ? 'bg-brand-primary text-white border-brand-primary'
-                    : 'bg-slate-100/80 dark:bg-slate-900/60 text-text-secondary border-border-subtle hover:text-text-main'
+                    ? 'bg-action-primary text-action-primary-fg border-action-primary'
+                    : 'bg-bg-surface text-text-secondary border-border-subtle hover:text-text-main hover:border-border-card'
                 "
               >
                 {{ src.label }}
@@ -655,33 +620,33 @@
           </div>
         </div>
 
-        <div class="overflow-x-auto rounded-2xl border border-border-subtle">
+        <div class="overflow-x-auto rounded-lg border border-border-subtle">
           <table class="w-full text-left border-collapse text-xs">
             <thead>
-              <tr class="bg-slate-100/90 dark:bg-slate-900/90 text-[11px] text-text-secondary border-b border-border-subtle">
+              <tr class="bg-bg-surface text-[11px] text-text-secondary border-b border-border-subtle">
                 <th class="py-2.5 px-3.5 font-semibold">文档名称</th>
                 <th class="py-2.5 px-3 font-semibold">来源类型</th>
                 <th class="py-2.5 px-3 font-semibold">业务分类</th>
                 <th class="py-2.5 px-3 font-semibold">格式 / 体积</th>
                 <th class="py-2.5 px-3 font-semibold">切片 / 方式</th>
                 <th class="py-2.5 px-3 font-semibold">索引状态</th>
-                <th class="py-2.5 px-3 font-semibold">最近更新时间</th>
+                <th class="py-2.5 px-3 font-semibold">最近更新</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-border-subtle/70">
+            <tbody class="divide-y divide-border-subtle">
               <tr v-if="filteredDocuments.length === 0">
                 <td colspan="7" class="py-8 text-center text-text-muted">
-                  暂无匹配的已索引知识文档
+                  暂无匹配的已索引文档
                 </td>
               </tr>
               <tr
                 v-for="doc in filteredDocuments"
                 :key="`${doc.source_type}-${doc.relative_path}`"
-                class="hover:bg-slate-100/60 dark:hover:bg-slate-900/50 transition-colors"
+                class="hover:bg-bg-hover/60 transition-colors duration-150"
               >
                 <td class="py-2.5 px-3.5">
-                  <div class="flex items-center space-x-2 min-w-[180px]">
-                    <component :is="resolveFormatIcon(doc.format)" class="w-4 h-4 text-brand-primary shrink-0" />
+                  <div class="flex items-center gap-2 min-w-[180px]">
+                    <component :is="resolveFormatIcon(doc.format)" class="w-4 h-4 text-text-secondary shrink-0" />
                     <div class="min-w-0">
                       <div class="font-semibold text-text-main truncate max-w-[260px]" :title="doc.filename">
                         {{ doc.filename }}
@@ -693,26 +658,19 @@
                   </div>
                 </td>
                 <td class="py-2.5 px-3 whitespace-nowrap">
-                  <span
-                    class="px-2 py-0.5 rounded-lg text-[10px] font-semibold border"
-                    :class="
-                      doc.source_type === 'uploaded'
-                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25'
-                        : 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/25'
-                    "
-                  >
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-bg-surface border border-border-subtle text-text-secondary">
                     {{ doc.source_type === 'uploaded' ? '管理员上传' : '内置标准库' }}
                   </span>
                 </td>
                 <td class="py-2.5 px-3 whitespace-nowrap">
-                  <span class="px-2 py-0.5 rounded-lg text-[10px] font-mono bg-slate-200/70 dark:bg-slate-800 text-text-main">
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-mono bg-bg-surface border border-border-subtle text-text-main">
                     {{ doc.category || 'GENERAL' }}
                   </span>
                 </td>
-                <td class="py-2.5 px-3 whitespace-nowrap font-mono text-[11px] text-text-secondary">
+                <td class="py-2.5 px-3 whitespace-nowrap font-mono tabular-nums text-[11px] text-text-secondary">
                   .{{ doc.format }} · {{ formatBytes(doc.size_bytes) }}
                 </td>
-                <td class="py-2.5 px-3 whitespace-nowrap text-[11px] text-text-secondary">
+                <td class="py-2.5 px-3 whitespace-nowrap text-[11px] text-text-secondary tabular-nums">
                   <span v-if="doc.chunks_indexed !== null && doc.chunks_indexed !== undefined" class="font-mono font-semibold text-text-main">
                     {{ doc.chunks_indexed }} 片
                   </span>
@@ -722,7 +680,7 @@
                 <td class="py-2.5 px-3 whitespace-nowrap">
                   <StatusMark :status="doc.status === 'FAILED' ? 'danger' : 'success'" :label="doc.status || 'INDEXED'" size="sm" />
                 </td>
-                <td class="py-2.5 px-3 whitespace-nowrap font-mono text-[11px] text-text-muted">
+                <td class="py-2.5 px-3 whitespace-nowrap font-mono tabular-nums text-[11px] text-text-muted">
                   {{ formatTime(doc.updated_at) }}
                 </td>
               </tr>
@@ -743,7 +701,6 @@ import {
   RefreshCw,
   BookOpen,
   MessageSquare,
-  AlertCircle,
   CheckCircle2,
   X,
   Database,
@@ -758,13 +715,13 @@ import {
   Zap,
   Clock,
   Check,
-  AlertTriangle,
   Search,
   RotateCcw,
   Info,
 } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/authStore';
 import FuseButton from '../components/ui/FuseButton.vue';
+import HoldButton from '../components/ui/HoldButton.vue';
 import RubberSegment from '../components/ui/RubberSegment.vue';
 import StatusMark from '../components/ui/StatusMark.vue';
 import WarmTooltip from '../components/ui/WarmTooltip.vue';
@@ -876,12 +833,12 @@ const embeddingModelName = computed(() => {
 
 const feedbackBannerClass = computed(() => {
   if (feedback.type === 'success') {
-    return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300';
+    return 'border-border-strong text-text-main';
   }
   if (feedback.type === 'warning') {
-    return 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300';
+    return 'border-status-approval/40 text-status-approval';
   }
-  return 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300';
+  return 'border-status-danger/40 text-status-danger';
 });
 
 const activeTasks = computed(() => {
@@ -1285,9 +1242,9 @@ const mapTaskStatusToMark = (status) => {
 
 const progressBarColor = (status) => {
   const s = String(status || '').toUpperCase();
-  if (s === 'SUCCESS') return 'bg-emerald-500';
-  if (s === 'FAILURE') return 'bg-rose-500';
-  return 'bg-brand-primary';
+  if (s === 'SUCCESS') return 'bg-status-success';
+  if (s === 'FAILURE') return 'bg-status-danger';
+  return 'bg-action-primary';
 };
 
 const resolveTaskSteps = (task) => {

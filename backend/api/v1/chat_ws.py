@@ -339,13 +339,15 @@ async def process_ws_chat_stream(
 
             # 2. LLM Streaming Tokens
             elif kind == "on_chat_model_stream":
-                # Isolate internal router & query-rewriter LLM calls so internal JSON never leaks into WS stream or TTFT
+                # Isolate internal router, query-rewriter, and slot-extractor LLM calls so
+                # internal JSON never leaks into WS stream or skews TTFT metrics.
                 event_meta = event.get("metadata") or {}
                 event_tags = event.get("tags") or []
                 if (
-                    event_meta.get("langgraph_node") in ("router", "retrieve")
+                    event_meta.get("langgraph_node") in ("router", "retrieve", "tool", "approval")
                     or "internal_router" in event_tags
                     or "internal_rewriter" in event_tags
+                    or "internal_slot_extractor" in event_tags
                 ):
                     continue
                 # Deduplicate nested ChatOpenAI / EnterpriseChatOpenAI / NativeOllamaChatModel stream events when wrapped in ResilientChatModel

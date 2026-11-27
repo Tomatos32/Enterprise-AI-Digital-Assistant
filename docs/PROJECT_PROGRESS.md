@@ -5,7 +5,7 @@
 > **当前运行模式**：**PRAGMATIC REALIZATION & COGNITIVE ROUTING MODE (Sprint R-05 管理员控制面全量闭环 · 推进 Sprint R-06 认知意图路由与多轮语境改写演进)**  
 > **模式说明**：已完成底层数据库持久化、真实向量底座、Ollama/OpenAI 流式推理、Vuebits 原生交互与 RBAC 三大管理员控制面；当前进入「多轮认知路由、语境改写与语义槽位提取」专项升级阶段  
 > **基准规范**：[AGENTS.md](file:///g:/LLM_Learning/product/AGENTS.md) · [docs/FRONTEND_PROGRESS.md](file:///g:/LLM_Learning/product/docs/FRONTEND_PROGRESS.md) · [docs/MOCK_INVENTORY.md](file:///g:/LLM_Learning/product/docs/MOCK_INVENTORY.md) · [Runtime.md](file:///g:/LLM_Learning/product/docs/harness/Runtime.md)  
-> **系统最后更新**：2026-11-24
+> **系统最后更新**：2026-11-26
 
 ---
 
@@ -14,17 +14,17 @@
 ```text
 ====================================================================================================
 【工程底座与生产化硬化】   ████████████████████████████████ 100% (Bootstrap / Dev / Staging Issue-0001~0037)
-【前端现代交互工作台】     ████████████████████████████████ 100% (Sprint F-01~F-09 + Vuebits 12 组件全交付)
+【前端现代交互工作台】     ████████████████████████████████ 100% (Sprint F-01~F-09 + Issue-0062 中性单色重塑)
 【真实化链路 R-01~R-04】   ████████████████████████████████ 100% (Issue-0038~0055 会话/向量/RAG/CoT全闭环)
 【RBAC 基座与管理员后台】  ████████████████████████████████ 100% (Issue-0056~0059 全部闭环)
-【认知路由与改写 R-06】    ████████████████░░░░░░░░░░░░░░░░  50% (Issue-0060~0061 闭环 · Issue-0062~0063 待推)
+【认知路由与改写 R-06】    ████████████████████████░░░░░░░░  75% (Issue-0060~0062 闭环 · Issue-0063 待推)
 ====================================================================================================
 ```
 
 | 治理维度 | 当前物理基线状态 (2026-11-24 实测核验) | 现存业务差距与下阶段决策 |
 | :--- | :--- | :--- |
 | **数据库与会话持久化** | 🟢 **已全量闭环 (`Issue-0038`, `Issue-0054`, `Issue-0056`)**：`chat_sessions` 与 `chat_messages`（含 `thought`、`duration_seconds`、`thought_steps`）已持久化，且已按 JWT Bearer Token / WS Token 实现 `employee`/`manager`/`admin` 会话归属隔离 | 🟢 `chatStore.js` 与 WebSocket 已彻底移除 `u_vue3_user`，按当前认证用户名严格隔离 |
-| **认知路由与语境改写** | 🟢 **P0 认知路由 & P1 语境改写已双闭环 (`Issue-0060`, `Issue-0061`)**：`router_node.py` 落地三层混合认知意图路由；`query_rewriter.py` 升级为「规则预处理 + 轻量非思考 LLM 上下文改写 (`arewrite`) + 增强确定性回退」三段式引擎，支持 6 轮上下文显式代词/无代词隐式省略/3 轮链式平行追问、自定义上传文档实体承接与全 6 域自适应子查询拆解；`retriever.py` 取消推断单域硬锁改为跨领域软加权 + 多样性保底；`retrieve_node.py` 将 `standalone_query` 传入 Graph RAG；`chat_ws.py` 阻断 `router`/`retrieve` 内部 LLM 流泄露 | 🟡 下一阶段推进 `Issue-0062`（后端语义槽位提取及前端 `ChatContainer.vue` 演示 `purchase_args` 彻底剥离）与 `Issue-0063`（黄金评测集、可观测联动与历史 2 项遗留测试清零） |
+| **认知路由与语境改写** | **P0/P1/P2 已三闭环 (`Issue-0060`, `Issue-0061`, `Issue-0062`)**：三层混合认知意图路由 + 三段式多轮语境改写/跨领域软加权检索 + 双层混合语义槽位提取引擎（`slot_extractor.py`、策略 5.1A/5.2A、缺参零写库多轮补槽与无环 `tool -> approval` 升级）+ 前端去硬编码与全站中性极简重塑已全部交付 | 下一阶段推进收尾项 `Issue-0063`（黄金评测集、可观测联动与历史 2 项遗留测试清零） |
 | **向量库与真实 RAG** | 🟢 **已全量闭环 (`Issue-0039`, `Issue-0040`, `Issue-0048~0051`, `Issue-0058`, `Issue-0061`)**：`fastembed` / BGE / LocalSemantic + Qdrant UUID5 幂等入库 + 混合多轮 `QueryRewriter` + 跨领域软加权 `Reranker` + 启动自动同步 `backend/data/` 上传文档至内存 BM25 + 6 个 `ToolRegistry` 函数全量注册；已上线管理员知识库运维与异步任务中心 (`/admin/tasks`) | 🟢 `knowledge.py` 与 `tasks.py` 已收紧写操作与任务控制面至 `admin`，服务重启后上传文档同时保留于 Qdrant 向量与内存 BM25，全量同步杜绝重复切片 |
 | **大模型推理与思考流** | 🟢 **已全量闭环 (`Issue-0043~0053`, `Issue-0057`, `Issue-0059`)**：`NativeOllamaChatModel` + `EnterpriseChatOpenAI` + `LLM_THINKING` 思考开关，支持 Vue Bits `<ThoughtLine />` 真实推理流，并已落地 `/api/v1/admin/config` 热调配台与全链路 TTFT/Token/Cache/Tool 遥测采集 | 🟢 管理员可通过 `/admin/settings` 动态调配推理参数与行为规范，并通过 `/admin/monitoring` 实时观测首字响应分桶、Token 拆分与缓存命中率 |
 | **前端工作台与双主题** | 🟢 **Sprint R-05 身份基座与三大管理员控制台全量就绪 (`Issue-0056~0059`)**：已上线 `authStore`、`/login`、角色切换器、`router.beforeEach` 守卫、`/admin/settings` 模型配置中心、`/admin/tasks` 知识库运维中心、`/admin/monitoring` 系统监控与 SLA 看板，以及分层 `<Settings />` 偏好弹层 | 🟢 原管理员预留插槽已 100% 升级为真实功能页面，侧边栏与移动端抽屉按 `employee`/`manager`/`admin` 严格隔离展示 |

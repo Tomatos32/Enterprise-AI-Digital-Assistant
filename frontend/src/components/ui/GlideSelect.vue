@@ -3,46 +3,51 @@
     <button
       type="button"
       @click="isOpen = !isOpen"
-      class="inline-flex items-center space-x-1.5 px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-200/80 dark:bg-slate-900/90 hover:bg-slate-300/80 dark:hover:bg-slate-800 border border-border-subtle text-text-main transition-colors duration-150 cursor-pointer shadow-sm active:scale-[0.98]"
+      class="btn-secondary inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg cursor-pointer"
     >
-      <component :is="selectedOption?.icon || Sparkles" class="w-3.5 h-3.5 text-brand-primary shrink-0" />
-      <span class="max-w-[140px] truncate">{{ selectedOption?.label || '选择模型' }}</span>
-      <ChevronDown class="w-3 h-3 text-text-muted transition-transform duration-150" :class="{ 'rotate-180': isOpen }" />
+      <component :is="selectedOption?.icon || SlidersHorizontal" class="w-3.5 h-3.5 text-text-secondary shrink-0" />
+      <span class="max-w-[140px] truncate">{{ selectedOption?.label || '选择项' }}</span>
+      <ChevronDown
+        class="w-3 h-3 text-text-muted transition-transform duration-150"
+        :class="{ 'rotate-180': isOpen }"
+      />
     </button>
 
-    <transition
-      enter-active-class="transition duration-150 ease-out"
-      enter-from-class="opacity-0 translate-y-1 scale-95"
-      enter-to-class="opacity-100 translate-y-0 scale-100"
-      leave-active-class="transition duration-100 ease-in"
-      leave-from-class="opacity-100 translate-y-0 scale-100"
-      leave-to-class="opacity-0 translate-y-1 scale-95"
-    >
+    <transition name="popover">
       <div
         v-if="isOpen"
-        class="absolute left-0 mt-1.5 w-60 rounded-2xl p-1.5 glass-panel border border-border-card shadow-xl z-50 space-y-1"
+        class="origin-top-left absolute left-0 mt-1.5 w-60 rounded-xl p-1.5 bg-bg-card border border-border-card shadow-sm z-50 space-y-0.5"
       >
-        <div
+        <button
           v-for="opt in options"
           :key="opt.id"
+          type="button"
           @click="selectOption(opt.id)"
-          class="flex items-start space-x-2.5 p-2 rounded-xl text-xs cursor-pointer transition-colors duration-150"
+          class="w-full flex items-start gap-2.5 p-2 rounded-lg text-xs text-left cursor-pointer transition-colors duration-150"
           :class="[
             modelValue === opt.id
-              ? 'bg-brand-primary/10 text-brand-primary font-semibold border border-brand-primary/20'
-              : 'text-text-secondary hover:text-text-main hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
+              ? 'bg-bg-surface text-text-main font-semibold'
+              : 'text-text-secondary hover:text-text-main hover:bg-bg-hover'
           ]"
         >
-          <component :is="opt.icon || Sparkles" class="w-4 h-4 mt-0.5 shrink-0" :class="modelValue === opt.id ? 'text-brand-primary' : 'text-text-muted'" />
-          <div class="flex-1 truncate">
-            <div class="flex items-center justify-between">
+          <component
+            :is="opt.icon || SlidersHorizontal"
+            class="w-3.5 h-3.5 mt-0.5 shrink-0 text-text-secondary"
+          />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-1">
               <span class="truncate">{{ opt.label }}</span>
-              <span v-if="opt.badge" class="ml-1 px-1.5 py-0.2 text-[9px] font-bold rounded-md bg-brand-primary/20 text-brand-primary">{{ opt.badge }}</span>
+              <span
+                v-if="opt.badge"
+                class="px-1.5 py-0.5 text-[10px] font-mono rounded bg-bg-card border border-border-subtle text-text-secondary"
+              >
+                {{ opt.badge }}
+              </span>
             </div>
-            <div class="text-[10px] text-text-muted truncate mt-0.5">{{ opt.desc }}</div>
+            <div v-if="opt.desc" class="text-[11px] text-text-muted truncate mt-0.5">{{ opt.desc }}</div>
           </div>
-          <Check v-if="modelValue === opt.id" class="w-3.5 h-3.5 text-brand-primary shrink-0 mt-0.5" />
-        </div>
+          <Check v-if="modelValue === opt.id" class="w-3.5 h-3.5 text-text-main shrink-0 mt-0.5" />
+        </button>
       </div>
     </transition>
   </div>
@@ -50,7 +55,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { ChevronDown, Check, Sparkles } from 'lucide-vue-next';
+import { ChevronDown, Check, SlidersHorizontal } from 'lucide-vue-next';
 
 const props = defineProps({
   modelValue: {
@@ -67,9 +72,9 @@ const emit = defineEmits(['update:modelValue']);
 const isOpen = ref(false);
 const containerRef = ref(null);
 
-const selectedOption = computed(() => {
-  return props.options.find(o => o.id === props.modelValue) || props.options[0];
-});
+const selectedOption = computed(
+  () => props.options.find((o) => o.id === props.modelValue) || props.options[0]
+);
 
 const selectOption = (id) => {
   emit('update:modelValue', id);
@@ -82,11 +87,19 @@ const handleOutsideClick = (e) => {
   }
 };
 
+const handleKeydown = (e) => {
+  if (e.key === 'Escape' && isOpen.value) {
+    isOpen.value = false;
+  }
+};
+
 onMounted(() => {
   document.addEventListener('click', handleOutsideClick);
+  document.addEventListener('keydown', handleKeydown);
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick);
+  document.removeEventListener('keydown', handleKeydown);
 });
 </script>

@@ -42,12 +42,24 @@ def route_after_retrieve(state: AgentState) -> str:
     return "generate"
 
 
+def route_after_tool(state: AgentState) -> str:
+    """
+    Conditional post-tool edge enabling acyclic escalation from tool_node to approval_node
+    when semantic slot extraction resolves a create_purchase total > 5,000 RMB.
+    """
+    metadata = state.get("metadata") or {}
+    if metadata.get("escalate_to_approval"):
+        return "approval"
+    return "generate"
+
+
 def build_graph():
     """
     Constructs and compiles the StateGraph for Enterprise AI Agent.
-    Topology:
+    Topology (strictly acyclic DAG):
       START -> router -> (retrieve | tool | approval | generate)
-      retrieve -> (tool | approval | generate) -> generate -> END
+      retrieve -> (tool | approval | generate)
+      tool -> (approval | generate) -> generate -> END
     """
     builder = StateGraph(AgentState)
 
@@ -82,8 +94,16 @@ def build_graph():
         },
     )
 
+    builder.add_conditional_edges(
+        "tool",
+        route_after_tool,
+        {
+            "approval": "approval",
+            "generate": "generate",
+        },
+    )
+
     # 3. Direct Edges
-    builder.add_edge("tool", "generate")
     builder.add_edge("approval", "generate")
     builder.add_edge("generate", END)
 

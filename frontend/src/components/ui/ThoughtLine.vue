@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { ArrowDown01Icon, SparklesIcon, Tick02Icon } from '@hugeicons/core-free-icons';
+import { ArrowDown01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon, type IconArray } from '@hugeicons/vue';
 import { animate, useReducedMotion, type AnimationPlaybackControls } from 'motion-v';
 import {
@@ -58,13 +58,13 @@ const props = withDefaults(defineProps<ThoughtLineProps>(), {
   doneLabel: '已完成深度思考',
   preview: '',
   renderLabel: undefined,
-  glyph: 'sparkle',
+  glyph: 'dot',
   steps: () => [],
   collapsible: true,
   collapseOnSettle: true,
   color: 'currentColor',
   glyphColor: '',
-  fontSize: 16,
+  fontSize: 13,
   breathPeriod: 1.6,
   breathDepth: 0.45,
   shimmer: true,
@@ -120,7 +120,6 @@ let ds = 0;
 let prevWorking = isWorking.value;
 const announce = ref(props.label);
 
-const sparkleIcon = SparklesIcon as unknown as IconArray;
 const chevronIcon = ArrowDown01Icon as unknown as IconArray;
 const tickIcon = Tick02Icon as unknown as IconArray;
 
@@ -294,8 +293,7 @@ const rootStyle = computed(
         aria-hidden="true"
       >
         <slot name="glyph">
-          <HugeiconsIcon v-if="glyph === 'sparkle'" :icon="sparkleIcon" size="100%" :stroke-width="2" />
-          <span v-else class="bg-current m-auto rounded-full w-[0.5em] h-[0.5em]" />
+          <span class="bg-current m-auto rounded-full w-[0.45em] h-[0.45em]" />
         </slot>
       </span>
       <span ref="stackRef" class="inline-grid" aria-hidden="true">
@@ -380,7 +378,7 @@ const rootStyle = computed(
           <!-- Raw Reasoning Text (from Ollama/DeepSeek thinking) -->
           <div
             v-if="preview"
-            class="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400 font-sans whitespace-pre-wrap pl-3 border-l-2 border-brand-primary/40 my-1 max-h-48 overflow-y-auto"
+            class="text-[11px] leading-relaxed text-text-secondary font-sans whitespace-pre-wrap pl-3 border-l-2 border-border-strong my-1 max-h-48 overflow-y-auto"
           >
             {{ preview }}
           </div>

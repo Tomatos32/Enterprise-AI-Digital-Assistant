@@ -1,13 +1,14 @@
 <template>
   <button
+    type="button"
     :disabled="disabled || loading"
-    class="relative inline-flex items-center justify-center font-medium rounded-xl transition-all duration-150 select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-primary/40 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100"
+    class="btn-pressable relative inline-flex items-center justify-center font-medium rounded-lg select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus disabled:opacity-50 disabled:pointer-events-none"
     :class="[variantClasses, sizeClasses, customClass]"
     @click="$emit('click', $event)"
   >
     <svg
       v-if="loading"
-      class="animate-spin -ml-1 mr-2 h-4 w-4 text-current"
+      class="animate-spin -ml-0.5 mr-1.5 h-3.5 w-3.5 text-current"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
@@ -53,16 +54,16 @@ defineEmits(['click']);
 const variantClasses = computed(() => {
   switch (props.variant) {
     case 'primary':
-      return 'bg-brand-primary hover:bg-brand-primary-hover text-white shadow-sm shadow-blue-500/20';
+      return 'bg-action-primary hover:bg-action-primary-hover text-action-primary-fg border border-action-primary';
     case 'secondary':
-      return 'bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-text-main border border-border-subtle';
+      return 'bg-bg-card hover:bg-bg-hover text-text-main border border-border-card hover:border-border-strong';
     case 'ghost':
-      return 'bg-transparent hover:bg-slate-200/60 dark:hover:bg-slate-800/60 text-text-secondary hover:text-text-main';
+      return 'bg-transparent hover:bg-bg-hover text-text-secondary hover:text-text-main border border-transparent';
     case 'danger':
-      return 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm shadow-rose-600/20';
+      return 'bg-status-danger hover:opacity-90 text-white border border-status-danger';
     case 'subtle':
     default:
-      return 'bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary border border-brand-primary/20';
+      return 'bg-bg-surface hover:bg-bg-hover text-text-main border border-border-subtle';
   }
 });
 
@@ -71,10 +72,10 @@ const sizeClasses = computed(() => {
     case 'sm':
       return 'px-2.5 py-1 text-xs';
     case 'lg':
-      return 'px-5 py-2.5 text-sm';
+      return 'px-4 py-2 text-sm';
     case 'md':
     default:
-      return 'px-3.5 py-1.5 text-xs';
+      return 'px-3 py-1.5 text-xs';
   }
 });
 </script>

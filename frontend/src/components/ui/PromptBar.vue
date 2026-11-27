@@ -1,126 +1,117 @@
 <template>
   <div class="relative w-full max-w-4xl mx-auto select-none" ref="barContainerRef">
-    <!-- Popover Menu: @ Data Sources -->
-    <transition
-      enter-active-class="transition duration-150 ease-out"
-      enter-from-class="opacity-0 translate-y-2 scale-95"
-      enter-to-class="opacity-100 translate-y-0 scale-100"
-      leave-active-class="transition duration-100 ease-in"
-      leave-from-class="opacity-100 translate-y-0 scale-100"
-      leave-to-class="opacity-0 translate-y-2 scale-95"
-    >
+    <!-- Popover Menu: @ Data Sources (Origin-Bottom-Left) -->
+    <transition name="popover-up">
       <div
         v-if="showAtMenu"
-        class="absolute bottom-full mb-2 left-4 w-72 rounded-2xl glass-panel p-2 border border-border-card shadow-2xl z-40 space-y-1"
+        class="origin-bottom-left absolute bottom-full mb-2 left-2 w-72 rounded-xl bg-bg-card p-1.5 border border-border-card shadow-sm z-40 space-y-0.5"
       >
-        <div class="px-2 py-1 text-[10px] font-bold text-text-muted tracking-wider uppercase">
-          链接企业数据源 (@)
+        <div class="px-2 py-1 text-[11px] font-medium text-text-muted">
+          数据源 (@)
         </div>
-        <div
+        <button
           v-for="source in dataSources"
           :key="source.id"
+          type="button"
           @click="insertDataSource(source)"
-          class="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs text-text-secondary hover:text-text-main hover:bg-slate-200/60 dark:hover:bg-slate-800/60 cursor-pointer transition-colors duration-150"
+          class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-left text-text-secondary hover:text-text-main hover:bg-bg-hover cursor-pointer transition-colors duration-150"
         >
-          <component :is="source.icon" class="w-4 h-4 text-brand-primary shrink-0" />
-          <div class="flex-1 truncate">
-            <div class="font-semibold text-text-main">{{ source.name }}</div>
-            <div class="text-[10px] text-text-muted truncate">{{ source.desc }}</div>
+          <component :is="source.icon" class="w-4 h-4 text-text-secondary shrink-0" />
+          <div class="flex-1 min-w-0">
+            <div class="font-medium text-text-main truncate">{{ source.name }}</div>
+            <div class="text-[11px] text-text-muted truncate">{{ source.desc }}</div>
           </div>
-        </div>
+        </button>
       </div>
     </transition>
 
-    <!-- Popover Menu: / Built-in Commands -->
-    <transition
-      enter-active-class="transition duration-150 ease-out"
-      enter-from-class="opacity-0 translate-y-2 scale-95"
-      enter-to-class="opacity-100 translate-y-0 scale-100"
-      leave-active-class="transition duration-100 ease-in"
-      leave-from-class="opacity-100 translate-y-0 scale-100"
-      leave-to-class="opacity-0 translate-y-2 scale-95"
-    >
+    <!-- Popover Menu: / Built-in Commands (Origin-Bottom-Left) -->
+    <transition name="popover-up">
       <div
         v-if="showSlashMenu"
-        class="absolute bottom-full mb-2 left-4 w-72 rounded-2xl glass-panel p-2 border border-border-card shadow-2xl z-40 space-y-1"
+        class="origin-bottom-left absolute bottom-full mb-2 left-2 w-72 rounded-xl bg-bg-card p-1.5 border border-border-card shadow-sm z-40 space-y-0.5"
       >
-        <div class="px-2 py-1 text-[10px] font-bold text-text-muted tracking-wider uppercase">
-          快捷执行指令 (/)
+        <div class="px-2 py-1 text-[11px] font-medium text-text-muted">
+          快捷指令 (/)
         </div>
-        <div
+        <button
           v-for="cmd in slashCommands"
           :key="cmd.command"
+          type="button"
           @click="insertCommand(cmd)"
-          class="flex items-center space-x-2.5 px-2.5 py-2 rounded-xl text-xs text-text-secondary hover:text-text-main hover:bg-slate-200/60 dark:hover:bg-slate-800/60 cursor-pointer transition-colors duration-150"
+          class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs text-left text-text-secondary hover:text-text-main hover:bg-bg-hover cursor-pointer transition-colors duration-150"
         >
-          <component :is="cmd.icon" class="w-4 h-4 text-brand-primary shrink-0" />
-          <div class="flex-1 truncate">
-            <div class="font-semibold text-text-main">{{ cmd.command }}</div>
-            <div class="text-[10px] text-text-muted truncate">{{ cmd.desc }}</div>
+          <component :is="cmd.icon" class="w-4 h-4 text-text-secondary shrink-0" />
+          <div class="flex-1 min-w-0">
+            <div class="font-mono font-medium text-text-main truncate">{{ cmd.command }}</div>
+            <div class="text-[11px] text-text-muted truncate">{{ cmd.desc }}</div>
           </div>
-        </div>
+        </button>
       </div>
     </transition>
 
-    <!-- Main Capsule Container -->
+    <!-- Main Linear Input Container -->
     <div
-      class="rounded-3xl p-2.5 sm:p-3 glass-panel border border-border-card shadow-lg transition-all duration-200 focus-within:border-brand-primary/60 focus-within:shadow-brand-primary/10 focus-within:shadow-xl relative backdrop-blur-xl"
+      class="rounded-xl p-2.5 sm:p-3 bg-bg-input border border-border-card transition-colors duration-150 focus-within:border-border-focus relative"
     >
-      <!-- Voice Recording Bar Overlay if Active -->
-      <div v-if="isRecordingVoice" class="p-2 flex items-center justify-between">
+      <!-- Voice Recording Overlay -->
+      <div v-if="isRecordingVoice" class="p-1.5 flex items-center justify-between gap-2">
         <VoicePill
           :active="isRecordingVoice"
           @cancel="isRecordingVoice = false"
           @finish="handleVoiceFinished"
         />
-        <span class="text-xs text-text-secondary">松开或点击停止以生成提示词</span>
+        <span class="text-xs text-text-muted">点击停止生成文本</span>
       </div>
 
-      <!-- Normal Input Layout -->
+      <!-- Standard Input Layout -->
       <div v-else class="space-y-2">
-        <!-- Top Toolbar inside PromptBar: Tags & Actions -->
-        <div class="flex items-center justify-between px-1">
-          <div class="flex items-center space-x-1.5 sm:space-x-2">
-            <!-- Quick Data Source Trigger (@) -->
+        <!-- Top Toolbar -->
+        <div class="flex items-center justify-between px-0.5">
+          <div class="flex items-center gap-1.5">
             <button
               type="button"
               @click.stop="toggleAtMenu"
-              title="指定企业数据源 (@)"
-              class="hidden sm:inline-flex items-center space-x-1 px-2 py-0.8 text-[11px] font-medium rounded-lg text-text-secondary hover:text-text-main hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+              title="指定数据源 (@)"
+              class="btn-pressable hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-md text-text-secondary hover:text-text-main hover:bg-bg-hover cursor-pointer"
             >
-              <Database class="w-3 h-3 text-brand-primary" />
+              <Database class="w-3 h-3" />
               <span>@数据源</span>
             </button>
 
-            <!-- Quick Command Trigger (/) -->
             <button
               type="button"
               @click.stop="toggleSlashMenu"
-              title="常用指令 (/)"
-              class="hidden sm:inline-flex items-center space-x-1 px-2 py-0.8 text-[11px] font-medium rounded-lg text-text-secondary hover:text-text-main hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+              title="快捷指令 (/)"
+              class="btn-pressable hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-md text-text-secondary hover:text-text-main hover:bg-bg-hover cursor-pointer"
             >
-              <Terminal class="w-3 h-3 text-brand-primary" />
+              <Terminal class="w-3 h-3" />
               <span>/指令</span>
             </button>
 
-            <!-- Active Data Tag Badge -->
             <span
               v-if="attachedSource"
-              class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[10px] font-medium"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-bg-surface border border-border-card text-text-main text-[11px] font-medium"
             >
-              <BookOpen class="w-2.5 h-2.5" />
-              <span class="max-w-[120px] truncate">{{ attachedSource }}</span>
-              <X class="w-2.5 h-2.5 cursor-pointer hover:text-rose-500" @click="clearAttachedSource" />
+              <BookOpen class="w-3 h-3 text-text-secondary" />
+              <span class="max-w-[140px] truncate">{{ attachedSource }}</span>
+              <button
+                type="button"
+                @click="clearAttachedSource"
+                class="text-text-muted hover:text-text-main cursor-pointer"
+                title="移除数据源"
+              >
+                <X class="w-3 h-3" />
+              </button>
             </span>
           </div>
 
-          <!-- Right Status Info -->
-          <div class="text-[10px] text-text-muted hidden md:flex items-center space-x-2">
-            <span>Shift + Enter 换行 · Enter 发送</span>
+          <div class="text-[11px] text-text-muted hidden md:block">
+            Shift + Enter 换行 · Enter 发送
           </div>
         </div>
 
-        <!-- Textarea Input Area -->
+        <!-- Textarea -->
         <div class="relative px-1">
           <textarea
             ref="textareaRef"
@@ -133,24 +124,22 @@
           ></textarea>
         </div>
 
-        <!-- Bottom Action Row: Voice, Attachments, Send/Stop Button -->
-        <div class="flex items-center justify-between pt-1 px-1 border-t border-border-subtle/50">
-          <div class="flex items-center space-x-1">
-            <!-- Voice Input Button -->
+        <!-- Bottom Action Row -->
+        <div class="flex items-center justify-between pt-1.5 px-0.5 border-t border-border-subtle">
+          <div class="flex items-center gap-1">
             <button
               type="button"
               @click="isRecordingVoice = true"
-              title="语音输入 (Advanced Voice)"
-              class="p-1.5 rounded-xl text-text-secondary hover:text-text-main hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+              title="语音输入"
+              class="btn-pressable p-1.5 rounded-lg text-text-secondary hover:text-text-main hover:bg-bg-hover cursor-pointer"
             >
               <Mic class="w-4 h-4" />
             </button>
 
-            <!-- Attachment Button (PDF / Excel / Image) -->
             <button
               type="button"
-              title="上传规章文件与表格解析"
-              class="p-1.5 rounded-xl text-text-secondary hover:text-text-main hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+              title="附加文件"
+              class="btn-pressable p-1.5 rounded-lg text-text-secondary hover:text-text-main hover:bg-bg-hover cursor-pointer"
               @click="handleUploadClick"
             >
               <Paperclip class="w-4 h-4" />
@@ -158,32 +147,31 @@
             <input ref="fileInputRef" type="file" class="hidden" @change="handleFileChange" accept=".md,.pdf,.xlsx,.csv,.txt" />
           </div>
 
-          <!-- Ink Charge Send Button OR Stop Square Button -->
           <div>
-            <!-- If Streaming: Stop Square Button (Aborts stream) -->
+            <!-- Streaming Stop Button -->
             <button
               v-if="isStreaming"
               type="button"
               @click="$emit('abort')"
-              title="停止响应 (Stop Square)"
-              class="w-8 h-8 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-all duration-150 cursor-pointer"
+              title="停止生成"
+              class="btn-primary w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
             >
-              <Square class="w-3.5 h-3.5 fill-current" />
+              <Square class="w-3 h-3 fill-current" />
             </button>
 
-            <!-- If Idle: Ink Charge Send Button -->
+            <!-- High-Contrast Monochrome Send Button -->
             <button
               v-else
               type="button"
               :disabled="!canSend"
               @click="handleSend"
-              title="发送消息 (Enter)"
-              class="w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-              :class="[
+              title="发送 (Enter)"
+              class="btn-pressable w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer disabled:opacity-35 disabled:pointer-events-none"
+              :class="
                 canSend
-                  ? 'bg-brand-primary text-white shadow-md shadow-blue-500/30 hover:bg-brand-primary-hover active:scale-95 scale-100'
-                  : 'bg-slate-300 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-              ]"
+                  ? 'bg-action-primary text-action-primary-fg hover:bg-action-primary-hover'
+                  : 'bg-bg-surface text-text-muted border border-border-subtle'
+              "
             >
               <ArrowUp class="w-4 h-4" />
             </button>
@@ -197,7 +185,6 @@
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import {
-  Sparkles,
   Database,
   Terminal,
   Paperclip,
@@ -209,7 +196,7 @@ import {
   FileText,
   Search,
   CheckCircle,
-  HelpCircle
+  HelpCircle,
 } from 'lucide-vue-next';
 import VoicePill from './VoicePill.vue';
 
@@ -238,24 +225,20 @@ const showAtMenu = ref(false);
 const showSlashMenu = ref(false);
 
 const dataSources = [
-  { id: 'kb_all', name: '全量企业规章制度库', desc: '包含差旅、采购、固定资产管理制度', icon: BookOpen },
-  { id: 'db_mysql', name: 'MySQL 业务台账', desc: '实时物料库存、采购记录与组织架构', icon: Database },
-  { id: 'erp_sap', name: 'ERP 采购与供应链', desc: 'SAP 采购订单与物料清单', icon: FileText },
+  { id: 'kb_all', name: '规章制度知识库', desc: '差旅、采购与固定资产制度', icon: BookOpen },
+  { id: 'db_mysql', name: '业务台账数据库', desc: '库存、采购记录与组织架构', icon: Database },
+  { id: 'erp_sap', name: 'ERP 供应链台账', desc: '采购订单与物料目录', icon: FileText },
 ];
 
 const slashCommands = [
-  { command: '/audit', desc: '唤醒审批协同面板，检查待审流程', icon: CheckCircle },
-  { command: '/kb', desc: '指定规章制度检索并提取精确条款', icon: Search },
-  { command: '/help', desc: '查看企业助手支持的功能列表与帮助', icon: HelpCircle },
+  { command: '/audit', desc: '查询当前待审批单据', icon: CheckCircle },
+  { command: '/kb', desc: '定向检索规章制度条款', icon: Search },
+  { command: '/help', desc: '查看可用功能与指令', icon: HelpCircle },
 ];
 
-const placeholderText = computed(() => {
-  return '输入业务问题，数字员工将自动理解意图并检索规章制度回答...';
-});
+const placeholderText = computed(() => '输入问题、工单需求或采购申请...');
 
-const canSend = computed(() => {
-  return inputContent.value.trim().length > 0 && !props.isStreaming;
-});
+const canSend = computed(() => inputContent.value.trim().length > 0 && !props.isStreaming);
 
 const autoResize = () => {
   const el = textareaRef.value;
@@ -270,7 +253,6 @@ const handleInput = (e) => {
   emit('update:modelValue', val);
   autoResize();
 
-  // 侦测最后输入的字符
   const lastChar = val.slice(-1);
   if (lastChar === '@') {
     showAtMenu.value = true;
@@ -322,7 +304,7 @@ const insertCommand = (cmd) => {
 };
 
 const handleKeyDown = (e) => {
-  if (e.isComposing) return; // Prevent triggering while typing in IME (Pinyin/Chinese)
+  if (e.isComposing) return;
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     if (canSend.value) {
@@ -363,7 +345,7 @@ const handleSend = () => {
 
 const handleVoiceFinished = () => {
   isRecordingVoice.value = false;
-  inputContent.value = '请帮我核对研发部 MacBook Pro 采购申请的最新制度标准，并提交审批。';
+  inputContent.value = '请帮我核对办公设备采购审批流程标准。';
   emit('update:modelValue', inputContent.value);
   autoResize();
 };

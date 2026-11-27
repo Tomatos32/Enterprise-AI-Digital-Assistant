@@ -1,41 +1,52 @@
 <template>
-  <div class="flex flex-col h-full max-w-4xl mx-auto w-full px-2 sm:px-4 py-2 sm:py-4 font-sans relative">
+  <div class="flex flex-col h-full max-w-4xl mx-auto w-full px-3 sm:px-6 py-3 sm:py-4 font-sans relative">
     <!-- Chat Messages Scroll Container -->
     <main
       ref="chatBox"
       @scroll="handleScroll"
-      class="flex-1 overflow-y-auto rounded-2xl glass-card border border-border-subtle relative scroll-smooth overscroll-contain transition-all duration-150"
+      class="flex-1 overflow-y-auto rounded-xl bg-bg-card border border-border-subtle relative scroll-smooth overscroll-contain"
       :class="
         preferencesStore.chatDensity === 'compact'
-          ? 'space-y-2 sm:space-y-2.5 p-2 sm:p-3.5'
-          : 'space-y-3.5 sm:space-y-5 p-2.5 sm:p-5'
+          ? 'space-y-3 p-3 sm:p-4'
+          : 'space-y-5 p-4 sm:p-6'
       "
     >
-      <!-- Empty State Banner -->
-      <div v-if="messages.length === 0" class="h-full flex flex-col items-center justify-center text-center p-4 sm:p-8">
-        <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-800 flex items-center justify-center mb-3 sm:mb-4 text-brand-primary border border-border-card shadow-lg shadow-blue-500/10 shrink-0">
-          <Bot class="w-7 h-7 sm:w-8 sm:h-8 text-brand-primary animate-pulse" />
-        </div>
-        <h3 class="text-sm sm:text-lg font-bold text-text-main mb-1.5 sm:mb-2">欢迎使用企业级数字员工</h3>
-        <p class="text-xs sm:text-sm text-text-secondary max-w-md mb-4 sm:mb-6 leading-relaxed">
-          依托权威规章知识库、多智能体协同与人机协同审批门禁，为您提供严谨高效的业务支持。
-        </p>
+      <!-- Minimalist Empty State with Neutral Architectural DotGridBackdrop -->
+      <div
+        v-if="messages.length === 0"
+        class="h-full min-h-[360px] flex flex-col items-center justify-center text-center p-4 sm:p-8 relative overflow-hidden"
+      >
+        <DotGridBackdrop :gap="22" :dot-size="1" />
 
-        <!-- Preset Quick Sample Questions Pills (Zero System Emoji, Mobile Friendly) -->
-        <div class="flex flex-wrap justify-center gap-1.5 sm:gap-2 max-w-xl">
-          <button
-            v-for="sample in samplePrompts"
-            :key="sample"
-            @click="sendSamplePrompt(sample)"
-            class="interactive-action px-3 py-2 min-h-[38px] text-[11px] sm:text-xs bg-bg-card/90 hover:bg-bg-hover dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-border-subtle hover:border-brand-primary/50 text-text-secondary hover:text-text-main rounded-xl shadow-sm flex items-center space-x-1.5 transition-colors duration-150 cursor-pointer active:scale-[0.98]"
-          >
-            <Sparkles class="w-3.5 h-3.5 text-brand-primary shrink-0" />
-            <span>{{ sample }}</span>
-          </button>
+        <div class="relative z-10 flex flex-col items-center max-w-xl">
+          <div class="w-11 h-11 rounded-xl bg-action-primary text-action-primary-fg flex items-center justify-center mb-4 shrink-0">
+            <Bot class="w-5 h-5" />
+          </div>
+
+          <h3 class="text-base sm:text-lg font-semibold text-text-main tracking-tight">
+            企业数字员工
+          </h3>
+          <p class="text-xs sm:text-sm text-text-secondary mt-1.5 mb-6">
+            规章检索、工单协同与审批办理
+          </p>
+
+          <!-- Preset Quick Sample Prompts -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+            <button
+              v-for="sample in samplePrompts"
+              :key="sample"
+              type="button"
+              @click="sendSamplePrompt(sample)"
+              class="btn-pressable px-3.5 py-2.5 text-left text-xs bg-bg-main hover:bg-bg-hover border border-border-card hover:border-border-strong text-text-secondary hover:text-text-main rounded-lg flex items-center justify-between gap-2 cursor-pointer"
+            >
+              <span class="line-clamp-1">{{ sample }}</span>
+              <ArrowUpRight class="w-3.5 h-3.5 text-text-muted shrink-0" />
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Messages List using Modern MessageItem -->
+      <!-- Messages List -->
       <MessageItem
         v-for="msg in messages"
         :key="msg.id"
@@ -44,28 +55,22 @@
       />
     </main>
 
-    <!-- Floating Scroll-To-Bottom Capsule Button -->
-    <transition
-      enter-active-class="transition-all duration-200 ease-out"
-      enter-from-class="opacity-0 translate-y-2 scale-95"
-      enter-to-class="opacity-100 translate-y-0 scale-100"
-      leave-active-class="transition-all duration-150 ease-in"
-      leave-from-class="opacity-100 translate-y-0 scale-100"
-      leave-to-class="opacity-0 translate-y-2 scale-95"
-    >
+    <!-- Floating Scroll-To-Bottom Button -->
+    <transition name="popover-up">
       <button
         v-if="!isAtBottom && messages.length > 0"
+        type="button"
         @click="scrollToBottomManual"
-        class="interactive-action absolute bottom-24 sm:bottom-28 right-4 sm:right-8 z-20 px-3 py-1.5 rounded-full bg-bg-card/95 hover:bg-bg-hover dark:bg-slate-900/90 dark:hover:bg-slate-800 text-text-main border border-border-card shadow-2xl flex items-center space-x-1.5 text-xs transition-colors duration-150 cursor-pointer active:scale-95"
-        title="快速回到底部"
+        class="btn-secondary origin-bottom-right absolute bottom-24 sm:bottom-28 right-6 sm:right-10 z-20 px-3 py-1.5 rounded-full text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
+        title="回到底部"
       >
-        <ArrowDown class="w-3.5 h-3.5 text-brand-primary animate-bounce" />
-        <span class="font-medium text-text-main">最新消息</span>
+        <ArrowDown class="w-3.5 h-3.5" />
+        <span>最新消息</span>
       </button>
     </transition>
 
-    <!-- Bottom Floating Capsule Input Area (Sprint F-04 Deliverable) -->
-    <footer class="mt-2 w-full">
+    <!-- Bottom Input Area -->
+    <footer class="mt-3 w-full">
       <ChatInput
         :is-streaming="isStreaming"
         :disabled="!isConnected"
@@ -78,13 +83,14 @@
 
 <script setup>
 import { ref, nextTick, watch, onMounted } from 'vue';
-import { Bot, Sparkles, ArrowDown } from 'lucide-vue-next';
+import { Bot, ArrowDown, ArrowUpRight } from 'lucide-vue-next';
 import { useChatStream } from '../composables/useChatStream';
 import { useChatStore } from '../stores/chatStore';
 import { useAuthStore } from '../stores/authStore';
 import { usePreferencesStore } from '../stores/preferencesStore';
 import MessageItem from './chat/MessageItem.vue';
 import ChatInput from './chat/ChatInput.vue';
+import DotGridBackdrop from './ui/DotGridBackdrop.vue';
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();
@@ -98,16 +104,18 @@ const {
   sendMessage,
   abortChat,
   submitApprovalAction,
-  resetThread
 } = useChatStream();
 
 const chatBox = ref(null);
 const isAtBottom = ref(true);
 
-// 保持全局网络状态同步
-watch(isConnected, (val) => {
-  chatStore.isOnline = val;
-}, { immediate: true });
+watch(
+  isConnected,
+  (val) => {
+    chatStore.isOnline = val;
+  },
+  { immediate: true }
+);
 
 let lastSyncedSessionId = '';
 
@@ -123,14 +131,15 @@ const syncActiveSessionMessages = async (sessionId) => {
   autoScrollToBottom();
 };
 
-// 保持活跃会话与当前 threadId 同步并拉取历史记录
-watch(() => chatStore.activeSessionId, async (newId) => {
-  if (newId) {
-    await syncActiveSessionMessages(newId);
+watch(
+  () => chatStore.activeSessionId,
+  async (newId) => {
+    if (newId) {
+      await syncActiveSessionMessages(newId);
+    }
   }
-});
+);
 
-// 监听当前登录身份切换，清理当前对话流状态等待会话切换自动同步
 watch(
   () => authStore.currentUsername,
   (newUser, oldUser) => {
@@ -156,7 +165,6 @@ const samplePrompts = [
   '申请大额设备采购：MacBook Pro 16 1台，单价 22999 元',
 ];
 
-// 检测用户滚动位置
 const handleScroll = () => {
   if (!chatBox.value) return;
   const { scrollTop, scrollHeight, clientHeight } = chatBox.value;
@@ -164,7 +172,6 @@ const handleScroll = () => {
   isAtBottom.value = distanceToBottom < 60;
 };
 
-// 自动贴底（仅当用户处于底部时执行，防拉扯打扰保护）
 const autoScrollToBottom = async () => {
   await nextTick();
   if (chatBox.value && isAtBottom.value) {
@@ -172,22 +179,20 @@ const autoScrollToBottom = async () => {
   }
 };
 
-// 手动平滑贴底
 const scrollToBottomManual = () => {
   if (chatBox.value) {
     chatBox.value.scrollTo({
       top: chatBox.value.scrollHeight,
-      behavior: 'smooth'
+      behavior: 'smooth',
     });
     isAtBottom.value = true;
   }
 };
 
-// 监听消息变化进行平滑贴底
 watch(messages, autoScrollToBottom, { deep: true });
 
 const handleSend = async (payload) => {
-  const text = typeof payload === 'string' ? payload : (payload?.text || '');
+  const text = typeof payload === 'string' ? payload : payload?.text || '';
   if (!text || isStreaming.value) return;
 
   if (!chatStore.activeSessionId) {
@@ -197,15 +202,18 @@ const handleSend = async (payload) => {
     }
   }
 
-  // 自动将首条消息同步作为会话标题
-  if (chatStore.activeSession && (chatStore.activeSession.title === '新对话' || !chatStore.activeSession.title)) {
+  if (
+    chatStore.activeSession &&
+    (chatStore.activeSession.title === '新对话' || !chatStore.activeSession.title)
+  ) {
     const summary = text.slice(0, 18);
     const newTitle = summary.length >= 18 ? summary + '...' : summary;
     chatStore.renameSession(chatStore.activeSessionId, newTitle);
   }
 
-  // 透传数据源 (@) 与快捷指令 (/) 元数据供后端混合认知路由器对齐
-  let customMetadata = {};
+  // Only forward explicit user directives (@data_source, /slash_command, model).
+  // All tool & approval business slots are extracted purely on the backend.
+  const customMetadata = {};
   if (typeof payload === 'object' && payload.source) {
     customMetadata.data_source = payload.source;
   }
@@ -218,18 +226,7 @@ const handleSend = async (payload) => {
   if (typeof payload === 'object' && payload.model) {
     customMetadata.model = payload.model;
   }
-  if (text.includes('MacBook') || text.includes('采购')) {
-    customMetadata.purchase_args = {
-      item_name: 'MacBook Pro 16',
-      quantity: 1,
-      unit_price: 22999.0,
-      department: authStore.department,
-      applicant: authStore.displayName,
-      reason: 'AI 数字人研发高配置要求'
-    };
-  }
 
-  // 发送后强制保证处于底部
   isAtBottom.value = true;
   sendMessage(text, customMetadata, chatStore.activeSessionId);
 };
