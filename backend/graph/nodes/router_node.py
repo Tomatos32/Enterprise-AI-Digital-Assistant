@@ -19,6 +19,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 
 from backend.core.config import settings
 from backend.core.llm import get_router_llm
+from backend.core.metrics import record_routing_event
 from backend.graph.state import AgentState
 from backend.tools.slot_extractor import (
     APPROVAL_THRESHOLD_RMB,
@@ -839,6 +840,25 @@ def _classify_deterministic_fallback(
 # ---------------------------------------------------------------------------
 
 
+_ROUTING_METHOD_TIER_MAP: Dict[str, str] = {
+    "explicit_state_intent": "tier_0_override",
+    "metadata_override": "tier_0_override",
+    "explicit_tool_calls": "tier_0_override",
+    "empty_query_guard": "tier_0_override",
+    "slash_command": "tier_1_directive",
+    "data_source_directive": "tier_1_directive",
+    "slot_clarification_resume": "tier_1_guard",
+    "deterministic_guard": "tier_1_guard",
+    "llm_contextual": "tier_2_llm",
+    "fallback_contextual_rules": "tier_3_fallback",
+}
+
+
+def _infer_routing_tier(routing_method: str) -> str:
+    """Maps a routing_method string to its canonical cognitive tier identifier."""
+    return _ROUTING_METHOD_TIER_MAP.get(routing_method, "tier_1_guard")
+
+
 def _build_route_result(
     intent: str,
     metadata: Dict[str, Any],
@@ -853,6 +873,8 @@ def _build_route_result(
     data_source_resolved: Optional[str] = None,
     parsed_amount: Optional[float] = None,
     preserve_pending_slots: bool = False,
+    tier: Optional[str] = None,
+    fallback_triggered: bool = False,
 ) -> Dict[str, Any]:
     """Constructs standardized AgentState update returned by router_node."""
     updated_meta = dict(metadata)
@@ -895,6 +917,19 @@ def _build_route_result(
         updated_meta["parsed_purchase_amount"] = parsed_amount
     else:
         updated_meta.pop("parsed_purchase_amount", None)
+
+    resolved_tier = tier or _infer_routing_tier(routing_method)
+    try:
+        record_routing_event(
+            intent=intent,
+            tier=resolved_tier,
+            routing_method=routing_method,
+            confidence=confidence,
+            secondary_intent=secondary_intent,
+            fallback_triggered=fallback_triggered,
+        )
+    except Exception as exc:
+        logger.debug("[RouterNode] Cognitive telemetry hook skipped: %s", exc)
 
     return {
         "intent": intent,
@@ -1288,6 +1323,7 @@ async def router_node(state: AgentState) -> Dict[str, Any]:
     # ------------------------------------------------------------------
     # Tier 2: Lightweight Non-Thinking LLM Contextual Classifier (6 turns)
     # ------------------------------------------------------------------
+    llm_enabled = bool(getattr(settings, "ROUTER_LLM_ENABLED", True))
     llm_decision = await _classify_with_llm(
         query=query,
         q_lower=q_lower,
@@ -1305,6 +1341,8 @@ async def router_node(state: AgentState) -> Dict[str, Any]:
             tool_hint=llm_decision["tool_hint"],
             normalized_query=query,
             parsed_amount=amount,
+            tier="tier_2_llm",
+            fallback_triggered=False,
         )
 
     # ------------------------------------------------------------------
@@ -1326,4 +1364,6 @@ async def router_node(state: AgentState) -> Dict[str, Any]:
         tool_hint=fb_tool,
         normalized_query=query,
         parsed_amount=amount,
+        tier="tier_3_fallback",
+        fallback_triggered=llm_enabled,
     )

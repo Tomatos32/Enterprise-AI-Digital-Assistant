@@ -2318,6 +2318,84 @@
             "title": "System Prompt Instruction",
             "description": "附加给企业数字员工的系统级行为规范指令"
           },
+          "router_llm_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Router Llm Enabled",
+            "description": "是否启用轻量非思考认知路由分类器"
+          },
+          "router_llm_timeout": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 15.0,
+                "minimum": 0.2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Router Llm Timeout",
+            "description": "认知路由分类器超时上限（秒）[0.2, 15.0]"
+          },
+          "query_rewriter_llm_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Query Rewriter Llm Enabled",
+            "description": "是否启用轻量非思考多轮查询改写器"
+          },
+          "query_rewriter_llm_timeout": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 15.0,
+                "minimum": 0.2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Query Rewriter Llm Timeout",
+            "description": "多轮查询改写器超时上限（秒）[0.2, 15.0]"
+          },
+          "slot_extractor_llm_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slot Extractor Llm Enabled",
+            "description": "是否启用混合语义槽位补全分类器"
+          },
+          "slot_extractor_llm_timeout": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 15.0,
+                "minimum": 0.2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slot Extractor Llm Timeout",
+            "description": "混合语义槽位补全超时上限（秒）[0.2, 15.0]"
+          },
           "llm_api_key": {
             "anyOf": [
               {

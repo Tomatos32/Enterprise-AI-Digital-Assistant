@@ -2,8 +2,8 @@
 
 > **文档用途**：面向新对话窗口的一键式上下文承接与工程交接档案  
 > **基准分支**：`feat/frontend-modernization-copilot`  
-> **当前日期**：2026-11-26  
-> **当前工程模式**：**PRAGMATIC REALIZATION & COGNITIVE ROUTING MODE**（`Sprint R-05` 全量闭环，`Sprint R-06` 已闭环 P0 `Issue-0060`、P1 `Issue-0061` 与 P2 `Issue-0062` 语义槽位提取重构/前端去硬编码/全站中性极简界面重塑，下一步待推收尾项 P3 `Issue-0063`）  
+> **当前日期**：2026-11-28  
+> **当前工程模式**：**PRAGMATIC REALIZATION & COGNITIVE ROUTING MODE**（`Sprint R-05` 全量闭环，`Sprint R-06` 已 100% 闭环 P0 `Issue-0060` ~ P3 `Issue-0063`，Sprint R-06 正式收官）  
 > **关联权威文档**：[AGENTS.md](file:///g:/LLM_Learning/product/AGENTS.md) · [docs/PROJECT_PROGRESS.md](file:///g:/LLM_Learning/product/docs/PROJECT_PROGRESS.md) · [docs/FRONTEND_PROGRESS.md](file:///g:/LLM_Learning/product/docs/FRONTEND_PROGRESS.md) · [docs/MOCK_INVENTORY.md](file:///g:/LLM_Learning/product/docs/MOCK_INVENTORY.md) · [docs/plans/sprint-active.md](file:///g:/LLM_Learning/product/docs/plans/sprint-active.md)
 
 ---
@@ -16,6 +16,7 @@
 | **前端现代化重构 (Sprint F-01~F-09)** | Vue 3 + Tailwind CSS + Pinia + Vuebits 12 大旗舰动效组件（`PromptBar`, `ThoughtLine`, `CallChip`, `FolderFloat`, `LineSidebar`, `StatusMark`, `FuseButton` 等）+ Hugeicons/Lucide 双核矢量图标 + 象牙白/曜石灰双主题无闪烁拟合 | `[DONE] 100%` |
 | **务实真实化攻坚 (Sprint R-01~R-04)** | `Issue-0038` ~ `Issue-0055` 全量闭环：MySQL/SQLite 会话与 CoT 持久化、FastEmbed/OpenAI/LocalSemantic 向量底座、NativeOllama 极速推理与 `LLM_THINKING` 开关、QueryRewriter v1 与 Rerank 截断、WS 心跳隔离与发送解锁 | `[DONE] 100%` |
 | **RBAC 基座与管理员控制面 (Sprint R-05)** | `Issue-0056` ~ `Issue-0059` 全量闭环：JWT 三角色隔离 (`employee`/`manager`/`admin`)、`/admin/settings` 模型与 RAG 热配置台、`/admin/tasks` 知识库上传与异步解析中心、`/admin/monitoring` 遥测/工具审计/SLA 看板（`AdminSlotPlaceholderView` 已退役） | `[DONE] 100%` |
+| **认知意图路由与语境改写 (Sprint R-06)** | `Issue-0060` ~ `Issue-0063` 全量闭环：三层混合认知路由、三段式多轮改写与跨领域软加权检索、双层混合语义槽位提取与全站中性单色重塑、黄金评测与对抗矩阵、认知策略热配置与 `telemetry.cognitive` 诊断联动、历史遗留测试清零 (`Issue-0063` Score: 95/100 `APPROVED`) | `[DONE] 100%` |
 | **Day-2 SRE 运维任务** | `Ops-0001`、`Ops-0002` 已归档；`Ops-0003` ~ `Ops-0005`（指标告警调优、影子流量切流、脱敏红蓝审计）保留待排期 | `[PENDING]` |
 | **明确剔除与暂缓搁置范围** | `[EXCLUDED]` 4 级安全密级前端切换与密级权限过滤开发；`[DEFERRED]` `/workflows`（Dify/N8N 编排页）与 `/eval`（DPO 标注导出台），对应后端路由继续保留可用 | `[SCOPE LOCKED]` |
 
@@ -23,18 +24,18 @@
 
 ## 二、当前实测技术基线与工作区状态 (Verified Baseline)
 
-### 2.1 运行环境与核心验收数据（2026-11-19 ~ 2026-11-26 实测）
+### 2.1 运行环境与核心验收数据（2026-11-28 实测）
 - **Python 虚拟环境**：`backend/.venv/Scripts/python.exe`（严禁使用全局 Python）。
 - **静态检查与类型**：
   - `backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/`：`All checks passed!`（`0` 错误）。
-  - `mypy`：`Issue-0060` (10 文件)、`Issue-0061` (9 文件) 与 `Issue-0062` (10 文件) 涉及的后端与单测文件在 `--follow-imports=skip` 下均为 `0` 错误；全仓保留 12 个未改动历史文件共 29 项既有静态类型待治理。
+  - `mypy`：`Issue-0060` (10 文件)、`Issue-0061` (9 文件)、`Issue-0062` (10 文件) 与 `Issue-0063` (14 文件) 涉及的后端与单测文件在 `--follow-imports=skip` 下均为 `0` 错误；全仓保留 12 个未改动历史文件共 29 项既有静态类型待治理。
 - **前端生产构建**：`frontend/` 下 `npm run build`（`vite build`）转换 `7,923` 个模块，`0` 错误；`verify_frontend_dejargon.py` 扫描 50 源文件 0 术语/0 Emoji 违规。
 - **自动化测试基线**：
-  - `test_cognitive_router.py`：`12/12 PASS`；`test_contextual_query_rewriter.py`：`10/10 PASS`；`test_slot_extractor.py`：`29/29 PASS`；8 套件核心联测：`73/73 PASS`。
-  - 全仓 `backend/.venv/Scripts/python.exe -m pytest backend/tests/ -q --tb=short`：`330 passed, 2 failed`（仅存 2 项既有历史用例：`test_graph_unittest.py` 仍断言旧版 `"processed your message"` 文案；`test_thought_persistence.py` 在全仓串行时受前置 `test_mock_systems.py` 未清理 `dependency_overrides` 影响，单独复跑 `1 passed`）。
+  - `Issue-0063` 定向 7 套件（含 `test_intent_routing_matrix.py` 黄金与对抗矩阵）：`87/87 PASS`。
+  - 全仓 `backend/.venv/Scripts/python.exe -m pytest backend/tests/ -q --tb=line --no-header`：**`389 passed, 0 failed`**（100% PASS，历史 2 项遗留失败用例已彻底清零）。
 - **API 契约与向量库状态**：
-  - `docs/generated/openapi-spec.json`：`38` 条路径，`85,958` 字节，与 `backend.main:app` 100% 同步。
-  - Qdrant（`local_storage` @ `backend/data/qdrant_storage`）：`enterprise_knowledge` 集合共 `7,399` 个向量点位，维度 `1024`，当前引擎 `local-semantic-ngram-v1`。
+  - `docs/generated/openapi-spec.json`：`38` 条路径，`IN_SYNC=True`（SHA-256: `7513B386F05F714A137E6FC5D58C5BF9C339D3D8028FF7AB6E686543FED37456`），与 `backend.main:app` 100% 同步。
+  - Qdrant（`local_storage` @ `backend/data/qdrant_storage`）：`enterprise_knowledge` 集合共 `7,403` 个向量点位，维度 `1024`，当前引擎 `local-semantic-ngram-v1`。
 - **RBAC 演示账号（`backend/core/rbac.py`）**：
   - `employee` / `emp123`（普通员工 · 人力资源部）-> `/`、`/knowledge`、外观偏好弹窗。
   - `manager` / `manager123`（部门主管 · 采购管理部）-> 增加 `/approvals` 审批工作台。
@@ -85,7 +86,7 @@
 | **P0** | **Issue-0060** `[DONE]` | **混合认知意图识别引擎与数据源/指令路由重构** | **[已闭环 · Score: 95/100 APPROVED]** 重构 `router_node.py` 为三层混合认知路由引擎（Tier 1 确定性指令/`@数据源`/寒暄护栏 + Tier 2 轻量非思考 6 轮 LLM 分类器与严格超时/事件隔离 + Tier 3 增强多轮上下文/动态金额/政策与执行消歧兜底）；打通 `workflow.py` 无环复合链路 `retrieve -> tool/approval/generate`；对齐 `PromptBar.vue`/`ChatContainer.vue` 元数据与 `/audit` fail-closed RBAC；新增 `test_cognitive_router.py` (12/12 PASS) 并归档 `.harness/runs/Issue-0060/`。 |
 | **P1** | **Issue-0061** `[DONE]` | **多轮指代消解、上下文补全与跨领域 Query 改写引擎升级** | **[已闭环 · Score: 95/100 APPROVED]** 升级 `query_rewriter.py`、`retrieve_node.py`、`retriever.py`、`loader.py`、`chat_ws.py` 与 `knowledge.py`：落地三段式混合改写（规则预处理 + 轻量非思考 LLM `arewrite` 严格超时/流式隔离 + 增强确定性回退），支持显式代词/无代词隐式省略/3 轮链式平行追问、自定义上传文档动态实体承接与全 6 域自适应子查询拆解；取消推断单域硬锁改为跨领域软加权 + 多样性保底；将 `standalone_query` 传入 Graph RAG；启动自动同步 `backend/data/` 上传文档到内存 BM25；新增 `test_contextual_query_rewriter.py` (10/10 PASS) 并归档 `.harness/runs/Issue-0061/`。 |
 | **P2** | **Issue-0062** `[DONE]` | **工具/审批语义槽位提取器重构、前端硬编码剥离与全站中性极简界面重塑** | **[已闭环 · Score: 100/100 APPROVED]** 新建 `backend/tools/slot_extractor.py` 双层混合语义槽位提取引擎（共享中文/阿拉伯金额数量解析、策略 5.1A HR 自动反查邮箱、策略 5.2A 采购禁套目录参考价与 LLM 反幻觉护栏、缺参零写库零 `interrupt()` 多轮补槽闭环）；重构 `router_node`/`tool_node`/`approval_node`/`generate_node`/`workflow.py`（无环 `tool -> approval` 升级）与 `chat_ws.py` 流式隔离；彻底剥离 `ChatContainer.vue`/`ApprovalCard.vue` 硬编码并完成全站 36 文件中性单色重塑（引入 `DotGridBackdrop`/`HoldButton` 与 `emil-design-eng` 动效打磨）；新增 `test_slot_extractor.py` (29/29 PASS) 并归档 `.harness/runs/Issue-0062/`。 |
-| **P3** | **Issue-0063** | **意图与改写黄金评测集、对抗回归测试与基线清零** | 新建 `test_intent_routing_matrix.py` 与 `test_contextual_query_rewriter.py`（覆盖多轮指代、关键词碰撞消歧、跨领域改写、真实金额与槽位抽取）；在 `runtime_config.py` / `monitoring.py` 增加路由与改写策略可观测指标；顺带修复全仓遗留的 2 项历史失败用例（`test_graph_unittest.py` 与 `test_thought_persistence.py` 测试隔离），实现全仓 `pytest` 100% 全通。 |
+| **P3** | **Issue-0063** `[DONE]` | **意图与改写黄金评测集、对抗回归测试与基线清零** | **[已闭环 · Score: 95/100 APPROVED]** 新建 `test_intent_routing_matrix.py` 并扩充 `test_contextual_query_rewriter.py`、`test_admin_config_rbac.py`、`test_admin_monitoring_api.py`（覆盖多轮指代、关键词碰撞消歧、跨领域改写、5000 元合规门禁、Prompt 注入与 RBAC 拦截）；扩展 `runtime_config.py`/`admin_config.py` 6 项认知策略开关与 `[0.2, 15.0]` 超时校验，落地 `metrics.py`/`monitoring.py` `telemetry.cognitive` 聚合与 `AdminSettingsView.vue`/`AdminMonitoringView.vue` 管理员联动；修复 `test_mock_systems.py`、`test_thought_persistence.py` 与 `test_graph_unittest.py` 遗留隔离与断言问题，达成全仓 `pytest` `389 passed, 0 failed`（100% PASS），Sprint R-06 正式收官并归档 `.harness/runs/Issue-0063/`。 |
 
 ---
 

@@ -7,9 +7,10 @@ execution telemetry/audits.
 
 from collections import deque
 from datetime import datetime, timezone
+import math
 import re
 import threading
-from typing import Any, Deque, Dict, List, Union
+from typing import Any, Deque, Dict, List, Optional, Sequence, Tuple, Union
 import uuid
 from prometheus_client import (
     Counter,
@@ -182,6 +183,286 @@ def clear_tool_audits() -> None:
         _RECENT_TOOL_AUDITS.clear()
 
 
+# ---------------------------------------------------------------------------
+# Thread-Safe Cognitive Pipeline Telemetry Aggregators (Routing / Rewriting / Slots)
+# ---------------------------------------------------------------------------
+
+_COGNITIVE_LOCK = threading.RLock()
+
+_INTENT_LABELS: List[Tuple[str, str]] = [
+    ("retrieve", "制度检索"),
+    ("tool", "工具执行"),
+    ("approval", "审批流转"),
+    ("chat", "常规对话"),
+]
+
+_TIER_LABELS: List[Tuple[str, str]] = [
+    ("tier_0_override", "显式覆盖与结构化调用"),
+    ("tier_1_directive", "确定性指令/数据源"),
+    ("tier_1_guard", "确定性规则护栏"),
+    ("tier_2_llm", "轻量认知分类器"),
+    ("tier_3_fallback", "多轮规则降级兜底"),
+]
+
+_DEFAULT_DOMAINS: Tuple[str, ...] = ("IT", "HR", "FINANCE", "ADMIN")
+
+_ROUTING_STATS: Dict[str, Any] = {
+    "total_routed": 0,
+    "compound_count": 0,
+    "llm_fallback_count": 0,
+    "by_intent": {k: 0 for k, _ in _INTENT_LABELS},
+    "by_tier": {k: 0 for k, _ in _TIER_LABELS},
+}
+_RECENT_ROUTING_DECISIONS: Deque[Dict[str, Any]] = deque(maxlen=100)
+
+_REWRITE_STATS: Dict[str, Any] = {
+    "total_rewrites": 0,
+    "llm_rewrite_count": 0,
+    "deterministic_count": 0,
+    "coreference_resolved_count": 0,
+    "fallback_count": 0,
+    "total_latency_ms": 0.0,
+    "by_domain": {d: 0 for d in _DEFAULT_DOMAINS},
+}
+_RECENT_REWRITE_SAMPLES: Deque[Dict[str, Any]] = deque(maxlen=100)
+
+_SLOT_STATS: Dict[str, int] = {
+    "total_extractions": 0,
+    "complete_count": 0,
+    "clarification_count": 0,
+    "hybrid_llm_count": 0,
+    "multi_turn_merge_count": 0,
+}
+
+
+def _sanitize_cognitive_text(text: str, max_len: int = 160) -> str:
+    """Sanitizes credential patterns and truncates text to <= max_len characters."""
+    return _sanitize_audit_summary(text)[:max_len]
+
+
+def record_routing_event(
+    *,
+    intent: str,
+    tier: str,
+    routing_method: str,
+    confidence: float = 0.0,
+    secondary_intent: str = "",
+    fallback_triggered: bool = False,
+) -> None:
+    """Records a cognitive intent routing decision into thread-safe memory counters and ring buffer."""
+    norm_intent = (intent or "chat").strip().lower()
+    norm_tier = (tier or "tier_1_guard").strip().lower()
+    norm_secondary = (secondary_intent or "").strip().lower()
+    norm_method = _sanitize_cognitive_text(routing_method or "unknown", max_len=64)
+    raw_conf = float(confidence)
+    safe_conf = round(max(0.0, min(1.0, raw_conf if math.isfinite(raw_conf) else 0.0)), 3)
+
+    entry: Dict[str, Any] = {
+        "decision_id": f"RTE-{uuid.uuid4().hex[:8].upper()}",
+        "intent": norm_intent,
+        "secondary_intent": norm_secondary,
+        "routing_method": norm_method,
+        "tier": norm_tier,
+        "confidence": safe_conf,
+        "fallback_triggered": bool(fallback_triggered),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+    with _COGNITIVE_LOCK:
+        _ROUTING_STATS["total_routed"] += 1
+        if norm_secondary:
+            _ROUTING_STATS["compound_count"] += 1
+        if fallback_triggered:
+            _ROUTING_STATS["llm_fallback_count"] += 1
+        _ROUTING_STATS["by_intent"][norm_intent] = _ROUTING_STATS["by_intent"].get(norm_intent, 0) + 1
+        _ROUTING_STATS["by_tier"][norm_tier] = _ROUTING_STATS["by_tier"].get(norm_tier, 0) + 1
+        _RECENT_ROUTING_DECISIONS.append(entry)
+
+
+def record_rewrite_event(
+    *,
+    original_query: str,
+    standalone_query: str,
+    sub_queries: Optional[Sequence[str]] = None,
+    domains: Optional[Sequence[str]] = None,
+    rewrite_method: str = "deterministic",
+    coreference_resolved: bool = False,
+    fallback_triggered: bool = False,
+    latency_ms: float = 0.0,
+) -> None:
+    """Records a query rewriting diagnostic sample into thread-safe memory counters and ring buffer."""
+    norm_method = (rewrite_method or "deterministic").strip().lower()
+    raw_latency = float(latency_ms)
+    safe_latency = round(max(0.0, raw_latency if math.isfinite(raw_latency) else 0.0), 2)
+    safe_domains = [
+        str(d).strip().upper()
+        for d in (domains or [])
+        if str(d).strip()
+    ][:6]
+    safe_sub_queries = [
+        _sanitize_cognitive_text(str(sq), max_len=160)
+        for sq in (sub_queries or [])
+        if str(sq).strip()
+    ][:6]
+
+    sample: Dict[str, Any] = {
+        "rewrite_id": f"RWT-{uuid.uuid4().hex[:8].upper()}",
+        "original_query": _sanitize_cognitive_text(original_query, max_len=160),
+        "standalone_query": _sanitize_cognitive_text(standalone_query, max_len=160),
+        "sub_queries": safe_sub_queries,
+        "domains": safe_domains,
+        "rewrite_method": norm_method,
+        "coreference_resolved": bool(coreference_resolved),
+        "fallback_triggered": bool(fallback_triggered),
+        "latency_ms": safe_latency,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+    with _COGNITIVE_LOCK:
+        _REWRITE_STATS["total_rewrites"] += 1
+        if norm_method in ("llm", "llm_rewrite"):
+            _REWRITE_STATS["llm_rewrite_count"] += 1
+        else:
+            _REWRITE_STATS["deterministic_count"] += 1
+        if coreference_resolved:
+            _REWRITE_STATS["coreference_resolved_count"] += 1
+        if fallback_triggered:
+            _REWRITE_STATS["fallback_count"] += 1
+        _REWRITE_STATS["total_latency_ms"] += safe_latency
+        for dom in safe_domains:
+            _REWRITE_STATS["by_domain"][dom] = _REWRITE_STATS["by_domain"].get(dom, 0) + 1
+        _RECENT_REWRITE_SAMPLES.append(sample)
+
+
+def record_slot_extraction_event(
+    *,
+    is_complete: bool,
+    extraction_method: str = "deterministic",
+    merged_from_history: bool = False,
+) -> None:
+    """Records a semantic slot extraction outcome into thread-safe counters."""
+    norm_method = (extraction_method or "deterministic").strip().lower()
+    with _COGNITIVE_LOCK:
+        _SLOT_STATS["total_extractions"] += 1
+        if is_complete:
+            _SLOT_STATS["complete_count"] += 1
+        else:
+            _SLOT_STATS["clarification_count"] += 1
+        if norm_method == "hybrid_llm":
+            _SLOT_STATS["hybrid_llm_count"] += 1
+        if merged_from_history:
+            _SLOT_STATS["multi_turn_merge_count"] += 1
+
+
+def get_cognitive_telemetry_snapshot(limit: int = 20) -> Dict[str, Any]:
+    """Returns a thread-safe snapshot of routing, rewriting, and slot extraction telemetry."""
+    safe_limit = max(1, min(int(limit), 100))
+    with _COGNITIVE_LOCK:
+        total_routed = int(_ROUTING_STATS["total_routed"])
+        intent_counts: Dict[str, int] = dict(_ROUTING_STATS["by_intent"])
+        tier_counts: Dict[str, int] = dict(_ROUTING_STATS["by_tier"])
+
+        by_intent: List[Dict[str, Any]] = []
+        seen_intents = set()
+        for code, label in _INTENT_LABELS:
+            cnt = int(intent_counts.get(code, 0))
+            share = round((cnt / total_routed) * 100.0, 1) if total_routed > 0 else 0.0
+            by_intent.append({"intent": code, "label": label, "count": cnt, "share_percent": share})
+            seen_intents.add(code)
+        for code, cnt in intent_counts.items():
+            if code not in seen_intents and cnt > 0:
+                share = round((cnt / total_routed) * 100.0, 1) if total_routed > 0 else 0.0
+                by_intent.append({"intent": code, "label": code, "count": int(cnt), "share_percent": share})
+
+        by_tier: List[Dict[str, Any]] = []
+        seen_tiers = set()
+        for code, label in _TIER_LABELS:
+            cnt = int(tier_counts.get(code, 0))
+            share = round((cnt / total_routed) * 100.0, 1) if total_routed > 0 else 0.0
+            by_tier.append({"tier": code, "label": label, "count": cnt, "share_percent": share})
+            seen_tiers.add(code)
+        for code, cnt in tier_counts.items():
+            if code not in seen_tiers and cnt > 0:
+                share = round((cnt / total_routed) * 100.0, 1) if total_routed > 0 else 0.0
+                by_tier.append({"tier": code, "label": code, "count": int(cnt), "share_percent": share})
+
+        recent_decisions = list(_RECENT_ROUTING_DECISIONS)
+        recent_decisions.reverse()
+
+        total_rewrites = int(_REWRITE_STATS["total_rewrites"])
+        avg_latency = (
+            round(float(_REWRITE_STATS["total_latency_ms"]) / total_rewrites, 2)
+            if total_rewrites > 0
+            else 0.0
+        )
+        domain_counts: Dict[str, int] = dict(_REWRITE_STATS["by_domain"])
+        by_domain: List[Dict[str, Any]] = []
+        seen_domains = set()
+        for dom in _DEFAULT_DOMAINS:
+            by_domain.append({"domain": dom, "count": int(domain_counts.get(dom, 0))})
+            seen_domains.add(dom)
+        for dom, cnt in sorted(domain_counts.items()):
+            if dom not in seen_domains and cnt > 0:
+                by_domain.append({"domain": dom, "count": int(cnt)})
+
+        recent_samples = list(_RECENT_REWRITE_SAMPLES)
+        recent_samples.reverse()
+
+        return {
+            "routing": {
+                "total_routed": total_routed,
+                "compound_count": int(_ROUTING_STATS["compound_count"]),
+                "llm_fallback_count": int(_ROUTING_STATS["llm_fallback_count"]),
+                "by_intent": by_intent,
+                "by_tier": by_tier,
+                "recent_decisions": recent_decisions[:safe_limit],
+            },
+            "rewriting": {
+                "total_rewrites": total_rewrites,
+                "llm_rewrite_count": int(_REWRITE_STATS["llm_rewrite_count"]),
+                "deterministic_count": int(_REWRITE_STATS["deterministic_count"]),
+                "coreference_resolved_count": int(_REWRITE_STATS["coreference_resolved_count"]),
+                "fallback_count": int(_REWRITE_STATS["fallback_count"]),
+                "avg_latency_ms": avg_latency,
+                "by_domain": by_domain,
+                "recent_samples": recent_samples[:safe_limit],
+            },
+            "slots": {
+                "total_extractions": int(_SLOT_STATS["total_extractions"]),
+                "complete_count": int(_SLOT_STATS["complete_count"]),
+                "clarification_count": int(_SLOT_STATS["clarification_count"]),
+                "hybrid_llm_count": int(_SLOT_STATS["hybrid_llm_count"]),
+                "multi_turn_merge_count": int(_SLOT_STATS["multi_turn_merge_count"]),
+            },
+        }
+
+
+def clear_cognitive_telemetry() -> None:
+    """Resets in-memory cognitive routing, rewriting, and slot extraction telemetry (for test isolation)."""
+    with _COGNITIVE_LOCK:
+        _ROUTING_STATS["total_routed"] = 0
+        _ROUTING_STATS["compound_count"] = 0
+        _ROUTING_STATS["llm_fallback_count"] = 0
+        _ROUTING_STATS["by_intent"] = {k: 0 for k, _ in _INTENT_LABELS}
+        _ROUTING_STATS["by_tier"] = {k: 0 for k, _ in _TIER_LABELS}
+        _RECENT_ROUTING_DECISIONS.clear()
+
+        _REWRITE_STATS["total_rewrites"] = 0
+        _REWRITE_STATS["llm_rewrite_count"] = 0
+        _REWRITE_STATS["deterministic_count"] = 0
+        _REWRITE_STATS["coreference_resolved_count"] = 0
+        _REWRITE_STATS["fallback_count"] = 0
+        _REWRITE_STATS["total_latency_ms"] = 0.0
+        _REWRITE_STATS["by_domain"] = {d: 0 for d in _DEFAULT_DOMAINS}
+        _RECENT_REWRITE_SAMPLES.clear()
+
+        _SLOT_STATS["total_extractions"] = 0
+        _SLOT_STATS["complete_count"] = 0
+        _SLOT_STATS["clarification_count"] = 0
+        _SLOT_STATS["hybrid_llm_count"] = 0
+        _SLOT_STATS["multi_turn_merge_count"] = 0
+
+
 def get_metrics_payload() -> bytes:
     """Generate Prometheus metric scrape payload."""
     return generate_latest(REGISTRY)
@@ -209,6 +490,11 @@ __all__ = [
     "record_tool_audit",
     "get_recent_tool_audits",
     "clear_tool_audits",
+    "record_routing_event",
+    "record_rewrite_event",
+    "record_slot_extraction_event",
+    "get_cognitive_telemetry_snapshot",
+    "clear_cognitive_telemetry",
     "get_metrics_payload",
     "CONTENT_TYPE_LATEST",
 ]

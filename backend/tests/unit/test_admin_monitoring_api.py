@@ -19,24 +19,30 @@ from backend.core.llm_gateway import LLMGateway as ShadowLLMGateway
 from backend.core.llm_infra import LLMGateway as InfraLLMGateway
 from backend.core.metrics import (
     active_websocket_connections,
+    clear_cognitive_telemetry,
     clear_tool_audits,
     estimate_token_count,
     get_recent_tool_audits,
     record_cache_hit,
     record_cache_miss,
     record_llm_tokens,
+    record_rewrite_event,
     record_tool_execution,
     record_ttft,
     set_active_ws_connections,
 )
 from backend.db.session import Base, get_db
+from backend.graph.nodes.router_node import router_node
 from backend.main import app
 from backend.models.approval import Approval
 from backend.models.chat import ChatMessage, ChatSession
 from backend.models.ticket import Ticket
+from backend.rag.query_rewriter import QueryRewriter
 from backend.tools.registry import registry
+from backend.tools.slot_extractor import extract_slots_for_tool
 
 generate_node_module = importlib.import_module("backend.graph.nodes.generate_node")
+router_node_module = importlib.import_module("backend.graph.nodes.router_node")
 
 
 @pytest.fixture(autouse=True)
@@ -514,3 +520,115 @@ def test_orm_chat_approvals_p0_p4_sla_and_ingestion_tasks_aggregation(
     assert tiers["P4"]["has_tickets"] is False
     assert tiers["P4"]["total_count"] == 0
     assert tiers["P4"]["compliance_rate_percent"] == 100.0
+
+
+@pytest.mark.asyncio
+async def test_monitoring_cognitive_telemetry_aggregation_sanitization_and_rbac(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validates telemetry.cognitive aggregation across router/rewriter/slots, sanitization, and Admin RBAC."""
+
+    async def _redis_down() -> bool:
+        return False
+
+    monkeypatch.setattr(monitoring_api, "check_redis_health", _redis_down)
+    clear_cognitive_telemetry()
+
+    try:
+        # 1. Non-admin roles MUST be blocked with 401/403
+        assert client.get("/api/v1/admin/monitoring/overview").status_code == 401
+        for role_user in ("employee", "manager"):
+            headers = _auth_header_for(client, role_user)
+            assert client.get("/api/v1/admin/monitoring/overview", headers=headers).status_code == 403
+
+        # 2. Exercise real cognitive pipeline hooks (router, rewriter, slot extractor)
+        monkeypatch.setattr(settings, "ROUTER_LLM_ENABLED", False)
+        monkeypatch.setattr(settings, "QUERY_REWRITER_LLM_ENABLED", False)
+        monkeypatch.setattr(settings, "SLOT_EXTRACTOR_LLM_ENABLED", False)
+
+        # Router: Tier 1 directive (/kb), Tier 1 compound guard, and Tier 2 -> Tier 3 fallback
+        await router_node({"messages": [HumanMessage(content="/kb 差旅住宿报销标准")]})
+        await router_node({"messages": [HumanMessage(content="先查一下IT运维部备用机借用标准，再帮我查一下MacBook库存")]})
+
+        monkeypatch.setattr(settings, "ROUTER_LLM_ENABLED", True)
+        monkeypatch.setattr(settings, "ROUTER_LLM_TIMEOUT", 0.2)
+        monkeypatch.setattr(router_node_module, "get_router_llm", lambda timeout_sec=2.5: None)
+        await router_node({"messages": [HumanMessage(content="帮我构思三个项目启动会的标语")]})
+
+        # QueryRewriter: deterministic multi-turn coreference rewrite + sanitized long secret sample
+        rewriter = QueryRewriter()
+        await rewriter.arewrite(
+            "超了会怎样？",
+            history=[HumanMessage(content="临时借用备用机最长能借多久？")],
+        )
+        long_secret_query = (
+            "请核对凭证 sk-supersecretcognitivetoken123456 和 "
+            "Bearer eyJhbGciOiJIUzI1NiJ9.secretpayloadtoken123 " + ("制度细节" * 45)
+        )
+        record_rewrite_event(
+            original_query=long_secret_query,
+            standalone_query=long_secret_query,
+            sub_queries=[long_secret_query],
+            domains=["SECURITY"],
+            rewrite_method="llm",
+            coreference_resolved=False,
+            fallback_triggered=False,
+            latency_ms=12.5,
+        )
+
+        # SlotExtractor: complete deterministic extraction + incomplete clarification + multi-turn merge
+        await extract_slots_for_tool(
+            "query_inventory",
+            "查一下 MacBook Pro 库存",
+            [HumanMessage(content="查一下 MacBook Pro 库存")],
+        )
+        await extract_slots_for_tool(
+            "create_purchase",
+            "帮我采购显示器",
+            [HumanMessage(content="帮我采购显示器")],
+        )
+        await extract_slots_for_tool(
+            "create_purchase",
+            "单价 2000 元，买 2 台",
+            [
+                HumanMessage(content="帮我采购显示器"),
+                HumanMessage(content="单价 2000 元，买 2 台"),
+            ],
+            metadata={"pending_slot_tool": "create_purchase", "pending_slots": {"item_name": "显示器"}},
+        )
+
+        # 3. Admin GET /api/v1/admin/monitoring/overview verifies aggregated telemetry.cognitive
+        admin_headers = _auth_header_for(client, "admin")
+        resp = client.get("/api/v1/admin/monitoring/overview?audit_limit=10", headers=admin_headers)
+        assert resp.status_code == 200
+        raw_text = resp.text
+        assert "sk-supersecretcognitivetoken123456" not in raw_text
+        assert "eyJhbGciOiJIUzI1NiJ9.secretpayloadtoken123" not in raw_text
+
+        cognitive = resp.json()["data"]["telemetry"]["cognitive"]
+        routing = cognitive["routing"]
+        assert routing["total_routed"] == 3
+        assert routing["compound_count"] == 1
+        assert routing["llm_fallback_count"] == 1
+        assert len(routing["recent_decisions"]) == 3
+
+        rewriting = cognitive["rewriting"]
+        assert rewriting["total_rewrites"] == 2
+        assert rewriting["deterministic_count"] == 1
+        assert rewriting["llm_rewrite_count"] == 1
+        assert rewriting["coreference_resolved_count"] == 1
+        assert len(rewriting["recent_samples"]) == 2
+        latest_sample = rewriting["recent_samples"][0]
+        assert "[REDACTED]" in latest_sample["original_query"]
+        assert len(latest_sample["original_query"]) <= 160
+        assert len(latest_sample["standalone_query"]) <= 160
+        assert all(len(sq) <= 160 for sq in latest_sample["sub_queries"])
+
+        slots = cognitive["slots"]
+        assert slots["total_extractions"] == 3
+        assert slots["complete_count"] == 2
+        assert slots["clarification_count"] == 1
+        assert slots["multi_turn_merge_count"] == 1
+    finally:
+        clear_cognitive_telemetry()

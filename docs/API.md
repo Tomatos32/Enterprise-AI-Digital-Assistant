@@ -513,6 +513,12 @@
       "rag_top_k": 3,
       "rag_min_score": 0.16,
       "system_prompt_instruction": "",
+      "router_llm_enabled": true,
+      "router_llm_timeout": 2.5,
+      "query_rewriter_llm_enabled": true,
+      "query_rewriter_llm_timeout": 2.5,
+      "slot_extractor_llm_enabled": true,
+      "slot_extractor_llm_timeout": 2.5,
       "api_key_configured": false,
       "api_key_masked": "未配置",
       "jwt_secret_configured": true,
@@ -526,7 +532,7 @@
 
 #### 2.7.2 更新并热生效白名单参数
 - **接口路径**：`PUT /admin/config`
-- **功能描述**：校验并热更新白名单参数（同步刷新内存 `settings`、持久化非密钥字段至 `logs/runtime_config.json`，并立即作用于 `get_chat_llm`、`HybridRetriever`、`retrieve_node` 与 `generate_node`）。支持只写字段 `llm_api_key`（留空或含 `****` 掩码保留原值）与 `clear_api_key`。
+- **功能描述**：校验并热更新白名单参数（同步刷新内存 `settings`、持久化非密钥字段至 `logs/runtime_config.json`，并立即作用于 `get_chat_llm`、`HybridRetriever`、`retrieve_node`、`generate_node`、`router_node`、`QueryRewriter` 与 `slot_extractor`）。支持只写字段 `llm_api_key`（留空或含 `****` 掩码保留原值）与 `clear_api_key`。其中 `router_llm_timeout`、`query_rewriter_llm_timeout`、`slot_extractor_llm_timeout` 强制要求在 `[0.2, 15.0]` 秒合法范围内（越界或非有限浮点返回 `400/422`）。
 - **请求 Body (JSON)**:
   ```json
   {
@@ -538,7 +544,13 @@
     "llm_max_tokens": 4096,
     "rag_top_k": 5,
     "rag_min_score": 0.24,
-    "system_prompt_instruction": "涉及报销与采购金额时须列出审批层级。"
+    "system_prompt_instruction": "涉及报销与采购金额时须列出审批层级。",
+    "router_llm_enabled": true,
+    "router_llm_timeout": 2.5,
+    "query_rewriter_llm_enabled": true,
+    "query_rewriter_llm_timeout": 2.5,
+    "slot_extractor_llm_enabled": true,
+    "slot_extractor_llm_timeout": 2.5
   }
   ```
 
@@ -613,9 +625,9 @@
 
 #### 2.9.1 获取系统遥测、工具审计与 P0~P4 SLA 监控全景
 - **接口路径**：`GET /admin/monitoring/overview`
-- **功能描述**：聚合实时组件健康探针（关系型数据库、Redis、Qdrant 向量库、当前活跃大模型引擎）、Prometheus 运行态指标（活跃 WebSocket 连接、Celery 队列深度、按模型拆分的输入/输出 Token、Prompt Cache 命中率、非累积 5 档 TTFT 首字延迟分桶）、`ToolRegistry` 工具调用统计与近期脱敏审计流水，以及数据库会话/消息、审批闭环率与 P0~P4 企业服务工单 SLA 履约全景。
+- **功能描述**：聚合实时组件健康探针（关系型数据库、Redis、Qdrant 向量库、当前活跃大模型引擎）、Prometheus 运行态指标（活跃 WebSocket 连接、Celery 队列深度、按模型拆分的输入/输出 Token、Prompt Cache 命中率、非累积 5 档 TTFT 首字延迟分桶）、`ToolRegistry` 工具调用统计与近期脱敏审计流水、认知链路遥测 `telemetry.cognitive`（路由意图/层级分布与决策样本、多轮改写模式/降级统计与脱敏前后对照样本、语义抽槽完整率与多轮补槽计数，样本文本对 `sk-*`/`Bearer *` 凭据脱敏并截断至 `<= 160` 字符），以及数据库会话/消息、审批闭环率与 P0~P4 企业服务工单 SLA 履约全景。
 - **请求 Query 参数**:
-  - `audit_limit`: 整数（1~100，默认 `20`），控制返回的近期工具调用安全审计流水条数
+  - `audit_limit`: 整数（1~100，默认 `20`），控制返回的近期工具调用安全审计流水与认知决策/改写样本条数
   - `ticket_limit`: 整数（1~100，默认 `20`），控制返回的近期企业服务工单台账条数
 - **响应 Data**:
   ```json
@@ -646,7 +658,7 @@
           "status": "healthy",
           "client_mode": "local_storage",
           "collection_name": "enterprise_knowledge",
-          "points_count": 7365,
+          "points_count": 7403,
           "vector_size": 1024
         },
         "active_ingestion_tasks": 0
@@ -657,7 +669,34 @@
         "tokens": { "input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "by_model": [] },
         "prompt_cache": { "hits": 0, "misses": 0, "total_lookups": 0, "hit_rate_percent": 0.0 },
         "ttft": { "total_observations": 0, "avg_ms": 0.0, "buckets": [] },
-        "tools": { "registered_count": 6, "total_calls": 0, "success_calls": 0, "error_calls": 0, "success_rate_percent": 0.0, "by_tool": [], "recent_audits": [] }
+        "tools": { "registered_count": 6, "total_calls": 0, "success_calls": 0, "error_calls": 0, "success_rate_percent": 0.0, "by_tool": [], "recent_audits": [] },
+        "cognitive": {
+          "routing": {
+            "total_routed": 0,
+            "compound_count": 0,
+            "llm_fallback_count": 0,
+            "by_intent": [],
+            "by_tier": [],
+            "recent_decisions": []
+          },
+          "rewriting": {
+            "total_rewrites": 0,
+            "llm_rewrite_count": 0,
+            "deterministic_count": 0,
+            "coreference_resolved_count": 0,
+            "fallback_count": 0,
+            "avg_latency_ms": 0.0,
+            "by_domain": [],
+            "recent_samples": []
+          },
+          "slots": {
+            "total_extractions": 0,
+            "complete_count": 0,
+            "clarification_count": 0,
+            "hybrid_llm_count": 0,
+            "multi_turn_merge_count": 0
+          }
+        }
       },
       "business": {
         "chat": { "active_sessions": 0, "total_sessions": 0, "total_messages": 0, "user_messages": 0, "assistant_messages": 0, "avg_thinking_seconds": 0.0 },

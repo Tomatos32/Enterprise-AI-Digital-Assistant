@@ -412,6 +412,98 @@
               </div>
             </div>
           </section>
+
+          <!-- Card 2.5: Cognitive Routing & Query Rewriting Policy -->
+          <section class="rounded-xl bg-bg-card border border-border-card p-5 sm:p-6 space-y-5">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-bg-surface border border-border-subtle text-text-main flex items-center justify-center shrink-0">
+                  <GitBranch class="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 class="text-sm font-semibold text-text-main">认知路由与改写策略</h2>
+                  <p class="text-[11px] text-text-muted">独立控制内部非思考链路开关与超时回退阈值 (0.2s ~ 15.0s)</p>
+                </div>
+              </div>
+              <span class="px-2 py-0.5 rounded-md bg-bg-surface border border-border-subtle text-[10px] font-medium text-text-secondary shrink-0">
+                仅管理员可见
+              </span>
+            </div>
+
+            <div class="space-y-4">
+              <div
+                v-for="(item, idx) in cognitiveStrategies"
+                :key="item.key"
+                class="space-y-2.5"
+                :class="idx > 0 ? 'pt-4 border-t border-border-subtle' : ''"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="space-y-0.5 min-w-0">
+                    <div class="text-xs font-semibold text-text-main">{{ item.title }}</div>
+                    <p class="text-[11px] text-text-muted leading-relaxed">{{ item.description }}</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    :aria-checked="form[item.enabledKey]"
+                    @click="form[item.enabledKey] = !form[item.enabledKey]"
+                    class="btn-pressable shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border cursor-pointer"
+                    :class="
+                      form[item.enabledKey]
+                        ? 'bg-action-primary text-action-primary-fg border-action-primary'
+                        : 'bg-bg-surface text-text-secondary border-border-subtle hover:text-text-main'
+                    "
+                  >
+                    <Check v-if="form[item.enabledKey]" class="w-3 h-3" />
+                    <span>{{ form[item.enabledKey] ? '已启用 LLM' : '仅规则回退' }}</span>
+                  </button>
+                </div>
+
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between gap-2">
+                    <label :for="`slider-${item.key}-timeout`" class="text-[11px] font-medium text-text-secondary">
+                      超时降级阈值
+                    </label>
+                    <div class="flex items-center gap-1.5">
+                      <button
+                        v-for="sec in cognitiveTimeoutPresets"
+                        :key="`${item.key}-${sec}`"
+                        type="button"
+                        :disabled="!form[item.enabledKey]"
+                        @click="form[item.timeoutKey] = sec"
+                        class="btn-pressable px-2 py-0.5 rounded-md text-[10px] border font-mono tabular-nums cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        :class="
+                          Math.abs(Number(form[item.timeoutKey]) - sec) < 0.05
+                            ? 'bg-action-primary text-action-primary-fg border-action-primary font-semibold'
+                            : 'bg-bg-surface border-border-subtle text-text-secondary hover:text-text-main'
+                        "
+                      >
+                        {{ sec.toFixed(1) }}s
+                      </button>
+                      <span class="px-2 py-0.5 rounded-md bg-bg-surface border border-border-subtle text-xs font-mono tabular-nums font-semibold text-text-main min-w-[3.4rem] text-center">
+                        {{ Number(form[item.timeoutKey]).toFixed(1) }}s
+                      </span>
+                    </div>
+                  </div>
+                  <input
+                    :id="`slider-${item.key}-timeout`"
+                    v-model.number="form[item.timeoutKey]"
+                    type="range"
+                    min="0.2"
+                    max="15"
+                    step="0.1"
+                    :disabled="!form[item.enabledKey]"
+                    class="w-full accent-zinc-900 dark:accent-zinc-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  />
+                  <div class="flex justify-between text-[10px] text-text-muted tabular-nums">
+                    <span>0.2s 极速回退</span>
+                    <span>2.5s 默认基准</span>
+                    <span>15.0s 宽松等待</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
 
         <!-- Right Column (5 cols): LangGraph & RAG Policy + Probe Diagnostics -->
@@ -614,6 +706,7 @@ import {
   KeyRound,
   Gauge,
   Database,
+  GitBranch,
 } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/authStore';
 import FuseButton from '../components/ui/FuseButton.vue';
@@ -647,7 +740,45 @@ const form = reactive({
   rag_top_k: 3,
   rag_min_score: 0.16,
   system_prompt_instruction: '',
+  router_llm_enabled: true,
+  router_llm_timeout: 2.5,
+  query_rewriter_llm_enabled: true,
+  query_rewriter_llm_timeout: 2.5,
+  slot_extractor_llm_enabled: true,
+  slot_extractor_llm_timeout: 2.5,
 });
+
+const cognitiveTimeoutPresets = [1.5, 2.5, 5.0];
+
+const cognitiveStrategies = [
+  {
+    key: 'router',
+    title: '认知意图路由',
+    description: '多轮语境意图识别与复合流程判定，超时自动回退本地规则路由。',
+    enabledKey: 'router_llm_enabled',
+    timeoutKey: 'router_llm_timeout',
+  },
+  {
+    key: 'rewriter',
+    title: '语境查询改写',
+    description: '多轮指代消解与跨领域检索子查询改写，超时自动降级至确定性规则。',
+    enabledKey: 'query_rewriter_llm_enabled',
+    timeoutKey: 'query_rewriter_llm_timeout',
+  },
+  {
+    key: 'slots',
+    title: '语义槽位提取',
+    description: '业务工具与审批参数混合抽取，缺失必填参数时通过自然语言澄清。',
+    enabledKey: 'slot_extractor_llm_enabled',
+    timeoutKey: 'slot_extractor_llm_timeout',
+  },
+];
+
+const clampTimeout = (val, fallback = 2.5) => {
+  const num = Number(val);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.min(15.0, Math.max(0.2, Math.round(num * 10) / 10));
+};
 
 const metaInfo = reactive({
   api_key_configured: false,
@@ -727,6 +858,12 @@ const applyServerPayload = (data) => {
   form.rag_top_k = Number(data.rag_top_k ?? 3);
   form.rag_min_score = Number(data.rag_min_score ?? 0.16);
   form.system_prompt_instruction = data.system_prompt_instruction || '';
+  form.router_llm_enabled = data.router_llm_enabled !== undefined ? Boolean(data.router_llm_enabled) : true;
+  form.router_llm_timeout = clampTimeout(data.router_llm_timeout ?? 2.5, 2.5);
+  form.query_rewriter_llm_enabled = data.query_rewriter_llm_enabled !== undefined ? Boolean(data.query_rewriter_llm_enabled) : true;
+  form.query_rewriter_llm_timeout = clampTimeout(data.query_rewriter_llm_timeout ?? 2.5, 2.5);
+  form.slot_extractor_llm_enabled = data.slot_extractor_llm_enabled !== undefined ? Boolean(data.slot_extractor_llm_enabled) : true;
+  form.slot_extractor_llm_timeout = clampTimeout(data.slot_extractor_llm_timeout ?? 2.5, 2.5);
 
   metaInfo.api_key_configured = Boolean(data.api_key_configured);
   metaInfo.api_key_masked = data.api_key_masked || '未配置';
@@ -824,6 +961,12 @@ const handleSave = async () => {
       rag_top_k: Number(form.rag_top_k),
       rag_min_score: Number(form.rag_min_score),
       system_prompt_instruction: form.system_prompt_instruction,
+      router_llm_enabled: Boolean(form.router_llm_enabled),
+      router_llm_timeout: clampTimeout(form.router_llm_timeout, 2.5),
+      query_rewriter_llm_enabled: Boolean(form.query_rewriter_llm_enabled),
+      query_rewriter_llm_timeout: clampTimeout(form.query_rewriter_llm_timeout, 2.5),
+      slot_extractor_llm_enabled: Boolean(form.slot_extractor_llm_enabled),
+      slot_extractor_llm_timeout: clampTimeout(form.slot_extractor_llm_timeout, 2.5),
       clear_api_key: clearApiKey.value,
     };
 

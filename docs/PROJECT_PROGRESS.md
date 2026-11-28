@@ -2,10 +2,10 @@
 # Project Progress, RBAC & Admin Control Plane Roadmap
 
 > **项目名称**：基于 LangGraph + RAG + 混合检索的企业级 AI 数字员工平台  
-> **当前运行模式**：**PRAGMATIC REALIZATION & COGNITIVE ROUTING MODE (Sprint R-05 管理员控制面全量闭环 · 推进 Sprint R-06 认知意图路由与多轮语境改写演进)**  
-> **模式说明**：已完成底层数据库持久化、真实向量底座、Ollama/OpenAI 流式推理、Vuebits 原生交互与 RBAC 三大管理员控制面；当前进入「多轮认知路由、语境改写与语义槽位提取」专项升级阶段  
+> **当前运行模式**：**PRAGMATIC REALIZATION & COGNITIVE ROUTING MODE (Sprint R-05 管理员控制面与 Sprint R-06 认知意图路由专项已 100% 全量闭环)**  
+> **模式说明**：已完成底层数据库持久化、真实向量底座、Ollama/OpenAI 流式推理、Vuebits 原生交互、RBAC 三大管理员控制面，以及 Sprint R-06「多轮认知路由、语境改写、语义槽位提取、黄金评测与全链路可观测」全量闭环  
 > **基准规范**：[AGENTS.md](file:///g:/LLM_Learning/product/AGENTS.md) · [docs/FRONTEND_PROGRESS.md](file:///g:/LLM_Learning/product/docs/FRONTEND_PROGRESS.md) · [docs/MOCK_INVENTORY.md](file:///g:/LLM_Learning/product/docs/MOCK_INVENTORY.md) · [Runtime.md](file:///g:/LLM_Learning/product/docs/harness/Runtime.md)  
-> **系统最后更新**：2026-11-26
+> **系统最后更新**：2026-11-28
 
 ---
 
@@ -17,18 +17,18 @@
 【前端现代交互工作台】     ████████████████████████████████ 100% (Sprint F-01~F-09 + Issue-0062 中性单色重塑)
 【真实化链路 R-01~R-04】   ████████████████████████████████ 100% (Issue-0038~0055 会话/向量/RAG/CoT全闭环)
 【RBAC 基座与管理员后台】  ████████████████████████████████ 100% (Issue-0056~0059 全部闭环)
-【认知路由与改写 R-06】    ████████████████████████░░░░░░░░  75% (Issue-0060~0062 闭环 · Issue-0063 待推)
+【认知路由与改写 R-06】    ████████████████████████████████ 100% (Issue-0060~0063 全部闭环 · Sprint R-06 Closed)
 ====================================================================================================
 ```
 
-| 治理维度 | 当前物理基线状态 (2026-11-24 实测核验) | 现存业务差距与下阶段决策 |
+| 治理维度 | 当前物理基线状态 (2026-11-28 实测核验) | 现存业务差距与下阶段决策 |
 | :--- | :--- | :--- |
-| **数据库与会话持久化** | 🟢 **已全量闭环 (`Issue-0038`, `Issue-0054`, `Issue-0056`)**：`chat_sessions` 与 `chat_messages`（含 `thought`、`duration_seconds`、`thought_steps`）已持久化，且已按 JWT Bearer Token / WS Token 实现 `employee`/`manager`/`admin` 会话归属隔离 | 🟢 `chatStore.js` 与 WebSocket 已彻底移除 `u_vue3_user`，按当前认证用户名严格隔离 |
-| **认知路由与语境改写** | **P0/P1/P2 已三闭环 (`Issue-0060`, `Issue-0061`, `Issue-0062`)**：三层混合认知意图路由 + 三段式多轮语境改写/跨领域软加权检索 + 双层混合语义槽位提取引擎（`slot_extractor.py`、策略 5.1A/5.2A、缺参零写库多轮补槽与无环 `tool -> approval` 升级）+ 前端去硬编码与全站中性极简重塑已全部交付 | 下一阶段推进收尾项 `Issue-0063`（黄金评测集、可观测联动与历史 2 项遗留测试清零） |
-| **向量库与真实 RAG** | 🟢 **已全量闭环 (`Issue-0039`, `Issue-0040`, `Issue-0048~0051`, `Issue-0058`, `Issue-0061`)**：`fastembed` / BGE / LocalSemantic + Qdrant UUID5 幂等入库 + 混合多轮 `QueryRewriter` + 跨领域软加权 `Reranker` + 启动自动同步 `backend/data/` 上传文档至内存 BM25 + 6 个 `ToolRegistry` 函数全量注册；已上线管理员知识库运维与异步任务中心 (`/admin/tasks`) | 🟢 `knowledge.py` 与 `tasks.py` 已收紧写操作与任务控制面至 `admin`，服务重启后上传文档同时保留于 Qdrant 向量与内存 BM25，全量同步杜绝重复切片 |
-| **大模型推理与思考流** | 🟢 **已全量闭环 (`Issue-0043~0053`, `Issue-0057`, `Issue-0059`)**：`NativeOllamaChatModel` + `EnterpriseChatOpenAI` + `LLM_THINKING` 思考开关，支持 Vue Bits `<ThoughtLine />` 真实推理流，并已落地 `/api/v1/admin/config` 热调配台与全链路 TTFT/Token/Cache/Tool 遥测采集 | 🟢 管理员可通过 `/admin/settings` 动态调配推理参数与行为规范，并通过 `/admin/monitoring` 实时观测首字响应分桶、Token 拆分与缓存命中率 |
-| **前端工作台与双主题** | 🟢 **Sprint R-05 身份基座与三大管理员控制台全量就绪 (`Issue-0056~0059`)**：已上线 `authStore`、`/login`、角色切换器、`router.beforeEach` 守卫、`/admin/settings` 模型配置中心、`/admin/tasks` 知识库运维中心、`/admin/monitoring` 系统监控与 SLA 看板，以及分层 `<Settings />` 偏好弹层 | 🟢 原管理员预留插槽已 100% 升级为真实功能页面，侧边栏与移动端抽屉按 `employee`/`manager`/`admin` 严格隔离展示 |
-| **工程质量与测试基线** | 🟢 **静态与构建全绿**：`ruff check backend/ benchmark/` 0 错误；Issue-0061 涉及的 9 个后端与单测文件 `mypy` (`--follow-imports=skip`) 0 错误；`vite build` 7,920 模块 0 错误；`test_contextual_query_rewriter.py` 10/10 全通，15 套件核心联测 87/87 全通，全量 `pytest` 实测 `301 passed, 2 failed`；Mock 台账已更新至 `docs/MOCK_INVENTORY.md` (V2.4) | 🟡 存留 2 项既有历史测试（`test_graph_unittest.py` 旧 Mock 文案断言、`test_thought_persistence.py` 受前置 `test_mock_systems.py` 未清 `dependency_overrides` 影响，单独复跑 `1 passed`），已排期于 `Issue-0063` 统一清零；全仓 `mypy` 其余 12 个未改历史模块存留 29 项既有静态类型待治理 |
+| **数据库与会话持久化** | **[DONE] 已全量闭环 (`Issue-0038`, `Issue-0054`, `Issue-0056`)**：`chat_sessions` 与 `chat_messages`（含 `thought`、`duration_seconds`、`thought_steps`）已持久化，且已按 JWT Bearer Token / WS Token 实现 `employee`/`manager`/`admin` 会话归属隔离 | `[READY]` `chatStore.js` 与 WebSocket 已彻底移除 `u_vue3_user`，按当前认证用户名严格隔离 |
+| **认知路由与语境改写** | **[DONE] Sprint R-06 全量闭环 (`Issue-0060` ~ `Issue-0063`)**：三层混合认知意图路由 + 三段式多轮语境改写/跨领域软加权检索 + 双层混合语义槽位提取引擎（`slot_extractor.py`、策略 5.1A/5.2A、缺参零写库多轮补槽与无环 `tool -> approval` 升级）+ 黄金评测与对抗矩阵 (`test_intent_routing_matrix.py`) + `runtime_config` / `monitoring` 认知策略热配置与 `telemetry.cognitive` 诊断联动已全部交付 (`Issue-0063` ReviewScore `95/100 APPROVED`) | `[READY]` 仅管理员可配置/观测认知策略与脱敏样本，普通员工视图保持零黑话与零泄露 |
+| **向量库与真实 RAG** | **[DONE] 已全量闭环 (`Issue-0039`, `Issue-0040`, `Issue-0048~0051`, `Issue-0058`, `Issue-0061`)**：`fastembed` / BGE / LocalSemantic + Qdrant UUID5 幂等入库（`enterprise_knowledge` `7403` 点，dim=1024）+ 混合多轮 `QueryRewriter` + 跨领域软加权 `Reranker` + 启动自动同步 `backend/data/` 上传文档至内存 BM25 + 6 个 `ToolRegistry` 函数全量注册；已上线管理员知识库运维与异步任务中心 (`/admin/tasks`) | `[READY]` `knowledge.py` 与 `tasks.py` 已收紧写操作与任务控制面至 `admin`，服务重启后上传文档同时保留于 Qdrant 向量与内存 BM25，全量同步杜绝重复切片 |
+| **大模型推理与思考流** | **[DONE] 已全量闭环 (`Issue-0043~0053`, `Issue-0057`, `Issue-0059`, `Issue-0063`)**：`NativeOllamaChatModel` + `EnterpriseChatOpenAI` + `LLM_THINKING` 思考开关，支持 Vue Bits `<ThoughtLine />` 真实推理流，并已落地 `/api/v1/admin/config` 热调配台（含 6 项认知路由/改写/抽槽开关与 `[0.2, 15.0]` 秒超时控制）与全链路 TTFT/Token/Cache/Tool/`telemetry.cognitive` 遥测采集 | `[READY]` 管理员可通过 `/admin/settings` 动态调配推理与认知链路参数，并通过 `/admin/monitoring` 实时观测首字响应分桶、Token 拆分、缓存命中率与认知路由/改写诊断 |
+| **前端工作台与双主题** | **[DONE] Sprint R-05 & R-06 控制面全量就绪 (`Issue-0056~0063`)**：已上线 `authStore`、`/login`、角色切换器、`router.beforeEach` 守卫、`/admin/settings`（含认知策略配置）、`/admin/tasks`、`/admin/monitoring`（含认知诊断看板），全站中性单色重塑与 `verify_frontend_dejargon.py` 50 文件 0 违规 | `[READY]` 侧边栏与移动端抽屉按 `employee`/`manager`/`admin` 严格隔离展示，零系统 Emoji |
+| **工程质量与测试基线** | **[DONE] 全仓测试与静态门禁 100% 全绿**：`ruff check backend/ benchmark/` 0 错误；`Issue-0063` 涉及的 14 个后端与单测文件 `mypy` (`--follow-imports=skip`) 0 错误；`vite build` `7,923` 模块 0 错误；`verify_frontend_dejargon.py` 50 文件 0 违规；定向套件 87/87 全通，**全仓 `pytest backend/tests/` 实测 `389 passed, 0 failed`（历史 2 项遗留失败已清零）**；OpenAPI 38 paths `IN_SYNC=True`；Mock 台账 `docs/MOCK_INVENTORY.md` (V2.4) | `[DONE]` Sprint R-06 已正式闭环；全仓 `mypy` 其余 12 个未改历史模块存留 29 项既有静态类型待后续按需治理 |
 
 ---
 

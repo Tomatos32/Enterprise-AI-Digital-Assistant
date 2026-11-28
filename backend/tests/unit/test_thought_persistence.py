@@ -1,11 +1,54 @@
 """Unit Tests for Deep Thinking CoT & ThoughtLine Database Persistence."""
 
+from pathlib import Path
+import sys
+from typing import Generator
+
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
+import backend.db.session as db_session
+from backend.db.session import Base, SessionLocal, get_db
 from backend.main import app
 from backend.models.chat import ChatMessage, ChatSession
-from backend.db.session import SessionLocal
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def isolated_thought_persistence_db(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[None, None, None]:
+    """Isolates SQLite DB and restores FastAPI dependency_overrides across runs."""
+    db_file = tmp_path / "thought_persistence_test.db"
+    test_engine = create_engine(
+        f"sqlite:///{db_file}",
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(bind=test_engine)
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+    def _override_get_db() -> Generator[Session, None, None]:
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    orig_overrides = dict(app.dependency_overrides)
+    app.dependency_overrides[get_db] = _override_get_db
+    monkeypatch.setattr(db_session, "SessionLocal", TestingSessionLocal)
+    monkeypatch.setattr(sys.modules[__name__], "SessionLocal", TestingSessionLocal)
+
+    try:
+        yield
+    finally:
+        app.dependency_overrides.clear()
+        app.dependency_overrides.update(orig_overrides)
+        test_engine.dispose()
 
 
 def test_thought_trace_persistence_and_restoration():

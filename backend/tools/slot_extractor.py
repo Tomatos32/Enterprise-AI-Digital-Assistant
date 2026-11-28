@@ -29,6 +29,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from backend.adapters.factory import get_hr_adapter
 from backend.core.config import settings
 from backend.core.llm import get_slot_extractor_llm
+from backend.core.metrics import record_slot_extraction_event
 
 logger = logging.getLogger(__name__)
 
@@ -1869,28 +1870,31 @@ async def extract_slots_for_tool(
         extraction_method="deterministic",
         merged_from_history=merged_from_history,
     )
-    if det_result.is_complete:
-        return det_result
 
+    final_result = det_result
     # Step 2: Lightweight non-thinking LLM fallback when required slots are missing
-    if not getattr(settings, "SLOT_EXTRACTOR_LLM_ENABLED", True):
-        return det_result
+    if not det_result.is_complete and getattr(settings, "SLOT_EXTRACTOR_LLM_ENABLED", True):
+        timeout_sec = max(0.05, float(getattr(settings, "SLOT_EXTRACTOR_LLM_TIMEOUT", 2.5)))
+        prompt_messages = _build_llm_slot_messages(tool_name, turns)
+        raw_llm = await _invoke_slot_extractor_llm(prompt_messages, timeout_sec=timeout_sec)
+        if raw_llm:
+            parsed_llm = _parse_llm_slot_json(raw_llm)
+            if parsed_llm:
+                merged_slots = _merge_llm_slots_safely(tool_name, det_slots, parsed_llm, turns)
+                final_result = _validate_and_build_clarification(
+                    tool_name=tool_name,
+                    raw_slots=merged_slots,
+                    metadata=meta,
+                    extraction_method="hybrid_llm",
+                    merged_from_history=merged_from_history,
+                )
 
-    timeout_sec = max(0.05, float(getattr(settings, "SLOT_EXTRACTOR_LLM_TIMEOUT", 2.5)))
-    prompt_messages = _build_llm_slot_messages(tool_name, turns)
-    raw_llm = await _invoke_slot_extractor_llm(prompt_messages, timeout_sec=timeout_sec)
-    if not raw_llm:
-        return det_result
-
-    parsed_llm = _parse_llm_slot_json(raw_llm)
-    if not parsed_llm:
-        return det_result
-
-    merged_slots = _merge_llm_slots_safely(tool_name, det_slots, parsed_llm, turns)
-    return _validate_and_build_clarification(
-        tool_name=tool_name,
-        raw_slots=merged_slots,
-        metadata=meta,
-        extraction_method="hybrid_llm",
-        merged_from_history=merged_from_history,
-    )
+    try:
+        record_slot_extraction_event(
+            is_complete=final_result.is_complete,
+            extraction_method=final_result.extraction_method,
+            merged_from_history=final_result.merged_from_history,
+        )
+    except Exception as exc:
+        logger.debug("[SlotExtractor] Cognitive telemetry hook skipped: %s", exc)
+    return final_result

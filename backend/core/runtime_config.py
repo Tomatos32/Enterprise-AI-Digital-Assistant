@@ -29,6 +29,12 @@ WHITELIST_KEYS = (
     "rag_top_k",
     "rag_min_score",
     "system_prompt_instruction",
+    "router_llm_enabled",
+    "router_llm_timeout",
+    "query_rewriter_llm_enabled",
+    "query_rewriter_llm_timeout",
+    "slot_extractor_llm_enabled",
+    "slot_extractor_llm_timeout",
 )
 
 # Persisted under gitignored <repo_root>/logs/ directory regardless of working directory
@@ -49,6 +55,12 @@ _BASELINE: Dict[str, Any] = {
     "rag_top_k": 3,
     "rag_min_score": 0.16,
     "system_prompt_instruction": "",
+    "router_llm_enabled": bool(getattr(settings, "ROUTER_LLM_ENABLED", True)),
+    "router_llm_timeout": float(getattr(settings, "ROUTER_LLM_TIMEOUT", 2.5)),
+    "query_rewriter_llm_enabled": bool(getattr(settings, "QUERY_REWRITER_LLM_ENABLED", True)),
+    "query_rewriter_llm_timeout": float(getattr(settings, "QUERY_REWRITER_LLM_TIMEOUT", 2.5)),
+    "slot_extractor_llm_enabled": bool(getattr(settings, "SLOT_EXTRACTOR_LLM_ENABLED", True)),
+    "slot_extractor_llm_timeout": float(getattr(settings, "SLOT_EXTRACTOR_LLM_TIMEOUT", 2.5)),
 }
 _BASELINE_API_KEY: Optional[str] = settings.LLM_API_KEY
 
@@ -65,6 +77,12 @@ class RuntimeConfigValues(BaseModel):
     rag_top_k: int = Field(default=3, ge=1, le=20)
     rag_min_score: float = Field(default=0.16, ge=0.0, le=1.0)
     system_prompt_instruction: str = Field(default="", max_length=2000)
+    router_llm_enabled: bool = True
+    router_llm_timeout: float = Field(default=2.5, ge=0.2, le=15.0, allow_inf_nan=False)
+    query_rewriter_llm_enabled: bool = True
+    query_rewriter_llm_timeout: float = Field(default=2.5, ge=0.2, le=15.0, allow_inf_nan=False)
+    slot_extractor_llm_enabled: bool = True
+    slot_extractor_llm_timeout: float = Field(default=2.5, ge=0.2, le=15.0, allow_inf_nan=False)
 
     @field_validator("llm_api_base")
     @classmethod
@@ -121,6 +139,12 @@ def _sync_to_settings(cfg: RuntimeConfigValues) -> None:
     settings.LLM_THINKING = cfg.llm_thinking
     settings.LLM_TEMPERATURE = cfg.llm_temperature
     settings.LLM_MAX_TOKENS = cfg.llm_max_tokens
+    settings.ROUTER_LLM_ENABLED = cfg.router_llm_enabled
+    settings.ROUTER_LLM_TIMEOUT = cfg.router_llm_timeout
+    settings.QUERY_REWRITER_LLM_ENABLED = cfg.query_rewriter_llm_enabled
+    settings.QUERY_REWRITER_LLM_TIMEOUT = cfg.query_rewriter_llm_timeout
+    settings.SLOT_EXTRACTOR_LLM_ENABLED = cfg.slot_extractor_llm_enabled
+    settings.SLOT_EXTRACTOR_LLM_TIMEOUT = cfg.slot_extractor_llm_timeout
 
     _META.rag_top_k = cfg.rag_top_k
     _META.rag_min_score = cfg.rag_min_score
@@ -184,6 +208,12 @@ def get_runtime_config() -> RuntimeConfigValues:
             rag_top_k=int(_META.rag_top_k),
             rag_min_score=float(_META.rag_min_score),
             system_prompt_instruction=_META.system_prompt_instruction,
+            router_llm_enabled=bool(getattr(settings, "ROUTER_LLM_ENABLED", True)),
+            router_llm_timeout=float(getattr(settings, "ROUTER_LLM_TIMEOUT", 2.5)),
+            query_rewriter_llm_enabled=bool(getattr(settings, "QUERY_REWRITER_LLM_ENABLED", True)),
+            query_rewriter_llm_timeout=float(getattr(settings, "QUERY_REWRITER_LLM_TIMEOUT", 2.5)),
+            slot_extractor_llm_enabled=bool(getattr(settings, "SLOT_EXTRACTOR_LLM_ENABLED", True)),
+            slot_extractor_llm_timeout=float(getattr(settings, "SLOT_EXTRACTOR_LLM_TIMEOUT", 2.5)),
         )
 
 

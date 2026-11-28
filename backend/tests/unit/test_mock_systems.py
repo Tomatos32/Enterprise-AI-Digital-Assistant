@@ -36,13 +36,18 @@ def override_get_db():
 @pytest.fixture(autouse=True)
 def setup_test_database():
     """Creates database tables and seeds initial data before each test."""
+    orig_overrides = dict(app.dependency_overrides)
     Base.metadata.create_all(bind=engine)
     app.dependency_overrides[get_db] = override_get_db
     db = TestingSessionLocal()
     seed_initial_data(db)
-    yield db
-    db.close()
-    Base.metadata.drop_all(bind=engine)
+    try:
+        yield db
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+        app.dependency_overrides.clear()
+        app.dependency_overrides.update(orig_overrides)
 
 
 client = TestClient(app)

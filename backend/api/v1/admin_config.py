@@ -79,6 +79,39 @@ class AdminConfigUpdateRequest(BaseModel):
         max_length=2000,
         description="附加给企业数字员工的系统级行为规范指令",
     )
+    router_llm_enabled: Optional[bool] = Field(
+        default=None,
+        description="是否启用轻量非思考认知路由分类器",
+    )
+    router_llm_timeout: Optional[float] = Field(
+        default=None,
+        ge=0.2,
+        le=15.0,
+        allow_inf_nan=False,
+        description="认知路由分类器超时上限（秒）[0.2, 15.0]",
+    )
+    query_rewriter_llm_enabled: Optional[bool] = Field(
+        default=None,
+        description="是否启用轻量非思考多轮查询改写器",
+    )
+    query_rewriter_llm_timeout: Optional[float] = Field(
+        default=None,
+        ge=0.2,
+        le=15.0,
+        allow_inf_nan=False,
+        description="多轮查询改写器超时上限（秒）[0.2, 15.0]",
+    )
+    slot_extractor_llm_enabled: Optional[bool] = Field(
+        default=None,
+        description="是否启用混合语义槽位补全分类器",
+    )
+    slot_extractor_llm_timeout: Optional[float] = Field(
+        default=None,
+        ge=0.2,
+        le=15.0,
+        allow_inf_nan=False,
+        description="混合语义槽位补全超时上限（秒）[0.2, 15.0]",
+    )
     # Write-only secret update channel; NEVER returned in plaintext
     llm_api_key: Optional[str] = Field(
         default=None,

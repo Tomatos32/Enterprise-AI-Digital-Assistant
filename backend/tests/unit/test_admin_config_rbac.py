@@ -458,3 +458,91 @@ async def test_retrieve_node_and_knowledge_tool_read_runtime_config(client, monk
     assert tool_explicit["count"] == 1
     assert captured_calls[-1]["top_k"] == 2
 
+
+def test_admin_config_cognitive_fields_hot_update_bounds_and_rbac(
+    client,
+    isolated_runtime_config,
+):
+    """Validates RBAC, hot-update, out-of-range timeout rejection, and reset for 6 cognitive fields."""
+    cognitive_fields = {
+        "router_llm_enabled": False,
+        "router_llm_timeout": 4.2,
+        "query_rewriter_llm_enabled": False,
+        "query_rewriter_llm_timeout": 1.5,
+        "slot_extractor_llm_enabled": False,
+        "slot_extractor_llm_timeout": 6.0,
+    }
+
+    # 1. Unauthenticated -> 401; employee & manager -> 403
+    unauth = client.put("/api/v1/admin/config", json=cognitive_fields)
+    assert unauth.status_code == 401
+    for role_user in ("employee", "manager"):
+        headers = _auth_header_for(client, role_user)
+        forbidden = client.put("/api/v1/admin/config", json=cognitive_fields, headers=headers)
+        assert forbidden.status_code == 403
+
+    admin_headers = _auth_header_for(client, "admin")
+
+    # 2. Default baseline values returned by GET
+    initial_data = client.get("/api/v1/admin/config", headers=admin_headers).json()["data"]
+    for key in cognitive_fields:
+        assert key in initial_data
+    assert initial_data["router_llm_enabled"] is True
+    assert initial_data["router_llm_timeout"] == 2.5
+
+    # 3. Hot-update all 6 cognitive fields and verify live Settings propagation + JSON persistence
+    put_resp = client.put("/api/v1/admin/config", json=cognitive_fields, headers=admin_headers)
+    assert put_resp.status_code == 200
+    put_data = put_resp.json()["data"]
+    for key, val in cognitive_fields.items():
+        assert put_data[key] == val
+
+    assert settings.ROUTER_LLM_ENABLED is False
+    assert settings.ROUTER_LLM_TIMEOUT == 4.2
+    assert settings.QUERY_REWRITER_LLM_ENABLED is False
+    assert settings.QUERY_REWRITER_LLM_TIMEOUT == 1.5
+    assert settings.SLOT_EXTRACTOR_LLM_ENABLED is False
+    assert settings.SLOT_EXTRACTOR_LLM_TIMEOUT == 6.0
+
+    persisted = json.loads(isolated_runtime_config.read_text(encoding="utf-8"))
+    for key, val in cognitive_fields.items():
+        assert persisted[key] == val
+
+    # 4. Boundary valid timeouts [0.2, 15.0] succeed
+    boundary_ok = client.put(
+        "/api/v1/admin/config",
+        json={
+            "router_llm_timeout": 0.2,
+            "query_rewriter_llm_timeout": 15.0,
+            "slot_extractor_llm_timeout": 0.2,
+        },
+        headers=admin_headers,
+    )
+    assert boundary_ok.status_code == 200
+
+    # 5. Out-of-range timeouts (< 0.2 or > 15.0) MUST be rejected with 400/422
+    invalid_timeout_payloads = [
+        {"router_llm_timeout": 0.19},
+        {"router_llm_timeout": 0.0},
+        {"router_llm_timeout": -1.0},
+        {"router_llm_timeout": 15.01},
+        {"query_rewriter_llm_timeout": 0.1},
+        {"query_rewriter_llm_timeout": 20.0},
+        {"slot_extractor_llm_timeout": 0.15},
+        {"slot_extractor_llm_timeout": 99.0},
+    ]
+    for bad_payload in invalid_timeout_payloads:
+        bad_resp = client.put("/api/v1/admin/config", json=bad_payload, headers=admin_headers)
+        assert bad_resp.status_code in (400, 422), f"Expected rejection for {bad_payload}"
+
+    # 6. Reset restores all 6 cognitive defaults
+    reset_resp = client.post("/api/v1/admin/config/reset", headers=admin_headers)
+    assert reset_resp.status_code == 200
+    reset_data = reset_resp.json()["data"]
+    assert reset_data["router_llm_enabled"] is True
+    assert reset_data["router_llm_timeout"] == 2.5
+    assert reset_data["query_rewriter_llm_enabled"] is True
+    assert reset_data["query_rewriter_llm_timeout"] == 2.5
+    assert reset_data["slot_extractor_llm_enabled"] is True
+    assert reset_data["slot_extractor_llm_timeout"] == 2.5
+

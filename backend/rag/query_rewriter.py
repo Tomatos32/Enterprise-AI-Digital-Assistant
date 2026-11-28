@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 import re
+import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -17,6 +18,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 
 from backend.core.config import settings
 from backend.core.llm import get_rewriter_llm
+from backend.core.metrics import record_rewrite_event
 
 logger = logging.getLogger(__name__)
 
@@ -1114,12 +1116,38 @@ class QueryRewriter:
         deduped = _dedupe_preserve_order(sub_queries)
         return deduped[:MAX_SUB_QUERIES] if deduped else [cleaned]
 
+    def _record_telemetry_event(
+        self,
+        result: RewrittenQuery,
+        *,
+        started: float,
+        fallback_triggered: bool,
+    ) -> RewrittenQuery:
+        """Records query rewriting diagnostics once per public rewrite/arewrite call."""
+        elapsed_ms = max(0.0, (time.perf_counter() - started) * 1000.0)
+        try:
+            record_rewrite_event(
+                original_query=result.original_query,
+                standalone_query=result.standalone_query,
+                sub_queries=result.sub_queries,
+                domains=result.domains,
+                rewrite_method=result.rewrite_method,
+                coreference_resolved=result.coreference_resolved,
+                fallback_triggered=fallback_triggered,
+                latency_ms=elapsed_ms,
+            )
+        except Exception as exc:
+            logger.debug("[QueryRewriter] Cognitive telemetry hook skipped: %s", exc)
+        return result
+
     def rewrite(
         self,
         query: str,
         history: Optional[List[BaseMessage]] = None,
+        _record_telemetry: bool = True,
     ) -> RewrittenQuery:
         """Executes synchronous deterministic multi-turn query rewriting and multi-domain decomposition."""
+        started = time.perf_counter()
         standalone_q, coref_resolved, anchor_topic = self._resolve_context_and_ellipsis(query, history)
         domains, domain_weights = self._score_domains(standalone_q)
         primary_domain = domains[0] if domains else None
@@ -1134,7 +1162,7 @@ class QueryRewriter:
             sub_queries,
         )
 
-        return RewrittenQuery(
+        result = RewrittenQuery(
             original_query=query,
             standalone_query=standalone_q,
             sub_queries=sub_queries,
@@ -1146,6 +1174,9 @@ class QueryRewriter:
             coreference_resolved=coref_resolved,
             anchor_topic=anchor_topic,
         )
+        if _record_telemetry:
+            return self._record_telemetry_event(result, started=started, fallback_triggered=False)
+        return result
 
     def _should_use_llm(
         self,
@@ -1236,12 +1267,13 @@ class QueryRewriter:
         data_source: Optional[str] = None,
     ) -> RewrittenQuery:
         """Executes hybrid async query rewriting: Rule pre-processing -> Optional Non-Thinking LLM -> Deterministic Fallback."""
-        # Stage 1 & 3 baseline: always compute fast deterministic rewrite first (0ms)
-        det_result = self.rewrite(query=query, history=history)
+        started = time.perf_counter()
+        # Stage 1 & 3 baseline: always compute fast deterministic rewrite first without double-counting telemetry
+        det_result = self.rewrite(query=query, history=history, _record_telemetry=False)
         recent_history = _extract_recent_history(history, max_turns=MAX_HISTORY_TURNS)
 
         if not self._should_use_llm(query, recent_history, det_result):
-            return det_result
+            return self._record_telemetry_event(det_result, started=started, fallback_triggered=False)
 
         timeout_sec = max(0.05, float(getattr(settings, "QUERY_REWRITER_LLM_TIMEOUT", 2.5)))
         prompt_messages = self._build_llm_messages(
@@ -1251,12 +1283,12 @@ class QueryRewriter:
         )
         raw_output = await self._invoke_rewriter_llm(prompt_messages, timeout_sec=timeout_sec)
         if not raw_output:
-            return det_result
+            return self._record_telemetry_event(det_result, started=started, fallback_triggered=True)
 
         parsed = _parse_llm_rewriter_json(raw_output)
         if not parsed:
             logger.debug("[QueryRewriter] Invalid LLM rewriter JSON; using deterministic result.")
-            return det_result
+            return self._record_telemetry_event(det_result, started=started, fallback_triggered=True)
 
         standalone_q = parsed["standalone_query"]
 
@@ -1268,7 +1300,7 @@ class QueryRewriter:
             and not any(p in det_result.standalone_query for p in bare_pronouns)
         ):
             logger.debug("[QueryRewriter] LLM left pronoun unresolved; falling back to deterministic rewrite.")
-            return det_result
+            return self._record_telemetry_event(det_result, started=started, fallback_triggered=True)
 
         # Safety guardrail: prevent situational "出差" from hallucinating FINANCE on pure IT borrowing queries
         llm_domains: List[str] = list(parsed["domains"])
@@ -1318,7 +1350,7 @@ class QueryRewriter:
             sub_queries,
         )
 
-        return RewrittenQuery(
+        llm_result = RewrittenQuery(
             original_query=query,
             standalone_query=standalone_q,
             sub_queries=sub_queries,
@@ -1330,6 +1362,7 @@ class QueryRewriter:
             coreference_resolved=coref_resolved,
             anchor_topic=det_result.anchor_topic or (entities[0] if entities else None),
         )
+        return self._record_telemetry_event(llm_result, started=started, fallback_triggered=False)
 
 
 # Global singleton

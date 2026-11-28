@@ -1,10 +1,10 @@
 # Enterprise AI Digital Assistant - 前端现代化与 ChatGPT/Gemini 范式重构全景背书白皮书
 
 > **项目名称**：企业级 AI 数字员工平台 - 现代化终端体验重塑与 Copilot 架构升级  
-> **当前运行模式**：**PRAGMATIC REALIZATION & COGNITIVE ROUTING MODE (Sprint F-01~F-09 与 R-01~R-05 已全量闭环 · 进入 Sprint R-06 认知意图路由、多轮语境改写与语义槽位提取专项演进)**  
+> **当前运行模式**：**PRAGMATIC REALIZATION & COGNITIVE ROUTING MODE (Sprint F-01~F-09、R-01~R-05 与 Sprint R-06 认知意图路由专项已 100% 全量闭环)**  
 > **设计范式标准**：**ChatGPT / Gemini 极简沉浸式 Web 范式 + UI/UX Pro Max 企业级生产力标准**  
 > **基准规范**：[Summary.md](file:///g:/LLM_Learning/product/Summary.md) · [docs/PROJECT_PROGRESS.md](file:///g:/LLM_Learning/product/docs/PROJECT_PROGRESS.md) · [docs/SPEC.MD](file:///g:/LLM_Learning/product/docs/SPEC.MD) · [AGENTS.md](file:///g:/LLM_Learning/product/AGENTS.md) · `ui-ux-pro-max`  
-> **系统最后更新**：2026-11-26  
+> **系统最后更新**：2026-11-28  
 
 ---
 
@@ -18,7 +18,7 @@
 [PHASE 4: 多端响应与硬化验收]   ████████████████████████████████ 100% (Sprint F-07 & F-08 全部闭环)
 [PHASE 5: 原生体验与组件升维]   ████████████████████████████████ 100% (Sprint F-09: Vuebits 旗舰集成全量闭环)
 [PHASE 6: RBAC与管理员控制面]   ████████████████████████████████ 100% (Sprint R-05: Issue-0056~0059 全部闭环)
-[PHASE 7: 认知路由与槽位净化]   ████████████████████████░░░░░░░░  75% (Sprint R-06: Issue-0060~0062 闭环 · Issue-0063 待推)
+[PHASE 7: 认知路由与槽位净化]   ████████████████████████████████ 100% (Sprint R-06: Issue-0060~0063 全部闭环)
 ====================================================================================================
 ```
 
@@ -724,14 +724,15 @@ npx shadcn@latest add @vue-bits/PromptBar @vue-bits/ThoughtLine @vue-bits/CallCh
 
 ---
 
-### 三、当前运行验证与健康度状态 (2026-11-24 实测基线 · Sprint R-06 P1 Issue-0061 闭环)
+### 三、当前运行验证与健康度状态 (2026-11-28 实测基线 · Sprint R-06 Issue-0063 收尾闭环)
 
-- 单元测试套件：`backend/.venv/Scripts/python.exe -m pytest backend/tests/ -q --tb=short` -> 实测 `301 passed, 2 failed`（`test_contextual_query_rewriter.py` 10/10 全通、`test_cognitive_router.py` 12/12 全通，15 套件核心联测 `87 passed`；存留 2 项既有历史用例：`test_graph_unittest.py` 旧 Mock 文案断言及 `test_thought_persistence.py` 受前置 `test_mock_systems.py` 未清 `dependency_overrides` 影响，单独复跑 `1 passed`，排期 `Issue-0063` 统一清零）
-- 代码静态质量：`backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/` -> 0 errors, 0 warnings (`All checks passed!`)；`Issue-0061` 改动/新增 9 个后端与单测文件 `mypy` (`--follow-imports=skip`) 检查 0 errors
-- 前端生产构建：`frontend/` `npm run build` (`vite build`) -> `7,920 modules transformed`，0 errors（`PromptBar.vue` 与 `ChatContainer.vue` 已完成 `@数据源` `sourceId` 与 `/` 快捷指令元数据透传对齐，全站 0 系统 Emoji）
-- 当前工程态：`PRAGMATIC REALIZATION & COGNITIVE ROUTING MODE`（Sprint R-06 已闭环 P0 **Issue-0060** 混合认知意图路由与复合状态机、P1 **Issue-0061** 多轮指代消解/上下文补全与跨领域软加权检索引擎；下一步依次推进 **Issue-0062** 语义抽槽与硬编码剥离、**Issue-0063** 黄金评测与全绿清零）
+- 单元测试套件：`backend/.venv/Scripts/python.exe -m pytest backend/tests/ -q --tb=line --no-header` -> 实测 `389 passed, 0 failed`（100% PASS，历史 2 项遗留失败已清零；Issue-0063 定向 7 套件联测 `87 passed`；ReviewScore `95/100 APPROVED`）
+- 代码静态质量：`backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/` -> `0` errors (`All checks passed!`)；`Issue-0063` 改动/新增 14 个后端与单测文件 `mypy` (`--follow-imports=skip`) 检查 `0` errors
+- 前端生产构建与规范扫描：`frontend/` `npm run build` (`vite build`) -> `7923 modules transformed`，`0` errors（`AdminSettingsView.vue` 新增认知策略配置卡，`AdminMonitoringView.vue` 新增认知路由与改写诊断区，严格 Admin RBAC 与中性单色设计）；`scripts/verify_frontend_dejargon.py` 扫描 50 源文件 `0` violations、`0` 系统 Emoji
+- 契约与向量库：`docs/generated/openapi-spec.json` 已同步 38 条 API 路径 (`IN_SYNC=True`)；Qdrant `local_storage` 集合 `enterprise_knowledge` 已验证 `7403` 个向量点位 (`dim=1024`)
+- 当前工程态：`PRAGMATIC REALIZATION & COGNITIVE ROUTING MODE`（Sprint R-06 P0 `Issue-0060` ~ P3 `Issue-0063` 已 100% 闭环，Sprint R-06 正式收官）
 
 ---
-*全景背书白皮书已于 2026-11-24 升级对齐，全面完成现有进度同步、Sprint R-06 演进推理与 Harness Onboarding SOP 契约更新。*
+*全景背书白皮书已于 2026-11-28 升级对齐，全面完成 Sprint R-06 全量闭环与实测基线归档。*
 
 

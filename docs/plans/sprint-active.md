@@ -186,6 +186,13 @@
   - [x] Checkpoint 5: 编写 `test_slot_extractor.py` (29/29 PASS)，通过 `ruff` (0 errors)、10 文件 `mypy` (0 errors)、8 套件核心联测 (73/73 PASS)、全仓 `pytest` (330 passed, 2 pre-existing failed)、Live Ollama 实测 (5/5 PASS)、`vite build` (7923 modules) 与去术语扫描 (0 violations)
   - [x] Checkpoint 6: 同步仓库文档与 OpenAPI Schema (38 paths IN_SYNC)，完成 Reviewer 11 维审查 (Score: 100, `APPROVED`) 并归档 `.harness/runs/Issue-0062/` 9 份只读证据包
 
+- [x] **Sprint R-06 / Issue-0063: 意图与改写黄金评测集、对抗回归测试、路由/改写可观测联动与基线清零 - [100% COMPLETED]**
+  - [x] Checkpoint 1 [Track A]: 扩展 `runtime_config.py`、`admin_config.py`、`metrics.py` 与 `monitoring.py`，构建路由/改写/抽槽运行态配置与 `telemetry.cognitive` 聚合基座
+  - [x] Checkpoint 2 [Track A]: 在 `router_node.py`、`query_rewriter.py` 与 `slot_extractor.py` 接入非侵入式认知可观测埋点（避免 `arewrite` 双重计数）
+  - [x] Checkpoint 3 [Track B]: 改造 `AdminSettingsView.vue` 与 `AdminMonitoringView.vue`，联动认知路由与查询改写配置及诊断看板
+  - [x] Checkpoint 4 [Track A]: 新建 `test_intent_routing_matrix.py` 黄金评测与对抗矩阵，并扩充 `test_contextual_query_rewriter.py`、`test_admin_config_rbac.py`、`test_admin_monitoring_api.py`
+  - [x] Checkpoint 5 [Track A]: 修复 `test_mock_systems.py`、`test_thought_persistence.py` 与 `test_graph_unittest.py` 历史 2 项遗留失败，实现全仓 `pytest` 100% PASS (389 passed, 0 failed; ruff 0 errors; mypy 14 modified files 0 errors; vite build 7923 modules; ReviewScore: 95/100 `APPROVED`; Sprint R-06 closed)
+
 ---
 
 ## Historical Achievements (已交付稳态资产):

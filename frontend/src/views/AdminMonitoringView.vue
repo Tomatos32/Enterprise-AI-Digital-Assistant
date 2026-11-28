@@ -662,6 +662,256 @@
           </div>
         </section>
 
+        <!-- Section 3.5: Cognitive Routing, Query Rewriting & Slot Diagnostics -->
+        <section class="rounded-xl bg-bg-card border border-border-card p-5 sm:p-6 space-y-5">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-bg-surface border border-border-subtle text-text-main flex items-center justify-center shrink-0">
+                <GitBranch class="w-4 h-4" />
+              </div>
+              <div>
+                <h2 class="text-sm font-semibold text-text-main">认知路由与改写诊断</h2>
+                <p class="text-[11px] text-text-muted">
+                  意图路由分布、多轮语境改写降级统计、语义槽位提取完整率与近期脱敏样本
+                </p>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+              <span class="px-2.5 py-1 rounded-md bg-bg-surface border border-border-subtle text-text-secondary tabular-nums">
+                累计路由 <strong class="text-text-main">{{ formatInteger(cognitiveRouting.total_routed) }}</strong>
+              </span>
+              <span class="px-2.5 py-1 rounded-md bg-bg-surface border border-border-subtle text-text-secondary tabular-nums">
+                复合意图 <strong class="text-text-main">{{ formatInteger(cognitiveRouting.compound_count) }}</strong>
+              </span>
+              <span class="px-2.5 py-1 rounded-md bg-bg-surface border border-border-subtle text-text-secondary tabular-nums">
+                路由降级 <strong class="text-text-main">{{ formatInteger(cognitiveRouting.llm_fallback_count) }}</strong>
+              </span>
+            </div>
+          </div>
+
+          <!-- KPI Summary Row -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Rewriting Summary -->
+            <div class="rounded-lg bg-bg-surface border border-border-subtle p-4 space-y-2">
+              <div class="flex items-center justify-between text-[11px] text-text-secondary">
+                <span class="font-medium">多轮查询改写</span>
+                <span class="tabular-nums text-text-muted">
+                  均值 {{ Number(cognitiveRewriting.avg_latency_ms || 0).toFixed(1) }} ms
+                </span>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span class="text-xl font-semibold tabular-nums text-text-main">
+                  {{ formatInteger(cognitiveRewriting.total_rewrites) }}
+                </span>
+                <span class="text-[11px] text-text-muted">
+                  降级率 {{ rewriteFallbackRate }}%
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-text-secondary tabular-nums">
+                <span>LLM {{ formatInteger(cognitiveRewriting.llm_rewrite_count) }}</span>
+                <span>规则 {{ formatInteger(cognitiveRewriting.deterministic_count) }}</span>
+                <span>指代消解 {{ formatInteger(cognitiveRewriting.coreference_resolved_count) }}</span>
+                <span>回退 {{ formatInteger(cognitiveRewriting.fallback_count) }}</span>
+              </div>
+            </div>
+
+            <!-- Slot Extraction Summary -->
+            <div class="rounded-lg bg-bg-surface border border-border-subtle p-4 space-y-2">
+              <div class="flex items-center justify-between text-[11px] text-text-secondary">
+                <span class="font-medium">语义槽位提取</span>
+                <span class="tabular-nums text-text-muted">
+                  完整率 {{ cognitiveSlots.total_extractions > 0 ? `${slotCompletionRate}%` : '暂无数据' }}
+                </span>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span class="text-xl font-semibold tabular-nums text-text-main">
+                  {{ formatInteger(cognitiveSlots.total_extractions) }}
+                </span>
+                <span class="text-[11px] text-text-muted">
+                  完整 {{ formatInteger(cognitiveSlots.complete_count) }} · 澄清 {{ formatInteger(cognitiveSlots.clarification_count) }}
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-text-secondary tabular-nums">
+                <span>混合 LLM {{ formatInteger(cognitiveSlots.hybrid_llm_count) }}</span>
+                <span>多轮合并 {{ formatInteger(cognitiveSlots.multi_turn_merge_count) }}</span>
+              </div>
+            </div>
+
+            <!-- Domain Coverage Summary -->
+            <div class="rounded-lg bg-bg-surface border border-border-subtle p-4 space-y-2">
+              <div class="flex items-center justify-between text-[11px] text-text-secondary">
+                <span class="font-medium">跨领域检索命中分布</span>
+                <span class="tabular-nums text-text-muted">
+                  {{ (cognitiveRewriting.by_domain || []).length }} 个领域
+                </span>
+              </div>
+              <div
+                v-if="cognitiveRewriting.by_domain && cognitiveRewriting.by_domain.length > 0"
+                class="flex flex-wrap gap-1.5 pt-0.5"
+              >
+                <span
+                  v-for="dom in cognitiveRewriting.by_domain"
+                  :key="`dom-${dom.domain}`"
+                  class="px-2 py-0.5 rounded-md bg-bg-card border border-border-subtle text-[11px] text-text-main tabular-nums"
+                >
+                  {{ dom.domain }} · {{ formatInteger(dom.count) }}
+                </span>
+              </div>
+              <div v-else class="text-xs text-text-muted pt-1">
+                暂无跨领域改写记录
+              </div>
+            </div>
+          </div>
+
+          <!-- Intent & Tier Distribution Bars -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- By Intent -->
+            <div class="rounded-lg bg-bg-surface border border-border-subtle p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xs font-semibold text-text-main">路由意图分布</h3>
+                <span class="text-[11px] text-text-muted tabular-nums">
+                  共 {{ formatInteger(cognitiveRouting.total_routed) }} 次
+                </span>
+              </div>
+              <div
+                v-if="cognitiveRouting.by_intent && cognitiveRouting.by_intent.length > 0"
+                class="space-y-2.5"
+              >
+                <div
+                  v-for="item in cognitiveRouting.by_intent"
+                  :key="`intent-${item.intent}`"
+                  class="space-y-1"
+                >
+                  <div class="flex items-center justify-between text-[11px]">
+                    <span class="font-medium text-text-main">{{ item.label || item.intent }}</span>
+                    <span class="tabular-nums text-text-secondary">
+                      {{ formatInteger(item.count) }} ({{ Number(item.share_percent || 0).toFixed(1) }}%)
+                    </span>
+                  </div>
+                  <div class="h-1.5 rounded-full bg-bg-hover overflow-hidden">
+                    <div
+                      class="h-full rounded-full bg-text-main transition-[width] duration-300"
+                      :style="{ width: `${Math.min(100, Math.max(0, Number(item.share_percent || 0)))}%` }"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="py-5 text-center text-xs text-text-muted">
+                暂无路由意图统计数据
+              </div>
+            </div>
+
+            <!-- By Tier -->
+            <div class="rounded-lg bg-bg-surface border border-border-subtle p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xs font-semibold text-text-main">路由决策层级分布</h3>
+                <span class="text-[11px] text-text-muted tabular-nums">
+                  {{ (cognitiveRouting.by_tier || []).length }} 个层级
+                </span>
+              </div>
+              <div
+                v-if="cognitiveRouting.by_tier && cognitiveRouting.by_tier.length > 0"
+                class="space-y-2.5"
+              >
+                <div
+                  v-for="item in cognitiveRouting.by_tier"
+                  :key="`tier-${item.tier}`"
+                  class="space-y-1"
+                >
+                  <div class="flex items-center justify-between text-[11px]">
+                    <span class="font-medium text-text-main">{{ item.label || item.tier }}</span>
+                    <span class="tabular-nums text-text-secondary">
+                      {{ formatInteger(item.count) }} ({{ Number(item.share_percent || 0).toFixed(1) }}%)
+                    </span>
+                  </div>
+                  <div class="h-1.5 rounded-full bg-bg-hover overflow-hidden">
+                    <div
+                      class="h-full rounded-full bg-text-secondary transition-[width] duration-300"
+                      :style="{ width: `${Math.min(100, Math.max(0, Number(item.share_percent || 0)))}%` }"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="py-5 text-center text-xs text-text-muted">
+                暂无路由层级统计数据
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Redacted Before/After Rewrite Samples -->
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-semibold text-text-main">近期脱敏查询改写样本</h3>
+              <span class="text-[11px] text-text-muted tabular-nums">
+                最近 {{ (cognitiveRewriting.recent_samples || []).length }} 条
+              </span>
+            </div>
+
+            <div class="overflow-x-auto rounded-lg border border-border-subtle">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-bg-surface text-[11px] text-text-secondary border-b border-border-subtle">
+                    <th class="py-2.5 px-3.5 font-semibold">样本编号</th>
+                    <th class="py-2.5 px-3 font-semibold">原始问句（脱敏）</th>
+                    <th class="py-2.5 px-3 font-semibold">改写后独立问句</th>
+                    <th class="py-2.5 px-3 font-semibold">改写方式</th>
+                    <th class="py-2.5 px-3 font-semibold text-right">耗时 (ms)</th>
+                    <th class="py-2.5 px-3 font-semibold text-right">记录时间</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border-subtle">
+                  <tr v-if="!cognitiveRewriting.recent_samples || cognitiveRewriting.recent_samples.length === 0">
+                    <td colspan="6" class="py-8 text-center text-text-muted">
+                      暂无近期查询改写样本记录
+                    </td>
+                  </tr>
+                  <tr
+                    v-for="sample in cognitiveRewriting.recent_samples"
+                    :key="sample.rewrite_id"
+                    class="hover:bg-bg-hover/60 transition-colors duration-150"
+                  >
+                    <td class="py-2.5 px-3.5 font-mono text-[11px] text-text-secondary tabular-nums whitespace-nowrap">
+                      {{ sample.rewrite_id }}
+                    </td>
+                    <td class="py-2.5 px-3 text-text-secondary max-w-[200px] truncate" :title="sample.original_query">
+                      {{ sample.original_query }}
+                    </td>
+                    <td class="py-2.5 px-3 font-medium text-text-main max-w-[260px] truncate" :title="sample.standalone_query">
+                      {{ sample.standalone_query }}
+                    </td>
+                    <td class="py-2.5 px-3 whitespace-nowrap">
+                      <div class="inline-flex items-center gap-1.5">
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-medium border bg-bg-surface border-border-subtle text-text-main">
+                          {{ rewriteMethodLabel(sample.rewrite_method) }}
+                        </span>
+                        <span
+                          v-if="sample.coreference_resolved"
+                          class="px-1.5 py-0.5 rounded-md text-[10px] border bg-bg-surface border-border-subtle text-text-secondary"
+                        >
+                          指代消解
+                        </span>
+                        <span
+                          v-if="sample.fallback_triggered"
+                          class="px-1.5 py-0.5 rounded-md text-[10px] border bg-bg-surface border-status-approval/40 text-status-approval"
+                        >
+                          超时降级
+                        </span>
+                      </div>
+                    </td>
+                    <td class="py-2.5 px-3 text-right tabular-nums text-text-main whitespace-nowrap">
+                      {{ Number(sample.latency_ms || 0).toFixed(1) }}
+                    </td>
+                    <td class="py-2.5 px-3 text-right tabular-nums text-text-muted whitespace-nowrap">
+                      {{ formatIsoTime(sample.timestamp) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
         <!-- Section 4: Recent Tool Execution Audit Stream -->
         <section class="rounded-xl bg-bg-card border border-border-card p-5 sm:p-6 space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -949,6 +1199,7 @@ import {
   Table2,
   Wrench,
   Flame,
+  GitBranch,
 } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/authStore';
 import { usePreferencesStore } from '../stores/preferencesStore';
@@ -1048,6 +1299,33 @@ const overview = reactive({
       by_tool: [],
       recent_audits: [],
     },
+    cognitive: {
+      routing: {
+        total_routed: 0,
+        compound_count: 0,
+        llm_fallback_count: 0,
+        by_intent: [],
+        by_tier: [],
+        recent_decisions: [],
+      },
+      rewriting: {
+        total_rewrites: 0,
+        llm_rewrite_count: 0,
+        deterministic_count: 0,
+        coreference_resolved_count: 0,
+        fallback_count: 0,
+        avg_latency_ms: 0,
+        by_domain: [],
+        recent_samples: [],
+      },
+      slots: {
+        total_extractions: 0,
+        complete_count: 0,
+        clarification_count: 0,
+        hybrid_llm_count: 0,
+        multi_turn_merge_count: 0,
+      },
+    },
   },
   business: {
     chat: {
@@ -1081,6 +1359,49 @@ const overview = reactive({
 const systemHealth = computed(() => overview.system_health);
 const telemetry = computed(() => overview.telemetry);
 const business = computed(() => overview.business);
+const cognitiveRouting = computed(() => telemetry.value.cognitive?.routing || {
+  total_routed: 0,
+  compound_count: 0,
+  llm_fallback_count: 0,
+  by_intent: [],
+  by_tier: [],
+  recent_decisions: [],
+});
+const cognitiveRewriting = computed(() => telemetry.value.cognitive?.rewriting || {
+  total_rewrites: 0,
+  llm_rewrite_count: 0,
+  deterministic_count: 0,
+  coreference_resolved_count: 0,
+  fallback_count: 0,
+  avg_latency_ms: 0,
+  by_domain: [],
+  recent_samples: [],
+});
+const cognitiveSlots = computed(() => telemetry.value.cognitive?.slots || {
+  total_extractions: 0,
+  complete_count: 0,
+  clarification_count: 0,
+  hybrid_llm_count: 0,
+  multi_turn_merge_count: 0,
+});
+const rewriteFallbackRate = computed(() => {
+  const total = Number(cognitiveRewriting.value.total_rewrites || 0);
+  const fb = Number(cognitiveRewriting.value.fallback_count || 0);
+  if (total <= 0) return '0.0';
+  return ((fb / total) * 100).toFixed(1);
+});
+const slotCompletionRate = computed(() => {
+  const total = Number(cognitiveSlots.value.total_extractions || 0);
+  const comp = Number(cognitiveSlots.value.complete_count || 0);
+  if (total <= 0) return '0.0';
+  return ((comp / total) * 100).toFixed(1);
+});
+const rewriteMethodLabel = (method) => {
+  if (method === 'llm_rewrite') return 'LLM 改写';
+  if (method === 'deterministic') return '规则改写';
+  if (method === 'passthrough') return '直通';
+  return method || '规则改写';
+};
 const componentHealthList = computed(() => systemHealth.value.components || []);
 const llmEngineMeta = computed(() => systemHealth.value.llm_engine || {});
 const qdrantMeta = computed(() => systemHealth.value.qdrant || {});
@@ -1413,7 +1734,19 @@ const loadOverview = async (silent = false) => {
         Object.assign(overview.system_health, json.data.system_health);
       }
       if (json.data.telemetry) {
-        Object.assign(overview.telemetry, json.data.telemetry);
+        const { cognitive: incomingCognitive, ...restTelemetry } = json.data.telemetry;
+        Object.assign(overview.telemetry, restTelemetry);
+        if (incomingCognitive && typeof incomingCognitive === 'object') {
+          if (incomingCognitive.routing) {
+            Object.assign(overview.telemetry.cognitive.routing, incomingCognitive.routing);
+          }
+          if (incomingCognitive.rewriting) {
+            Object.assign(overview.telemetry.cognitive.rewriting, incomingCognitive.rewriting);
+          }
+          if (incomingCognitive.slots) {
+            Object.assign(overview.telemetry.cognitive.slots, incomingCognitive.slots);
+          }
+        }
       }
       if (json.data.business) {
         Object.assign(overview.business, json.data.business);

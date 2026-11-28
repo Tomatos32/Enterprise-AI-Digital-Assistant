@@ -14,7 +14,7 @@ from backend.api.v1.mock.oa_mock import SLA_METRICS
 from backend.core.exceptions import StandardResponse
 from backend.core.knowledge_ledger import list_task_records
 from backend.core.llm import get_llm_info
-from backend.core.metrics import get_recent_tool_audits
+from backend.core.metrics import get_cognitive_telemetry_snapshot, get_recent_tool_audits
 from backend.core.rbac import RoleEnum, UserPayload, require_role
 from backend.core.redis import check_redis_health
 from backend.core.runtime_config import get_sanitized_admin_config
@@ -231,6 +231,7 @@ def _collect_prometheus_snapshot(audit_limit: int) -> Dict[str, Any]:
             "by_tool": tool_stats,
             "recent_audits": get_recent_tool_audits(limit=audit_limit),
         },
+        "cognitive": get_cognitive_telemetry_snapshot(limit=audit_limit),
     }
 
 
