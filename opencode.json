@@ -1,0 +1,42 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "*": "allow",
+    "**/docs/PROJECT_PROGRESS.md": "ask",
+    "**/docs/guidelines/**": "ask",
+    "**/docs/harness/*-design.md": "ask",
+    "**/benchmark/test-dataset.json": "ask",
+    "**/backend/scripts/generate_sample_kb.py": "ask",
+    "**/.harness/runs/**": "deny",
+    "**/docs/sample_kb/**": "deny",
+    "**/docs/archive/**": "deny"
+  },
+  "command": {
+    "*": "ask",
+    "pytest*": "allow",
+    "git status*": "allow",
+    "git diff*": "allow"
+  },
+  "agent": {
+    "explore": {
+      "model": "magpie/agy-cli/gemini-4-hydrogen"
+    },
+    "compaction": {
+      "model": "magpie/agy-cli/gemini-4-hydrogen"
+    },
+    "title": {
+      "model": "magpie/agy-cli/gemini-4-hydrogen"
+    },
+    "summary": {
+      "model": "magpie/agy-cli/gemini-4-hydrogen"
+    }
+  },
+  "compaction": {
+    "auto": true,
+    "keep": {
+      "tokens": 15000
+    },
+    "buffer": 25000
+  },
+  "small_model": "magpie/agy-cli/gemini-4-hydrogen"
+}

@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "agents": {
+    "harness-deployment": {
+      "claude": "a9b4ee41e6d57b43f3bffcd6be154915ed7fff7f054eb8d8a752da645189aabe",
+      "opencode": "a9b4ee41e6d57b43f3bffcd6be154915ed7fff7f054eb8d8a752da645189aabe",
+      "antigravity": "a9b4ee41e6d57b43f3bffcd6be154915ed7fff7f054eb8d8a752da645189aabe"
+    },
+    "harness-developer": {
+      "claude": "1b773a8598f8ccebc511881928ecdf7bc881666f49e01402423d35f41eab165e",
+      "opencode": "1b773a8598f8ccebc511881928ecdf7bc881666f49e01402423d35f41eab165e",
+      "antigravity": "1b773a8598f8ccebc511881928ecdf7bc881666f49e01402423d35f41eab165e"
+    },
+    "harness-documentation": {
+      "claude": "76b5f05e23ef62e4a7a42fcc8717ad81104d0ca8daaa3f27e3285dba4f14908a",
+      "opencode": "76b5f05e23ef62e4a7a42fcc8717ad81104d0ca8daaa3f27e3285dba4f14908a",
+      "antigravity": "76b5f05e23ef62e4a7a42fcc8717ad81104d0ca8daaa3f27e3285dba4f14908a"
+    },
+    "harness-evaluator": {
+      "claude": "b874533bee1785ef29bcf6d68c3375920eebf511692d1d929728ad1e4f73a087",
+      "opencode": "b874533bee1785ef29bcf6d68c3375920eebf511692d1d929728ad1e4f73a087",
+      "antigravity": "b874533bee1785ef29bcf6d68c3375920eebf511692d1d929728ad1e4f73a087"
+    },
+    "harness-onboarding": {
+      "claude": "9638997eaefc989e6597c450eede1ec001e9f9fde6fe83862a9a7671caf82332",
+      "opencode": "9638997eaefc989e6597c450eede1ec001e9f9fde6fe83862a9a7671caf82332",
+      "antigravity": "9638997eaefc989e6597c450eede1ec001e9f9fde6fe83862a9a7671caf82332"
+    },
+    "harness-planner": {
+      "claude": "b354b69e8398c625b98f40a3d96b490de8e75bdf984d8627b6d73ac4321120cc",
+      "opencode": "b354b69e8398c625b98f40a3d96b490de8e75bdf984d8627b6d73ac4321120cc",
+      "antigravity": "b354b69e8398c625b98f40a3d96b490de8e75bdf984d8627b6d73ac4321120cc"
+    },
+    "harness-recorder": {
+      "claude": "9fd812e7e5cc266ba064e8a826827c6600ead98a74af963072434559ac55ac40",
+      "opencode": "9fd812e7e5cc266ba064e8a826827c6600ead98a74af963072434559ac55ac40",
+      "antigravity": "9fd812e7e5cc266ba064e8a826827c6600ead98a74af963072434559ac55ac40"
+    },
+    "harness-reviewer": {
+      "claude": "d2bd5b13f0334031a4e0fb9ad694bf0e018419127f6bf33d3e9c520c9ac2d20d",
+      "opencode": "d2bd5b13f0334031a4e0fb9ad694bf0e018419127f6bf33d3e9c520c9ac2d20d",
+      "antigravity": "d2bd5b13f0334031a4e0fb9ad694bf0e018419127f6bf33d3e9c520c9ac2d20d"
+    },
+    "harness-verifier": {
+      "claude": "b5176a604bb9247cbed0c20f221beb1083303d22f39cd2d60948a62040042c6d",
+      "opencode": "b5176a604bb9247cbed0c20f221beb1083303d22f39cd2d60948a62040042c6d",
+      "antigravity": "b5176a604bb9247cbed0c20f221beb1083303d22f39cd2d60948a62040042c6d"
+    }
+  }
+}

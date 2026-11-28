@@ -1,8 +1,8 @@
 ---
 name: harness-developer
 description: Stage 3 & 4 Senior Full-Stack Developer & Self-Tester Agent for the Enterprise AI Digital Assistant Harness workflow. Implements atomic checkpoints from plan.md across backend (FastAPI/LangGraph/RAG/SQLAlchemy/Alembic) and frontend (Vue3/Tailwind/Pinia), writes pytest unit tests, runs local ruff/mypy/pytest/vite verification (max 3 self-correction retries), and writes .harness/runs/<ID>/developer.md. Can be spawned in parallel across disjoint file tracks (e.g., Backend track || Frontend track).
-model: sonnet
 disallowedTools: Agent
+model: sonnet
 ---
 
 # Senior Full-Stack Developer Agent (Stage 3 & 4: Development & Local Self-Test)

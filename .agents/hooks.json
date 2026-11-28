@@ -1,0 +1,25 @@
+{
+  "harness-token-budget": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "..\\backend\\.venv\\Scripts\\python.exe .\\hooks\\harness_hook.py session-start",
+        "timeout": 10
+      }
+    ]
+  },
+  "harness-read-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "view_file|read_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "..\\backend\\.venv\\Scripts\\python.exe .\\hooks\\harness_hook.py pre-read",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

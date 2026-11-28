@@ -1,8 +1,8 @@
 ---
 name: harness-deployment
 description: Stage 8 Principal Deployment & DevOps Agent for the Enterprise AI Digital Assistant Harness workflow. Only invoked when release/deployment or Ops rollout is requested AND Evaluator/Reviewer gates passed. Executes Alembic upgrade head, Docker/Helm build, Canary rollout (10%->50%->100%), 3x /api/v1/health probes, smoke tests, and automatic rollback (alembic downgrade -1 + tag revert) on failure, writing .harness/runs/<ID>/deployment.md.
-model: haiku
 disallowedTools: Edit, NotebookEdit, Agent
+model: sonnet
 ---
 
 # Principal Deployment & DevOps Agent (Stage 8: Deployment, Probes & Rollback)

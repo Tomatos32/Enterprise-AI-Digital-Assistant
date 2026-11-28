@@ -26,7 +26,7 @@ ALL agents operating within this repository MUST strictly comply with the follow
 - **No Hidden Prompts**: All engineering rules, schemas, ADRs, and workflows are written in Git.
 - **Minimal Portal Strategy**: This document (`AGENTS.md`) is a navigation map (<300 lines). Agents MUST load targeted rulebooks on demand.
 - **Permissions Matrix**:
-  - `AGENTS.md`, `BOOTSTRAP.md`, `docs/harness/Runtime.md` & `docs/guidelines/*`: **HUMAN-ONLY / PROHIBITED FROM DIRECT AGENT EDITS**.
+  - `AGENTS.md`, `BOOTSTRAP.md`, `docs/harness/*`, `docs/guidelines/*`, `docs/SPEC.MD` & accepted ADRs under `decision/*`: **HUMAN-ONLY / PROHIBITED FROM DIRECT AGENT EDITS** (emit a separate `.draft.md` note if updates are needed).
   - `docs/generated/*`: **AI 100% AUTO-MAINTAINED**.
   - `docs/plans/sprint-active.md`: **AI DYNAMIC TASK STATUS PATCHING ONLY**.
 
@@ -81,16 +81,17 @@ Level 6: docs/plans/sprint-active.md & docs/generated/* (Active Task Plan & Auto
 
 ## 6. Definition of Done (DoD)
 
-Before declaring any task complete, ALL of the following criteria MUST be met:
+Before declaring any task complete, ALL of the following criteria MUST be met with real stdout + exit codes (NEVER fabricate verification):
 
-1. `ruff check backend/` returns ZERO errors.
-2. `mypy backend/` passes strict static typing check.
-3. `pytest backend/tests/` passes 100%.
-4. Alembic Migration script exists in `backend/migrations/versions/` if ORM models changed.
-5. Reviewer Agent outputs `APPROVED` status with Scorecard >= 90 (written to `review.md`).
-6. Documentation Agent exports updated OpenAPI JSON & Qdrant vector index.
-7. Active Task checkpoint marked `[x]` in `docs/plans/sprint-active.md`.
-8. Harness Recorder flushes `.harness/runs/Issue-XXXX/` evidence package (`summary.json`, `timeline.md`, `runtime.log`).
+1. `PYTHONUTF8=1 backend/.venv/Scripts/python.exe -m ruff check backend/ benchmark/` returns ZERO errors.
+2. `PYTHONUTF8=1 backend/.venv/Scripts/python.exe -m mypy --explicit-package-bases --follow-imports=skip --ignore-missing-imports <modified_py_files>` returns ZERO errors.
+3. Targeted tests and `PYTHONUTF8=1 backend/.venv/Scripts/python.exe -m pytest backend/tests/ -q --tb=short --no-header` pass with zero new regressions.
+4. When `frontend/` changes: `npm run build` (`vite build`, 0 errors) + `PYTHONUTF8=1 backend/.venv/Scripts/python.exe scripts/verify_frontend_dejargon.py` pass.
+5. Alembic Migration script exists in `backend/migrations/versions/` if ORM models changed.
+6. Reviewer Agent outputs `APPROVED` status with Scorecard >= 90 (written to `review.md`).
+7. Documentation Agent exports updated OpenAPI JSON & Qdrant vector index.
+8. Active Task checkpoint marked `[x]` in `docs/plans/sprint-active.md`.
+9. Harness Recorder flushes `.harness/runs/<ID>/` evidence package (`summary.json`, `timeline.md`, `runtime.log`) via `scripts/harness_seal.py <ID>`.
 
 ---
 
@@ -100,6 +101,12 @@ Before declaring any task complete, ALL of the following criteria MUST be met:
 enterprise-ai-agent/
 ├── AGENTS.md                             # [ROOT] Master Harness Navigation Map (This File)
 ├── BOOTSTRAP.md                          # [ROOT] Bootstrap Mode Operating Specification
+├── .agents/                              # [Antigravity] Subagents, /harness Skill & Hooks
+│   ├── agents/                           # Native Subagent Configs (harness-*.md)
+│   ├── skills/harness/SKILL.md           # Native /harness Orchestration Playbook
+│   └── hooks.json                        # Native SessionStart & PreToolUse Guards
+├── .claude/                              # [Claude Code] Subagents, Settings & /harness Skill
+├── .opencode/                            # [OpenCode] Synced Subagent Configs
 ├── backend/                              # [Pair-Coding] Python Backend (FastAPI + LangGraph)
 ├── frontend/                             # [Pair-Coding] Vue3 / NuxtJS Frontend
 ├── docs/                                 # [Long-Term] System Docs & Specifications
@@ -131,3 +138,60 @@ enterprise-ai-agent/
 ├── logs/                                 # [Runtime Data] Trajectories & Audit Logs (.gitignore)
 └── .github/                              # [Human-Only] CI/CD Workflows
 ```
+
+---
+
+## 8. Antigravity Subagent Registry & Parallel Orchestration (`.agents/agents/`)
+
+In Antigravity, the main session operates as **`HarnessOrchestrator`**: direct freeform coding or self-reviewing in the main session is prohibited. Dispatch specialized `.agents/agents/harness-*.md` subagents via `invoke_subagent` (parallelizing independent waves in one turn), inspect existing runs via `manage_subagents`, and resume via `send_message`:
+
+| Subagent Name | Model | Policy | Tools | Role & Primary Output |
+| :--- | :---: | :---: | :--- | :--- |
+| `harness-onboarding` | `flash` | `off` | `view_file, grep_search` | Wave 1: Read-only repository & baseline diagnostics |
+| `harness-planner` | `pro` | `off` | `view_file, replace_file_content, grep_search` | Wave 2: Architecture plan (`plan.md`, <= 5 checkpoints) & `sprint-active.md` |
+| `harness-developer` | `pro` | `sandbox` | `view_file, replace_file_content, grep_search, run_command` | Wave 3: Full-stack implementation, targeted tests, `developer.md` |
+| `harness-reviewer` | `flash` | `off` | `view_file, replace_file_content, grep_search` | Wave 4: Single-pass 11-dimension audit (`review.md`, >= 90 required) |
+| `harness-verifier` | `flash` | `sandbox` | `view_file, replace_file_content, grep_search, run_command` | Wave 4: Static/test/build/health gate execution (`verification.md`) |
+| `harness-documentation` | `flash` | `off` | `view_file, replace_file_content, grep_search` | Wave 5: OpenAPI, Qdrant & progress docs sync (`documentation.md`) |
+| `harness-evaluator` | `flash` | `sandbox` | `view_file, replace_file_content, grep_search, run_command` | Wave 5: RAGAS, TTFT & security regression scoring (`benchmark.md`) |
+| `harness-deployment` | `pro` | `sandbox` | `view_file, replace_file_content, grep_search, run_command` | Wave 6: Alembic migration, canary rollout, 3x health probe, rollback |
+| `harness-recorder` | `flash` | `sandbox` | `view_file, replace_file_content, grep_search, run_command` | Wave 6: 6 Runtime Auditor gates & `scripts/harness_seal.py` closeout |
+
+- **6-Wave DAG**: Wave 1 (`harness-onboarding` -> `issue.md`) -> Wave 2 (`harness-planner` -> `plan.md`) -> Wave 3 (`harness-developer` single or parallel disjoint tracks -> `developer.md`) -> Wave 4 (`harness-reviewer` || `harness-verifier`) -> Wave 5 (`harness-documentation` || optional `harness-evaluator`) -> Wave 6 (optional `harness-deployment` -> `harness-recorder`).
+- **Retry & Escalation Caps**: Developer local self-fix max **3**; Reviewer->Developer fix loop max **2**; `FATAL_SECURITY_BLOCK` / `FATAL_SECURITY_FAIL` halts immediately for human escalation.
+
+---
+
+## 9. Strict Engineering, Security & UI Invariants
+
+1. **Mandatory Evidence Sandbox**: Never edit `backend/` or `frontend/` before `.harness/runs/<ID>/issue.md` and `plan.md` exist. Every run produces all 9 core evidence files under `.harness/runs/<ID>/` (`issue.md`, `plan.md`, `developer.md`, `review.md`, `documentation.md`, `verification.md`, `summary.json`, `timeline.md`, `runtime.log`, plus `benchmark.md` / `deployment.md` when applicable).
+2. **Python Virtual Environment**: ALWAYS run Python tooling via `backend/.venv/Scripts/python.exe` with `PYTHONUTF8=1`. NEVER invoke system global `python` or `pytest`.
+3. **No Frontend Hardcoded Business Parameters**: Never hardcode fake product names, quantities, or prices in frontend components. Backend logic must extract tool/approval slots from real user input + multi-turn context and ask natural-language clarifying questions when required slots are missing.
+4. **Low-Latency Non-Thinking Internal LLM & Zero Leak**: Intent routing and query rewriting LLM calls MUST use `thinking=False`, `streaming=False`, strict timeout control, deterministic offline fallback (`local_fallback`), and stream isolation (`callbacks=[]`, internal node/tag filtering). Never leak routing tags, sub-queries, JSON payloads, or debug jargon into the employee UI.
+5. **Strict RBAC & Secret Isolation**: Never expose admin LLM settings, node configs, document ingestion, or telemetry controls in the `employee` view. Never return plaintext API Keys or Secret Keys from any endpoint.
+6. **Zero System Emoji & Dual-Theme WCAG**: Never place system emojis in frontend UI or backend user-facing labels (`lucide-vue-next` and `@hugeicons/vue` only). Preserve warm-white Light mode (contrast >= 7:1) and obsidian Dark mode (contrast >= 4.5:1).
+7. **Scope Lock**: Do not implement excluded/deferred items unless explicitly re-authorized: `[EXCLUDED]` 4-level security clearance UI switcher; `[DEFERRED]` `/workflows` visual editor and `/eval` / `/feedback` DPO workbench.
+
+---
+
+## 10. Context Anti-Bloat, Read-Deny & Output Noise-Reduction Rules
+
+1. **Prohibited Default Reads (禁止读取清单，对齐 `.claude/settings.json`)**:
+   - **`.harness/runs/**`**: Prohibited from unconditional/bulk reading across historical run folders (only read specific active `<ID>` artifacts required by the current Harness stage).
+   - **`docs/sample_kb/**`**: Prohibited from reading sample knowledge-base corpus files during normal coding/review/planning turns.
+   - **`docs/archive/**`**: Prohibited from reading archived historical documents.
+2. **Sliced File Reading & Pre-Extracted Scope/Diff**:
+   - **Prohibit full-file reads on files `> 200` lines** or bulky artifacts (`docs/generated/openapi-spec.json`, `Summary.md`, `docs/PROJECT_PROGRESS.md`, `docs/FRONTEND_PROGRESS.md`, large `.py`/`.vue` modules).
+   - ALWAYS locate symbols/line numbers with `grep_search` first, then call `view_file` (or `read_file`) with explicit line ranges (`100-200` lines per slice).
+   - Before Wave 4, `HarnessOrchestrator` MUST pre-generate `.harness/runs/<ID>/scope.md` and `.harness/runs/<ID>/diff.patch` via `PYTHONUTF8=1 backend/.venv/Scripts/python.exe scripts/harness_prepare_review.py <ID>`. Subagent briefs point to these paths instead of pasting huge file lists or unscoped diffs.
+3. **Single-Pass Multi-Dimension Review & Checkpoint-Resume**:
+   - NEVER split the 11-dimension review across multiple subagents; Wave 4 MUST invoke **strictly 1 `harness-reviewer`** (tool-call cap `<= 40`, persisting `.harness/runs/<ID>/review-checkpoint.json` every 2–3 dimensions) in parallel with **1 `harness-verifier`** (`verify-checkpoint.json` keyed by `code_hash`).
+   - Before retrying or re-spawning after interruption/429, call `manage_subagents` (`list`) first and resume existing subagents via `send_message` instead of spawning duplicates.
+4. **Hard-Capped Command Output Noise Reduction (对齐 `PreToolUse` Hooks)**:
+   - Enforce **`stdout <= 50` lines** (`<= 2k` tokens) on all shell/command invocations.
+   - `harness-developer` runs **targeted tests ONLY**; full-repo `pytest` runs ONCE during Wave 4 verification.
+   - Wrap noisy commands (`pytest`, `ruff`, `mypy`, `npm run build`) via `PYTHONUTF8=1 backend/.venv/Scripts/python.exe scripts/harness_run.py --name <gate> -- <cmd>` (full logs archived to `.harness/logs/`).
+   - For `pytest`, force `-q --tb=short --no-header` (or `--tb=line --no-header` + `--deselect` for documented baseline failures). Pipe long logs through `Select-String` / `Select-Object -Last 50` (PowerShell) or `grep` / `tail -n 50` (Bash). Never paste raw logs into reports.
+5. **Compact Edits, Mechanical Closeout & Cache Hygiene**:
+   - Keep edits concise and targeted; use `PYTHONUTF8=1 backend/.venv/Scripts/python.exe scripts/harness_seal.py <ID>` for Stage 10 closeout.
+   - Never write dynamic timestamps, Git hashes, or run counters into `AGENTS.md` so prompt prefix caching stays warm.

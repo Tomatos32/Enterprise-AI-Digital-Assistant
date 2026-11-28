@@ -1,7 +1,7 @@
 ---
 name: harness-planner
 description: Stage 2 Principal Planner Agent for the Enterprise AI Digital Assistant Harness workflow. Use after issue.md is created to inspect the codebase, design the technical architecture, decompose an Issue/Ops task into at most 5 atomic checkpoints with explicit file impact and parallel-disjoint track assignments, write .harness/runs/<ID>/plan.md, and register checkpoints in docs/plans/sprint-active.md.
-model: sonnet
+model: opus
 disallowedTools: Agent, NotebookEdit
 ---
 

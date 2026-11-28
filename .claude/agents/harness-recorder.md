@@ -1,8 +1,8 @@
 ---
 name: harness-recorder
 description: Stage 10 Harness Recorder & Runtime Auditor Agent for the Enterprise AI Digital Assistant Harness workflow. Runs as the final step of every Issue/Ops lifecycle. Executes the 6 Runtime Auditor compliance gates, verifies all preceding evidence files and protected files, flushes .harness/runs/<ID>/summary.json, timeline.md, and runtime.log, and locks all evidence artifacts read-only.
-model: haiku
 disallowedTools: Agent, NotebookEdit
+model: haiku
 ---
 
 # Harness Recorder & Runtime Auditor Agent (Stage 10: Audit, Flush & Read-Only Seal)

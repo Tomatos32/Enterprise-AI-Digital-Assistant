@@ -1,0 +1,45 @@
+{
+  "opencode_provider": "magpie/agy-cli",
+  "tiers": {
+    "flagship": {
+      "claude_alias": "opus",
+      "claude_env": "ANTHROPIC_DEFAULT_OPUS_MODEL",
+      "claude_model_id": "claude-opus-5-5",
+      "opencode_model_id": "gemini-4-neon",
+      "antigravity_tier": "pro"
+    },
+    "balanced": {
+      "claude_alias": "sonnet",
+      "claude_env": "ANTHROPIC_DEFAULT_SONNET_MODEL",
+      "claude_model_id": "claude-sonnet-5-5",
+      "opencode_model_id": "gemini-4-neon",
+      "antigravity_tier": "pro"
+    },
+    "fast": {
+      "claude_alias": "haiku",
+      "claude_env": "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+      "claude_model_id": "claude-haiku-5-5",
+      "opencode_model_id": "gemini-4-hydrogen",
+      "antigravity_tier": "flash"
+    }
+  },
+  "claude_gateway_routes": {
+    "opus": "gemini-4-neon",
+    "sonnet": "gemini-4-neon",
+    "fable": "gemini-4-neon",
+    "haiku": "gemini-4-hydrogen",
+    "advisor": "gemini-4-neon",
+    "auto_mode_check": "gemini-4-hydrogen"
+  },
+  "role_tiers": {
+    "planner": "flagship",
+    "developer": "balanced",
+    "deployment": "balanced",
+    "reviewer": "fast",
+    "evaluator": "fast",
+    "documentation": "fast",
+    "onboarding": "fast",
+    "verifier": "fast",
+    "recorder": "fast"
+  }
+}

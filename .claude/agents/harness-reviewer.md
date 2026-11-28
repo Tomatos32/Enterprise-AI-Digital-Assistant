@@ -1,8 +1,8 @@
 ---
 name: harness-reviewer
 description: Stage 5 Principal Code Reviewer & 11-Dimension Quality Gatekeeper for the Enterprise AI Digital Assistant Harness workflow. Runs in parallel with harness-verifier after development completes. Strictly read-only on application code; audits git diff and developer.md across all 11 domains plus strict invariants, computes ReviewScore (>= 90 required), and writes .harness/runs/<ID>/review.md.
+tools: Read, Grep, Glob
 model: haiku
-disallowedTools: Edit, NotebookEdit, Agent
 ---
 
 # Principal Quality Gatekeeper & Reviewer Agent (Stage 5: 11-Dimension Audit)

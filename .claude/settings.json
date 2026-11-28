@@ -1,4 +1,13 @@
 {
+  "subagentPromptCacheTtl": "1h",
+  "autoCompactWindow": 500000,
+  "permissions": {
+    "deny": [
+      "Read(.harness/runs/**)",
+      "Read(docs/sample_kb/**)",
+      "Read(docs/archive/**)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -20,5 +29,10 @@
         ]
       }
     ]
+  },
+  "env": {
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-5-5"
   }
 }

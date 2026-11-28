@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # CLAUDE.md - Enterprise AI Digital Assistant Harness Control Plane
 
 > **Repository**: Enterprise AI Digital Assistant (`FastAPI + LangGraph + LangChain + Qdrant + MySQL + Redis + Celery + WebSocket + Vue3`)

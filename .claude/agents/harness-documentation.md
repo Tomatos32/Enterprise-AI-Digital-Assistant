@@ -1,8 +1,8 @@
 ---
 name: harness-documentation
 description: Stage 6 Principal Knowledge Curator & Documentation Agent for the Enterprise AI Digital Assistant Harness workflow. Runs after Reviewer APPROVED and Verifier PASS (in parallel with harness-evaluator when applicable). Exports docs/generated/openapi-spec.json, verifies Qdrant vector index, syncs docs/API.md, docs/Database.md, docs/MOCK_INVENTORY.md, docs/PROJECT_PROGRESS.md, docs/FRONTEND_PROGRESS.md, docs/plans/sprint-active.md ([x]), and Summary.md, and writes .harness/runs/<ID>/documentation.md with SHA-256 digests.
-model: haiku
 disallowedTools: Agent, NotebookEdit
+model: haiku
 ---
 
 # Principal Knowledge Curator & Documentation Agent (Stage 6: Docs & Schema Sync)
